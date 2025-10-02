@@ -179,58 +179,13 @@ export default function ApiKeysPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New Connection</CardTitle>
+          <CardTitle>OAuth Connections</CardTitle>
           <CardDescription>
-            For OAuth connections (YouTube, Instagram), you'll be redirected. For manual API Key connections (Facebook, etc.), you'll need to get an API Key from the platform's developer portal.
+            Connect your accounts by authenticating with the platform. You'll be redirected to their site to grant permission.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-             <Select value={newKeyPlatform} onValueChange={(value) => setNewKeyPlatform(value as SocialMediaAccount['platform'])} disabled={isSubmitting}>
-                <SelectTrigger className="w-full sm:w-1/2">
-                    <SelectValue placeholder="Select Platform..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="Facebook">Facebook</SelectItem>
-                </SelectContent>
-            </Select>
-            
-            {newKeyPlatform && (
-              <>
-                <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Where to find your API Key?</AlertTitle>
-                    <AlertDescription>
-                        To get an API key, you typically need to register an application in the developer portal for {newKeyPlatform}. Look for settings related to "API", "Developer Tools", or "Apps" on their website.
-                    </AlertDescription>
-                </Alert>
-                <div className="space-y-4">
-                    <Input
-                        type="text"
-                        value={newKeyUsername}
-                        onChange={(e) => setNewKeyUsername(e.target.value)}
-                        placeholder="Username (e.g. @YourHandle)"
-                        aria-label="Username"
-                        disabled={isSubmitting}
-                    />
-                    <Input
-                        type="password"
-                        value={newKeyValue}
-                        onChange={(e) => setNewKeyValue(e.target.value)}
-                        placeholder={"Paste your API Key or Access Token here"}
-                        aria-label="API Key Value"
-                        disabled={isSubmitting}
-                    />
-                </div>
-                <Button onClick={handleAddKey} disabled={isSubmitting}>
-                    {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                    Add Key
-                </Button>
-              </>
-            )}
-
-            <div className='border-t pt-4 space-y-6'>
-                 <h3 className="font-medium text-lg">OAuth Connections</h3>
-
+            <div className='space-y-6'>
                  {/* Instagram Connection */}
                 <div className="space-y-4">
                     {instagramAccount ? (
@@ -238,7 +193,7 @@ export default function ApiKeysPage() {
                             <div className='flex items-center gap-2'>
                                 <Instagram className="h-6 w-6 text-pink-600" />
                                 <div>
-                                    <p className='font-medium'>Instagram Connected</p>
+                                    <p className='font-medium'>Instagram & Facebook</p>
                                     <p className='text-sm text-muted-foreground'>{instagramAccount.username}</p>
                                 </div>
                             </div>
@@ -253,7 +208,7 @@ export default function ApiKeysPage() {
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently remove your connection for Instagram.
+                                    This action cannot be undone. This will permanently remove your connection for Instagram & Facebook.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -271,7 +226,7 @@ export default function ApiKeysPage() {
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertTitle>Account Requirement</AlertTitle>
                                 <AlertDescription>
-                                    Posting to Instagram requires an Instagram <b>Business</b> or <b>Creator</b> account that is linked to a Facebook Page.
+                                    Posting to Instagram & Facebook requires an Instagram <b>Business</b> or <b>Creator</b> account that is linked to a Facebook Page.
                                 </AlertDescription>
                             </Alert>
                             <div className="space-y-2">
@@ -291,7 +246,7 @@ export default function ApiKeysPage() {
                                 {isConnectingInstagram ? (
                                     <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
                                     ) : (
-                                    <><Link className="mr-2 h-4 w-4" /> Connect Instagram</>
+                                    <><Link className="mr-2 h-4 w-4" /> Connect Instagram & Facebook</>
                                 )}
                                 </Button>
                             </div>
@@ -363,70 +318,6 @@ export default function ApiKeysPage() {
         </CardContent>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Manual Connections</CardTitle>
-          <CardDescription>
-            Here are the accounts you have connected manually (e.g., Facebook).
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isLoading && <div className="flex justify-center p-4"><LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" /></div>}
-          
-          {!isLoading && keys && keys.filter(k => k.platform !== 'YouTube' && k.platform !== 'Instagram').map((apiKey) => (
-              <div
-                key={apiKey.id}
-                className="flex items-center justify-between p-4 rounded-lg border"
-              >
-                <div className="flex items-center gap-4">
-                  {platformIcons[apiKey.platform as keyof typeof platformIcons] || <KeyRound className="h-8 w-8 text-primary" />}
-                  <div>
-                    <p className="font-semibold text-lg">{apiKey.platform}</p>
-                    <p className="font-mono text-sm text-muted-foreground">{apiKey.username}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{maskApiKey(apiKey.apiKey)}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                   <Button variant="ghost" size="icon" onClick={() => copyToClipboard(apiKey.apiKey)}>
-                      <Copy className="h-4 w-4"/>
-                      <span className="sr-only">Copy Key</span>
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                       <Button variant="destructive" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete Connection</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently remove your connection
-                          for {apiKey.platform}.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteKey(apiKey.id)}>
-                          Continue
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              </div>
-            ))
-          }
-
-          {!isLoading && (!keys || keys.filter(k => k.platform !== 'YouTube' && k.platform !== 'Instagram').length === 0) && (
-            <p className="text-muted-foreground text-center py-8">
-              You have not added any manual connections yet.
-            </p>
-          )}
-
-        </CardContent>
-      </Card>
     </div>
   );
 }
