@@ -269,6 +269,13 @@ export default function ApiKeysPage() {
                         </div>
                     ) : (
                         <div className="p-4 border rounded-lg space-y-4 bg-muted/20">
+                            <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertTitle>Account Requirement</AlertTitle>
+                                <AlertDescription>
+                                    Posting to Instagram requires an Instagram <b>Business</b> or <b>Creator</b> account that is linked to a Facebook Page.
+                                </AlertDescription>
+                            </Alert>
                             <div className="space-y-2">
                                 <Label htmlFor="instagram-redirect-uri">1. Add Redirect URI to Facebook Developer App</Label>
                                  <p className="text-xs text-muted-foreground">Copy this URI and paste it into your Facebook App's "Valid OAuth Redirect URIs" list under Facebook Login settings.</p>
