@@ -12,7 +12,9 @@ import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { getFirestore } from 'firebase-admin/firestore';
 import { SocialMediaAccount } from '@/lib/types';
-import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
+import { credential } from 'firebase-admin';
+
 
 // Initialize Firebase Admin SDK if not already initialized
 if (getApps().length === 0) {
