@@ -170,6 +170,8 @@ export default function CreatePostPage() {
         const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
         if (!youtubeAccount) {
             toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must connect your YouTube account first.' });
+        } else if (!youtubeAccount.connected) {
+            toast({ variant: 'destructive', title: 'YouTube Error', description: "Your YouTube account is disconnected. Please connect it in the 'Connected Accounts' page." });
         } else if (!mediaFile) {
             toast({ variant: 'destructive', title: 'YouTube Error', description: 'YouTube requires a video file to be uploaded.' });
         } else {
@@ -196,6 +198,8 @@ export default function CreatePostPage() {
           const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
           if (!instagramAccount || !instagramAccount.instagramId) {
               toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first.' });
+          } else if (!instagramAccount.connected) {
+              toast({ variant: 'destructive', title: 'Instagram Error', description: "Your Instagram account is disconnected. Please connect it in the 'Connected Accounts' page." });
           } else if (!text) {
                toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require a caption.' });
           } else if (!mediaUrl) { // Instagram requires a public URL
@@ -221,6 +225,8 @@ export default function CreatePostPage() {
         const facebookAccount = accounts?.find(acc => acc.platform === 'Instagram'); // Instagram connection holds FB data
         if (!facebookAccount || !facebookAccount.facebookPageId) {
             toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID is required.' });
+        } else if (!facebookAccount.connected) {
+            toast({ variant: 'destructive', title: 'Facebook Error', description: "Your Facebook account is disconnected. Please connect it in the 'Connected Accounts' page." });
         } else if (!mediaUrl) {
             toast({ variant: 'destructive', title: 'Facebook Error', description: 'Facebook posts from this app require a public Media URL.' });
         } else {
