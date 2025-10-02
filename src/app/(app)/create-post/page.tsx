@@ -12,7 +12,6 @@ import {
   Calendar as CalendarIcon,
   Send,
   LoaderCircle,
-  Twitter,
   Instagram,
   Facebook,
   Heart,
@@ -21,7 +20,6 @@ import {
   Bookmark,
   MoreHorizontal,
   ThumbsUp,
-  Linkedin,
   Youtube,
   Eye,
   Upload,
@@ -58,7 +56,6 @@ import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type Post, SocialMediaAccount } from '@/lib/types';
 import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
 import { postToInstagram } from '@/ai/flows/instagram-post';
-import { postToTwitter } from '@/ai/flows/twitter-post';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -167,33 +164,6 @@ export default function CreatePostPage() {
     try {
       let somethingPublished = false;
 
-      // X (Twitter) Post Logic
-      if (selectedPlatforms.includes('x')) {
-          const xAccount = accounts?.find(acc => acc.platform === 'X');
-          if (!xAccount || !xAccount.apiKey || !xAccount.apiSecret) {
-              toast({ variant: 'destructive', title: 'X (Twitter) Error', description: 'You must connect your X account with both API Key and API Secret first in the API Keys page.' });
-          } else if (!text) {
-               toast({ variant: 'destructive', title: 'X (Twitter) Error', description: 'Posts to X (Twitter) require text content.' });
-          } else {
-              await postToTwitter({
-                  text: text,
-                  apiKey: xAccount.apiKey,
-                  apiSecret: xAccount.apiSecret,
-                  // NOTE: This assumes the user has provided App keys that have write access.
-                  // For a full user-based auth, we'd need to store and use user-specific access tokens.
-                  // For this app's purpose, we are using a simplified v1.1 style auth model via the v2 SDK.
-                  accessToken: xAccount.apiKey, // Re-using for simplicity, replace with real user token if available
-                  accessTokenSecret: xAccount.apiSecret, // Re-using for simplicity, replace with real user secret if available
-              });
-
-              toast({
-                  title: 'Posted to X (Twitter)!',
-                  description: 'Your post should be live on your account.',
-              });
-              somethingPublished = true;
-          }
-      }
-
       // YouTube Upload Logic
       if (selectedPlatforms.includes('youtube')) {
         const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
@@ -246,9 +216,9 @@ export default function CreatePostPage() {
       }
 
 
-      // Firestore post creation for other platforms (Facebook, LinkedIn)
+      // Firestore post creation for other platforms (Facebook)
       // We also save a record for platforms that were published via API for our internal tracking.
-      const platformsToSaveInDb = selectedPlatforms.filter(p => p === 'facebook' || p === 'linkedin' || somethingPublished);
+      const platformsToSaveInDb = selectedPlatforms.filter(p => p === 'facebook' || somethingPublished);
 
       for (const platform of platformsToSaveInDb) {
           const postData: Omit<Post, 'id'> = {
@@ -267,7 +237,7 @@ export default function CreatePostPage() {
           };
           const postsCollection = collection(firestore, `users/${user.uid}/posts`);
           addDocumentNonBlocking(postsCollection, postData);
-          if (platform === 'facebook' || platform === 'linkedin') {
+          if (platform === 'facebook') {
             somethingPublished = true;
           }
       }
@@ -301,10 +271,8 @@ export default function CreatePostPage() {
 
 
   const platforms: { id: Post['platform']; label: string }[] = [
-    { id: 'x', label: 'X (Twitter)' },
     { id: 'facebook', label: 'Facebook' },
     { id: 'instagram', label: 'Instagram' },
-    { id: 'linkedin', label: 'LinkedIn' },
     { id: 'youtube', label: 'YouTube' },
   ];
 
@@ -457,43 +425,13 @@ export default function CreatePostPage() {
 
       <div className="lg:sticky top-24">
         <h2 className="font-headline text-lg font-semibold mb-4">Live Preview</h2>
-        <Tabs defaultValue="x" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="x"><Twitter className="w-5 h-5"/></TabsTrigger>
+        <Tabs defaultValue="instagram" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="instagram"><Instagram className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="facebook"><Facebook className="w-5 h-5"/></TabsTrigger>
-            <TabsTrigger value="linkedin"><Linkedin className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="youtube"><Youtube className="w-5 h-5"/></TabsTrigger>
           </TabsList>
-          <TabsContent value="x">
-            <Card className="bg-[#000] text-white border-gray-800">
-                <CardContent className="p-4">
-                    <div className="flex space-x-3">
-                        {userAvatar && <Avatar>
-                            <AvatarImage src={userAvatar.imageUrl} />
-                            <AvatarFallback>JD</AvatarFallback>
-                        </Avatar>}
-                        <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-1">
-                                    <h4 className="text-sm font-semibold">Jane Doe</h4>
-                                    <p className="text-sm text-gray-500">@janedoe · 1m</p>
-                                </div>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </div>
-                            <p className="text-sm whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                            {effectiveMediaUrl && <div className="mt-2 rounded-xl border border-gray-800 overflow-hidden"><Image src={effectiveMediaUrl} alt="preview" width={500} height={300} className="object-cover w-full"/></div>}
-                            <div className="flex justify-between pt-2 text-gray-500">
-                                <div className="flex items-center space-x-1 hover:text-primary transition-colors"><MessageCircle size={18} /><span className="text-xs">12</span></div>
-                                <div className="flex items-center space-x-1 hover:text-green-500 transition-colors"><Repeat size={18} /><span className="text-xs">34</span></div>
-                                <div className="flex items-center space-x-1 hover:text-red-500 transition-colors"><Heart size={18} /><span className="text-xs">56</span></div>
-                                <div className="flex items-center space-x-1 hover:text-primary transition-colors"><Bookmark size={18} /></div>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-          </TabsContent>
+          
           <TabsContent value="instagram">
              <Card className="bg-white text-black border-gray-200 aspect-[9/16] max-w-[320px] mx-auto flex flex-col">
                 <div className="p-3 flex items-center justify-between border-b">
@@ -551,39 +489,6 @@ export default function CreatePostPage() {
                          <Button variant="ghost" className="text-gray-600"><MessageCircle className="mr-2 h-4 w-4"/>Comment</Button>                         <Button variant="ghost" className="text-gray-600"><Repeat className="mr-2 h-4 w-4"/>Share</Button>
                      </div>
                 </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="linkedin">
-            <Card className="bg-white text-black border-gray-200">
-              <CardContent className="p-4">
-                <div className="flex space-x-3">
-                  {userAvatar && <Avatar>
-                      <AvatarImage src={userAvatar.imageUrl} />
-                      <AvatarFallback>JD</AvatarFallback>
-                  </Avatar>}
-                  <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                              <h4 className="text-sm font-semibold">Jane Doe</h4>
-                              <p className="text-xs text-gray-500">1m ago</p>
-                          </div>
-                          <MoreHorizontal className="h-4 w-4" />
-                      </div>
-                  </div>
-                </div>
-                  <p className="text-sm mt-3 whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                  {effectiveMediaUrl && <div className="mt-3 -mx-4"><Image src={effectiveMediaUrl} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
-                  <div className="flex justify-between items-center text-gray-600 text-xs mt-2 pt-2 border-t">
-                    <span>56 Likes</span>
-                    <span>12 Comments</span>
-                  </div>
-                  <div className="flex justify-around pt-2 mt-2 border-t">
-                      <Button variant="ghost" className="text-gray-600"><ThumbsUp className="mr-2 h-4 w-4"/>Like</Button>
-                      <Button variant="ghost" className="text-gray-600"><MessageCircle className="mr-2 h-4 w-4"/>Comment</Button>
-                      <Button variant="ghost" className="text-gray-600"><Repeat className="mr-2 h-4 w-4"/>Repost</Button>
-                      <Button variant="ghost" className="text-gray-600"><Send className="mr-2 h-4 w-4"/>Send</Button>
-                  </div>
-              </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="youtube">

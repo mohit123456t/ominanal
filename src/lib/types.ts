@@ -19,7 +19,7 @@ export type EngagementData = {
 export type Post = {
   id: string;
   userId: string;
-  platform: 'x' | 'facebook' | 'instagram' | 'linkedin' | 'youtube';
+  platform: 'facebook' | 'instagram' | 'youtube';
   content: string;
   mediaUrl?: string;
   imageHint?: string;
@@ -36,10 +36,10 @@ export type Post = {
 export type SocialMediaAccount = {
     id: string;
     userId: string;
-    platform: 'Instagram' | 'Facebook' | 'X' | 'LinkedIn' | 'YouTube';
+    platform: 'Instagram' | 'Facebook' | 'YouTube';
     username: string;
     apiKey: string;
-    apiSecret?: string; // For platforms like X (Twitter)
+    apiSecret?: string;
     refreshToken?: string;
     instagramId?: string; // Specific ID for Instagram Graph API
     connected?: boolean;

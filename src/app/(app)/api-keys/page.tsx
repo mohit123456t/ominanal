@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube, Link, Unlink, Instagram, Facebook, Twitter as XIcon, Linkedin, AlertCircle } from 'lucide-react';
+import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube, Link, Unlink, Instagram, Facebook, AlertCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,8 +44,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const platformIcons = {
   Instagram: <Instagram className="h-8 w-8 text-pink-600" />,
   Facebook: <Facebook className="h-8 w-8 text-blue-700" />,
-  X: <XIcon className="h-8 w-8" />,
-  LinkedIn: <Linkedin className="h-8 w-8 text-sky-600" />,
   YouTube: <Youtube className="h-8 w-8 text-red-600" />,
 };
 
@@ -84,7 +82,6 @@ export default function ApiKeysPage() {
       const newKeyData: Omit<SocialMediaAccount, 'id' > = {
         platform: newKeyPlatform as SocialMediaAccount['platform'],
         apiKey: newKeyValue,
-        apiSecret: newKeyPlatform === 'X' ? newKeySecret : undefined,
         username: newKeyUsername,
         userId: user.uid,
         createdAt: new Date().toISOString(),
@@ -184,7 +181,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Add New Connection</CardTitle>
           <CardDescription>
-            For OAuth connections (YouTube, Instagram), you'll be redirected. For manual API Key connections (X, etc.), you'll need to get an API Key from the platform's developer portal.
+            For OAuth connections (YouTube, Instagram), you'll be redirected. For manual API Key connections (Facebook, etc.), you'll need to get an API Key from the platform's developer portal.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -194,8 +191,6 @@ export default function ApiKeysPage() {
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="Facebook">Facebook</SelectItem>
-                    <SelectItem value="X">X (Twitter)</SelectItem>
-                    <SelectItem value="LinkedIn">LinkedIn</SelectItem>
                 </SelectContent>
             </Select>
             
@@ -205,7 +200,7 @@ export default function ApiKeysPage() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Where to find your API Key?</AlertTitle>
                     <AlertDescription>
-                        To get an API key, you typically need to register an application in the developer portal for {newKeyPlatform}. Look for settings related to "API", "Developer Tools", or "Apps" on their website. For X (Twitter), you'll need an 'Essential' access level to get an App's API Key and Secret.
+                        To get an API key, you typically need to register an application in the developer portal for {newKeyPlatform}. Look for settings related to "API", "Developer Tools", or "Apps" on their website.
                     </AlertDescription>
                 </Alert>
                 <div className="space-y-4">
@@ -221,20 +216,10 @@ export default function ApiKeysPage() {
                         type="password"
                         value={newKeyValue}
                         onChange={(e) => setNewKeyValue(e.target.value)}
-                        placeholder={newKeyPlatform === 'X' ? "Paste your API Key here" : "Paste your API Key or Access Token here"}
+                        placeholder={"Paste your API Key or Access Token here"}
                         aria-label="API Key Value"
                         disabled={isSubmitting}
                     />
-                    {newKeyPlatform === 'X' && (
-                        <Input
-                            type="password"
-                            value={newKeySecret}
-                            onChange={(e) => setNewKeySecret(e.target.value)}
-                            placeholder="Paste your API Secret Key here"
-                            aria-label="API Secret Key"
-                            disabled={isSubmitting}
-                        />
-                    )}
                 </div>
                 <Button onClick={handleAddKey} disabled={isSubmitting}>
                     {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
@@ -382,7 +367,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Your Manual Connections</CardTitle>
           <CardDescription>
-            Here are the accounts you have connected manually (e.g., X, LinkedIn, Facebook).
+            Here are the accounts you have connected manually (e.g., Facebook).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -445,5 +430,3 @@ export default function ApiKeysPage() {
     </div>
   );
 }
-
-    
