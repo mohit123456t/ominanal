@@ -15,6 +15,8 @@ const getPageTitle = (pathname: string): string => {
       return 'Create Post';
     case '/campaign-ideas':
       return 'AI Campaign Ideas';
+    case '/connected-accounts':
+      return 'Connected Accounts';
     case '/pricing':
       return 'Subscription Plans';
     default:

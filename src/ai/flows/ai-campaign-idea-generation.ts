@@ -35,14 +35,6 @@ You will generate a creative campaign concept and a list of post ideas based on 
 
 Goal: {{{goal}}}
 
-Here's the format you should use:
-```json
-{
-  "campaignConcept": "[campaign concept]",
-  "postIdeas": ["[post idea 1]", "[post idea 2]", ...]
-}
-```
-
 Make sure the campaignConcept and PostIdeas are engaging and creative. The PostIdeas should provide enough variety to engage the audience.
 `,
 });
