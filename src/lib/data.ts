@@ -48,14 +48,6 @@ export const followerGrowthData = [
   { date: 'Dec 22', followers: 4860 },
 ];
 
-export const engagementRateData = [
-    { name: 'Jan', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'Feb', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'Mar', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'Apr', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'May', total: Math.floor(Math.random() * 5000) + 1000 },
-    { name: 'Jun', total: Math.floor(Math.random() * 5000) + 1000 },
-];
 
 export const reachAndImpressionsData = [
   { month: 'January', reach: 2400, impressions: 4500 },

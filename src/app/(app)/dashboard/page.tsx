@@ -1,4 +1,5 @@
 'use client';
+import { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -14,15 +15,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { kpis, followerGrowthData, engagementRateData } from '@/lib/data';
+import { kpis as mockKpis } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, Dot, LoaderCircle } from 'lucide-react';
-import { FollowerGrowthChart, EngagementRateChart } from '@/components/charts';
+import { ArrowUp, ArrowDown, Dot, LoaderCircle, Users, ThumbsUp, MessageCircle, Eye } from 'lucide-react';
+import { EngagementRateChart } from '@/components/charts';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { type Post } from '@/lib/types';
+import { type Post, type EngagementData } from '@/lib/types';
 
 
 function SocialIcon({ platform }: { platform: Post['platform'] }) {
@@ -50,10 +51,43 @@ export default function DashboardPage() {
         .slice(0, 5)
     : [];
 
+  const realKpis = useMemo(() => {
+    if (!posts) {
+      return [
+        { title: 'Likes', value: '0', icon: ThumbsUp },
+        { title: 'Comments', value: '0', icon: MessageCircle },
+        { title: 'Views', value: '0', icon: Eye },
+      ];
+    }
+    const totalLikes = posts.reduce((sum, post) => sum + post.likes, 0);
+    const totalComments = posts.reduce((sum, post) => sum + post.comments, 0);
+    const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
+
+    return [
+      { title: 'Likes', value: totalLikes.toLocaleString(), icon: ThumbsUp },
+      { title: 'Comments', value: totalComments.toLocaleString(), icon: MessageCircle },
+      { title: 'Views', value: totalViews.toLocaleString(), icon: Eye },
+    ];
+  }, [posts]);
+
+  const engagementData: EngagementData[] = useMemo(() => {
+    if (!posts) return [];
+    const engagementByPlatform = posts.reduce((acc, post) => {
+        if (!acc[post.platform]) {
+            acc[post.platform] = { platform: post.platform, likes: 0 };
+        }
+        acc[post.platform].likes += post.likes;
+        return acc;
+    }, {} as Record<string, EngagementData>);
+
+    return Object.values(engagementByPlatform);
+  }, [posts]);
+
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi) => (
+        {mockKpis.filter(kpi => kpi.title === 'Followers').map((kpi) => (
           <Card key={kpi.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
@@ -79,80 +113,77 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+         {realKpis.map((kpi) => (
+          <Card key={kpi.title}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
+              <kpi.icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{isLoadingPosts ? <LoaderCircle className="h-6 w-6 animate-spin" /> : kpi.value}</div>
+               <p className="text-xs text-muted-foreground">Total from all posts</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+         <Card>
           <CardHeader>
-            <CardTitle>Follower Growth</CardTitle>
+            <CardTitle>Engagement by Platform</CardTitle>
           </CardHeader>
           <CardContent>
-            <FollowerGrowthChart data={followerGrowthData} />
+             <EngagementRateChart data={engagementData} />
           </CardContent>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Engagement Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <EngagementRateChart data={engagementRateData} />
-          </CardContent>
+            <CardHeader>
+                <CardTitle>Best Performing Content</CardTitle>
+            </CardHeader>
+            <CardContent>
+            {isLoadingPosts ? (
+                <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : (
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Post</TableHead>
+                    <TableHead className="text-center">Platform</TableHead>
+                    <TableHead className="text-right">Likes</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {bestPosts.slice(0,5).map((post) => (
+                    <TableRow key={post.id}>
+                        <TableCell>
+                        <div className="flex items-center gap-4">
+                            {post.mediaUrl && (
+                            <Image
+                                src={post.mediaUrl}
+                                alt="Post image"
+                                width={40}
+                                height={40}
+                                className="rounded-md object-cover"
+                                data-ai-hint={post.imageHint}
+                            />
+                            )}
+                            <span className="font-medium line-clamp-2">{post.content}</span>
+                        </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                        <div className="flex justify-center">
+                            <SocialIcon platform={post.platform} />
+                        </div>
+                        </TableCell>
+                        <TableCell className="text-right">{post.likes.toLocaleString()}</TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            )}
+            </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Best Performing Content</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoadingPosts ? (
-             <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Post</TableHead>
-                  <TableHead className="text-center">Platform</TableHead>
-                  <TableHead className="text-right">Likes</TableHead>
-                  <TableHead className="text-right">Comments</TableHead>
-                  <TableHead className="text-right">Shares</TableHead>
-                  <TableHead className="text-right">Views</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bestPosts.map((post) => (
-                  <TableRow key={post.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-4">
-                        {post.mediaUrl && (
-                           <Image
-                              src={post.mediaUrl}
-                              alt="Post image"
-                              width={40}
-                              height={40}
-                              className="rounded-md object-cover"
-                              data-ai-hint={post.imageHint}
-                           />
-                        )}
-                        <span className="font-medium line-clamp-2">{post.content}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center">
-                        <SocialIcon platform={post.platform} />
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">{post.likes.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{post.comments.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{post.shares.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{post.views?.toLocaleString() ?? 'N/A'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -12,8 +12,8 @@ export type PerformanceData = {
 };
 
 export type EngagementData = {
-  name: string;
-  total: number;
+  platform: string;
+  likes: number;
 };
 
 export type Post = {

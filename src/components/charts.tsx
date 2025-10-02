@@ -19,6 +19,7 @@ import {
   ChartContainer,
   ChartTooltipContent,
 } from '@/components/ui/chart';
+import { EngagementData } from '@/lib/types';
 
 type FollowerGrowthChartProps = {
   data: { date: string; followers: number }[];
@@ -62,13 +63,13 @@ export function FollowerGrowthChart({ data }: FollowerGrowthChartProps) {
 }
 
 type EngagementRateChartProps = {
-  data: { name: string; total: number }[];
+  data: EngagementData[];
 };
 
 export function EngagementRateChart({ data }: EngagementRateChartProps) {
     const chartConfig = {
-      total: {
-        label: "Engagement",
+      likes: {
+        label: "Likes",
         color: "hsl(var(--primary))",
       },
     } satisfies ChartConfig
@@ -78,14 +79,15 @@ export function EngagementRateChart({ data }: EngagementRateChartProps) {
       <BarChart data={data} accessibilityLayer>
         <CartesianGrid vertical={false} />
         <XAxis
-          dataKey="name"
+          dataKey="platform"
           tickLine={false}
           tickMargin={10}
           axisLine={false}
+          tickFormatter={(value) => value.charAt(0).toUpperCase() + value.slice(1)}
         />
         <YAxis />
         <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
-        <Bar dataKey="total" fill="var(--color-total)" radius={4} />
+        <Bar dataKey="likes" fill="var(--color-likes)" radius={4} />
       </BarChart>
     </ChartContainer>
   );
