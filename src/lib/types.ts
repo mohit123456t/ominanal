@@ -39,9 +39,12 @@ export type SocialMediaAccount = {
     platform: 'Instagram' | 'Facebook' | 'X' | 'LinkedIn' | 'YouTube';
     username: string;
     apiKey: string;
+    apiSecret?: string; // For platforms like X (Twitter)
     refreshToken?: string;
     instagramId?: string; // Specific ID for Instagram Graph API
     connected?: boolean;
     createdAt: string;
     updatedAt: string;
 };
+
+    

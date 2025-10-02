@@ -55,6 +55,7 @@ export default function ApiKeysPage() {
   const firestore = useFirestore();
   const [newKeyPlatform, setNewKeyPlatform] = useState<SocialMediaAccount['platform'] | ''>('');
   const [newKeyValue, setNewKeyValue] = useState('');
+  const [newKeySecret, setNewKeySecret] = useState('');
   const [newKeyUsername, setNewKeyUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConnectingYouTube, setIsConnectingYouTube] = useState(false);
@@ -83,6 +84,7 @@ export default function ApiKeysPage() {
       const newKeyData: Omit<SocialMediaAccount, 'id' > = {
         platform: newKeyPlatform as SocialMediaAccount['platform'],
         apiKey: newKeyValue,
+        apiSecret: newKeyPlatform === 'X' ? newKeySecret : undefined,
         username: newKeyUsername,
         userId: user.uid,
         createdAt: new Date().toISOString(),
@@ -94,6 +96,7 @@ export default function ApiKeysPage() {
 
       setNewKeyPlatform('');
       setNewKeyValue('');
+      setNewKeySecret('');
       setNewKeyUsername('');
       setIsSubmitting(false);
 
@@ -202,15 +205,15 @@ export default function ApiKeysPage() {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Where to find your API Key?</AlertTitle>
                     <AlertDescription>
-                        To get an API key, you typically need to register an application in the developer portal for {newKeyPlatform}. Look for settings related to "API", "Developer Tools", or "Apps" on their website.
+                        To get an API key, you typically need to register an application in the developer portal for {newKeyPlatform}. Look for settings related to "API", "Developer Tools", or "Apps" on their website. For X (Twitter), you'll need an 'Essential' access level to get an App's API Key and Secret.
                     </AlertDescription>
                 </Alert>
-                <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-4">
                     <Input
                         type="text"
                         value={newKeyUsername}
                         onChange={(e) => setNewKeyUsername(e.target.value)}
-                        placeholder="Username"
+                        placeholder="Username (e.g. @YourHandle)"
                         aria-label="Username"
                         disabled={isSubmitting}
                     />
@@ -218,10 +221,20 @@ export default function ApiKeysPage() {
                         type="password"
                         value={newKeyValue}
                         onChange={(e) => setNewKeyValue(e.target.value)}
-                        placeholder="Paste your API Key here"
+                        placeholder={newKeyPlatform === 'X' ? "Paste your API Key here" : "Paste your API Key or Access Token here"}
                         aria-label="API Key Value"
                         disabled={isSubmitting}
                     />
+                    {newKeyPlatform === 'X' && (
+                        <Input
+                            type="password"
+                            value={newKeySecret}
+                            onChange={(e) => setNewKeySecret(e.target.value)}
+                            placeholder="Paste your API Secret Key here"
+                            aria-label="API Secret Key"
+                            disabled={isSubmitting}
+                        />
+                    )}
                 </div>
                 <Button onClick={handleAddKey} disabled={isSubmitting}>
                     {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
@@ -406,7 +419,7 @@ export default function ApiKeysPage() {
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently remove your connection
                           for {apiKey.platform}.
-                        </AlertDialogDescription>
+                        </description>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
