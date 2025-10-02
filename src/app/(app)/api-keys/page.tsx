@@ -67,6 +67,8 @@ export default function ApiKeysPage() {
   const { data: keys, isLoading } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
 
   const youtubeAccount = useMemo(() => keys?.find(k => k.platform === 'YouTube'), [keys]);
+  const instagramAccount = useMemo(() => keys?.find(k => k.platform === 'Instagram'), [keys]);
+
 
   const handleAddKey = async () => {
     if (!socialMediaAccountsCollection || !user) return;
@@ -141,8 +143,24 @@ export default function ApiKeysPage() {
         setIsConnectingYouTube(false);
     }
   }
+
+  const handleConnectInstagram = () => {
+    const clientId = process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID;
+    if (!clientId) {
+      toast({
+        variant: 'destructive',
+        title: 'Configuration Error',
+        description: 'Facebook App ID is not configured. Cannot connect Instagram.',
+      });
+      return;
+    }
+    const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/instagram-callback` : '';
+    const scope = 'instagram_basic,pages_show_list,instagram_content_publish';
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&state=${user?.uid}`;
+    window.location.href = authUrl;
+  };
   
-  const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/youtube-callback` : '';
+  const youtubeRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/youtube-callback` : '';
 
 
   return (
@@ -161,7 +179,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Add New Connection</CardTitle>
           <CardDescription>
-            Select a platform to connect your account. For YouTube, you'll be redirected. For others, enter your details.
+            Select a platform to connect your account. For YouTube or Instagram, you'll be redirected. For others, enter your details.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -170,9 +188,8 @@ export default function ApiKeysPage() {
                     <SelectValue placeholder="Select Platform..." />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="Instagram">Instagram</SelectItem>
                     <SelectItem value="Facebook">Facebook</SelectItem>
-                    <SelectItem value="X">X</SelectItem>
+                    <SelectItem value="X">X (Twitter)</SelectItem>
                     <SelectItem value="LinkedIn">LinkedIn</SelectItem>
                 </SelectContent>
             </Select>
@@ -204,7 +221,45 @@ export default function ApiKeysPage() {
               </>
             )}
 
-            <div className='border-t pt-4 space-y-2'>
+            <div className='border-t pt-4 space-y-4'>
+                 {/* Instagram Connection */}
+                {instagramAccount ? (
+                    <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-2'>
+                            <Instagram className="h-6 w-6 text-pink-600" />
+                            <p className='font-medium'>Instagram Connected</p>
+                        </div>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button variant="destructive">
+                                <Unlink className="mr-2 h-4 w-4" />
+                                Disconnect
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will disconnect your Instagram account. You will need to reconnect to continue posting.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteKey(instagramAccount.id)}>
+                                  Continue
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                ) : (
+                     <Button onClick={handleConnectInstagram} className='w-full sm:w-auto bg-[#E1306C] hover:bg-[#c12a5a] text-white'>
+                       <Link className="mr-2 h-4 w-4" /> Connect Instagram
+                    </Button>
+                )}
+
+
+                {/* YouTube Connection */}
                 {youtubeAccount ? (
                     <div className='flex items-center justify-between'>
                         <div className='flex items-center gap-2'>
@@ -235,12 +290,12 @@ export default function ApiKeysPage() {
                         </AlertDialog>
                     </div>
                 ) : (
-                    <>
+                    <div className='space-y-2'>
                         <div className="space-y-2 pt-2">
                             <Label htmlFor="redirect-uri-display">To connect YouTube, copy this Redirect URI to your Google Cloud Console credentials page:</Label>
                              <div className="flex items-center gap-2">
-                                <Input id="redirect-uri-display" type="text" readOnly value={redirectUri} className="bg-muted" />
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(redirectUri)}>
+                                <Input id="redirect-uri-display" type="text" readOnly value={youtubeRedirectUri} className="bg-muted" />
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(youtubeRedirectUri)}>
                                     <Copy className="h-4 w-4"/>
                                     <span className="sr-only">Copy URI</span>
                                 </Button>
@@ -253,7 +308,7 @@ export default function ApiKeysPage() {
                                <><Link className="mr-2 h-4 w-4" /> Connect YouTube</>
                            )}
                         </Button>
-                    </>
+                    </div>
                 )}
             </div>
         </CardContent>
@@ -261,15 +316,15 @@ export default function ApiKeysPage() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Your Connections</CardTitle>
+          <CardTitle>Your Manual Connections</CardTitle>
           <CardDescription>
-            Here are the accounts you have connected (excluding YouTube).
+            Here are the accounts you have connected manually (e.g., X, LinkedIn).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading && <div className="flex justify-center p-4"><LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" /></div>}
           
-          {!isLoading && keys && keys.filter(k => k.platform !== 'YouTube').map((apiKey) => (
+          {!isLoading && keys && keys.filter(k => k.platform !== 'YouTube' && k.platform !== 'Instagram').map((apiKey) => (
               <div
                 key={apiKey.id}
                 className="flex items-center justify-between p-4 rounded-lg border"
@@ -315,7 +370,7 @@ export default function ApiKeysPage() {
             ))
           }
 
-          {!isLoading && (!keys || keys.filter(k => k.platform !== 'YouTube').length === 0) && (
+          {!isLoading && (!keys || keys.filter(k => k.platform !== 'YouTube' && k.platform !== 'Instagram').length === 0) && (
             <p className="text-muted-foreground text-center py-8">
               You have not added any manual connections yet.
             </p>
