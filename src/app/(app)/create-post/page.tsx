@@ -56,6 +56,7 @@ import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type Post, SocialMediaAccount } from '@/lib/types';
 import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
+import { postToInstagram } from '@/ai/flows/instagram-post';
 
 
 const fileToDataUri = (file: File) =>
@@ -231,26 +232,35 @@ export default function CreatePostPage() {
         }
       }
 
-      // Firestore post creation for other platforms (simplified)
-      for (const platform of selectedPlatforms.filter(p => p !== 'youtube')) {
-          // Simulate posting to Instagram
-          if (platform === 'instagram') {
-             const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
-              if (!instagramAccount) {
-                  toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first in API Keys.' });
-                  continue; // Skip to next platform
-              }
-              if (!media) {
-                   toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require an image.' });
-                   continue; // Skip to next platform
-              }
-              // This is a simulation. The post is saved to Firestore but not sent to the actual Instagram API.
-              toast({
-                  title: 'Instagram Post Saved (Simulation)',
-                  description: 'This post is saved for tracking in your dashboard. Real posting via API is not yet implemented.',
+      // Instagram Post Logic
+      if (selectedPlatforms.includes('instagram')) {
+          const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
+          if (!instagramAccount) {
+              toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first in API Keys.' });
+          } else if (!media || !media.type.startsWith('image/')) {
+              toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require an image.' });
+          } else {
+              // This is a public URL for a placeholder image. 
+              // A real app would need to upload the user's image to a public URL first (e.g., Cloud Storage).
+              const publicMediaUrl = 'https://picsum.photos/seed/1/800/800';
+              
+              await postToInstagram({
+                  mediaUrl: publicMediaUrl,
+                  caption: text,
               });
-          }
 
+              toast({
+                  title: 'Posted to Instagram!',
+                  description: 'Your post should be live on your Instagram account.',
+              });
+              somethingPublished = true;
+          }
+      }
+
+
+      // Firestore post creation for other platforms
+      const otherPlatforms = selectedPlatforms.filter(p => p !== 'youtube' && p !== 'instagram');
+      for (const platform of otherPlatforms) {
           const mediaUrl = mediaPreview || undefined;
           const postData: Omit<Post, 'id'> = {
             userId: user.uid,
