@@ -54,7 +54,7 @@ function InstagramCallback() {
           }
 
           setMessage('Fetching user details from Instagram & Facebook...');
-          const { username, instagramId, facebookPageId } = await getInstagramUserDetails({ accessToken });
+          const { username, instagramId, facebookPageId, facebookPageName } = await getInstagramUserDetails({ accessToken });
 
           const socialMediaAccountsCollection = collection(
             firestore,
@@ -81,6 +81,7 @@ function InstagramCallback() {
             apiKey: accessToken,
             instagramId: instagramId,
             facebookPageId: facebookPageId,
+            facebookPageName: facebookPageName,
             connected: true,
             updatedAt: new Date().toISOString(),
           };

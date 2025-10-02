@@ -40,19 +40,24 @@ const postToFacebookFlow = ai.defineFlow(
         access_token: accessToken,
     });
     if (caption) {
-        params.append('message', caption);
+        params.append('caption', caption); // Use 'caption' for photos, not 'message'
     }
 
     const response = await fetch(postUrl, {
         method: 'POST',
-        body: params,
+        body: params.toString(), // body should be a string for x-www-form-urlencoded
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
     });
 
 
     if (!response.ok) {
         const errorData: any = await response.json();
         console.error('Failed to post to Facebook:', errorData);
-        throw new Error(`Failed to post to Facebook: ${errorData.error?.message || 'Unknown error'}`);
+        // The error message from Facebook is more descriptive.
+        const fbErrorMessage = errorData.error?.message || 'Unknown error';
+        throw new Error(`Failed to post to Facebook: ${fbErrorMessage}`);
     }
 
     const responseData: any = await response.json();

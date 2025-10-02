@@ -73,6 +73,8 @@ export default function ConnectedAccountsPage() {
           {isLoading && <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}
           {!isLoading && accounts && accounts.map((account) => {
             const Icon = platformIcons[account.platform as keyof typeof platformIcons] || Link2;
+            const isInstagram = account.platform === 'Instagram';
+            
             return (
               <div
                 key={account.id}
@@ -83,6 +85,9 @@ export default function ConnectedAccountsPage() {
                   <div>
                     <p className="font-medium text-lg">{account.platform}</p>
                     <p className="text-sm text-muted-foreground">{account.username}</p>
+                    {isInstagram && account.facebookPageName && (
+                        <p className="text-sm text-muted-foreground">Page: {account.facebookPageName}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-4">

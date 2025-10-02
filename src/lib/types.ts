@@ -43,6 +43,7 @@ export type SocialMediaAccount = {
     refreshToken?: string;
     instagramId?: string; // Specific ID for Instagram Graph API
     facebookPageId?: string; // Specific ID for Facebook Graph API
+    facebookPageName?: string; // Display name of the linked Facebook Page
     connected?: boolean;
     createdAt: string;
     updatedAt: string;

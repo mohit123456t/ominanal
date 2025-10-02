@@ -114,6 +114,7 @@ const GetInstagramUserDetailsOutputSchema = z.object({
     username: z.string(),
     instagramId: z.string(),
     facebookPageId: z.string().optional(),
+    facebookPageName: z.string().optional(),
 });
 export type GetInstagramUserDetailsOutput = z.infer<typeof GetInstagramUserDetailsOutputSchema>;
 
@@ -144,6 +145,7 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
 
     const instagramBusinessAccountId = pageWithIg.instagram_business_account.id;
     const facebookPageId = pageWithIg.id;
+    const facebookPageName = pageWithIg.name;
 
     // 3. Get Instagram account details (username)
     const igUrl = `https://graph.facebook.com/${instagramBusinessAccountId}?fields=username&access_token=${accessToken}`;
@@ -156,7 +158,7 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     }
     
     const data: any = await igResponse.json();
-    return { username: data.username, instagramId: instagramBusinessAccountId, facebookPageId: facebookPageId };
+    return { username: data.username, instagramId: instagramBusinessAccountId, facebookPageId: facebookPageId, facebookPageName: facebookPageName };
 });
 
 export async function getInstagramUserDetails(input: GetInstagramUserDetailsInput): Promise<GetInstagramUserDetailsOutput> {
