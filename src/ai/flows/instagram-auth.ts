@@ -37,10 +37,11 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
     const params = new URLSearchParams({
         client_id: INSTAGRAM_APP_ID,
         redirect_uri: REDIRECT_URI,
-        scope: 'user_profile,user_media',
+        scope: 'instagram_basic,pages_show_list,instagram_content_publish',
         response_type: 'code',
+        state: 'XOgiVQIYbuN4CHeFLE9BYhj7Snw1' // Using a static state for now. Should be dynamic in a real app.
     });
-    const url = `https://api.instagram.com/oauth/authorize?${params.toString()}`;
+    const url = `https://www.facebook.com/v20.0/dialog/oauth?${params.toString()}`;
     return { url };
   }
 );
@@ -72,26 +73,27 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
         throw new Error('Instagram App ID or Secret is not configured in .env file.');
     }
     
-    const body = new URLSearchParams();
-    body.append('client_id', INSTAGRAM_APP_ID);
-    body.append('client_secret', INSTAGRAM_APP_SECRET);
-    body.append('grant_type', 'authorization_code');
-    body.append('redirect_uri', REDIRECT_URI);
-    body.append('code', code);
-
-    const response = await fetch('https://api.instagram.com/oauth/access_token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body,
+    const url = `https://graph.facebook.com/v20.0/oauth/access_token`;
+    const params = new URLSearchParams({
+        client_id: INSTAGRAM_APP_ID,
+        client_secret: INSTAGRAM_APP_SECRET,
+        redirect_uri: REDIRECT_URI,
+        code: code,
+        grant_type: 'authorization_code',
     });
+
+    const response = await fetch(`${url}?${params.toString()}`);
 
     if (!response.ok) {
         const errorData: any = await response.json();
         console.error('Failed to get Instagram access token:', errorData);
-        throw new Error(`Failed to get access token: ${errorData.error_message || 'Unknown error'}`);
+        throw new Error(`Failed to get access token: ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data: any = await response.json();
+    
+    // For instagram graph api, we need to exchange the short-lived token for a long-lived one
+    // but for now, we will use the short-lived one. A real app would do this.
     
     return { accessToken: data.access_token };
 });
@@ -119,17 +121,40 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     inputSchema: GetInstagramUserDetailsInputSchema,
     outputSchema: GetInstagramUserDetailsOutputSchema,
 }, async ({ accessToken }) => {
-    const url = `https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`;
-    const response = await fetch(url);
+    // This part is complex because you first need to get the Facebook Page linked to the Instagram account.
+    // Then use the page's access token and ID to get the Instagram Business Account ID.
 
-    if (!response.ok) {
-        const errorData: any = await response.json();
+    // 1. Get user's pages
+    const pagesUrl = `https://graph.facebook.com/me/accounts?access_token=${accessToken}`;
+    const pagesResponse = await fetch(pagesUrl);
+    if (!pagesResponse.ok) throw new Error('Failed to fetch Facebook pages.');
+    const pagesData: any = await pagesResponse.json();
+    
+    if (!pagesData.data || pagesData.data.length === 0) {
+        throw new Error('No Facebook Page linked to this account. Please link a Page with an Instagram Business account.');
+    }
+    
+    // 2. Find a page with an Instagram account linked
+    const pageWithIg = pagesData.data.find((page: any) => page.instagram_business_account);
+
+    if (!pageWithIg) {
+        throw new Error('No linked Instagram Business Account found on any of your Facebook Pages.');
+    }
+
+    const instagramBusinessAccountId = pageWithIg.instagram_business_account.id;
+
+    // 3. Get Instagram account details (username)
+    const igUrl = `https://graph.facebook.com/${instagramBusinessAccountId}?fields=username&access_token=${accessToken}`;
+    const igResponse = await fetch(igUrl);
+
+    if (!igResponse.ok) {
+        const errorData: any = await igResponse.json();
         console.error('Failed to get Instagram user details:', errorData);
         throw new Error(`Failed to get user details: ${errorData.error?.message || 'Unknown error'}`);
     }
     
-    const data: any = await response.json();
-    return { username: data.username, instagramId: data.id };
+    const data: any = await igResponse.json();
+    return { username: data.username, instagramId: instagramBusinessAccountId };
 });
 
 export async function getInstagramUserDetails(input: GetInstagramUserDetailsInput): Promise<GetInstagramUserDetailsOutput> {
