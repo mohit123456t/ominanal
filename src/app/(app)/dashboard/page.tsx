@@ -1,3 +1,4 @@
+'use client';
 import {
   Card,
   CardContent,
@@ -13,12 +14,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { kpis, followerGrowthData, recentPosts, engagementRateData } from '@/lib/data';
+import { kpis, followerGrowthData, engagementRateData } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, Dot } from 'lucide-react';
+import { ArrowUp, ArrowDown, Dot, LoaderCircle } from 'lucide-react';
 import { FollowerGrowthChart, EngagementRateChart } from '@/components/charts';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { type Post } from '@/lib/types';
+
 
 function SocialIcon({ platform }: { platform: 'x' | 'facebook' | 'instagram' }) {
   const logo = PlaceHolderImages.find(
@@ -29,6 +34,22 @@ function SocialIcon({ platform }: { platform: 'x' | 'facebook' | 'instagram' }) 
 }
 
 export default function DashboardPage() {
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const postsCollection = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, `users/${user.uid}/posts`);
+  }, [user, firestore]);
+
+  const { data: posts, isLoading: isLoadingPosts } = useCollection<Post>(postsCollection);
+  
+  const bestPosts = posts
+    ? [...posts]
+        .sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments))
+        .slice(0, 5)
+    : [];
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -84,46 +105,50 @@ export default function DashboardPage() {
           <CardTitle>Best Performing Content</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Post</TableHead>
-                <TableHead className="text-center">Platform</TableHead>
-                <TableHead className="text-right">Likes</TableHead>
-                <TableHead className="text-right">Comments</TableHead>
-                <TableHead className="text-right">Shares</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentPosts.slice(0, 5).map((post) => (
-                <TableRow key={post.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-4">
-                      {post.imageUrl && (
-                         <Image
-                            src={post.imageUrl}
-                            alt="Post image"
-                            width={40}
-                            height={40}
-                            className="rounded-md object-cover"
-                            data-ai-hint={post.imageHint}
-                         />
-                      )}
-                      <span className="font-medium line-clamp-2">{post.content}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex justify-center">
-                      <SocialIcon platform={post.platform} />
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">{post.likes.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{post.comments.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{post.shares.toLocaleString()}</TableCell>
+          {isLoadingPosts ? (
+             <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Post</TableHead>
+                  <TableHead className="text-center">Platform</TableHead>
+                  <TableHead className="text-right">Likes</TableHead>
+                  <TableHead className="text-right">Comments</TableHead>
+                  <TableHead className="text-right">Shares</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {bestPosts.map((post) => (
+                  <TableRow key={post.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-4">
+                        {post.mediaUrl && (
+                           <Image
+                              src={post.mediaUrl}
+                              alt="Post image"
+                              width={40}
+                              height={40}
+                              className="rounded-md object-cover"
+                              data-ai-hint={post.imageHint}
+                           />
+                        )}
+                        <span className="font-medium line-clamp-2">{post.content}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex justify-center">
+                        <SocialIcon platform={post.platform} />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{post.likes.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{post.comments.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{post.shares.toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,3 +1,4 @@
+'use client';
 import {
   Card,
   CardContent,
@@ -18,16 +19,19 @@ import {
   followerGrowthData,
   engagementRateData,
   reachAndImpressionsData,
-  recentPosts,
 } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, LoaderCircle } from 'lucide-react';
 import {
   FollowerGrowthChart,
   EngagementRateChart,
   ReachAndImpressionsChart,
 } from '@/components/charts';
 import Image from 'next/image';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { type Post } from '@/lib/types';
+
 
 function SocialIcon({ platform }: { platform: 'x' | 'facebook' | 'instagram' }) {
   const iconUrl = `/icons/${platform}.svg`;
@@ -36,7 +40,17 @@ function SocialIcon({ platform }: { platform: 'x' | 'facebook' | 'instagram' }) 
 }
 
 export default function AnalyticsPage() {
-  const sortedPosts = [...recentPosts].sort((a, b) => (b.likes + b.comments + b.shares) - (a.likes + a.comments + a.shares));
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const postsCollection = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, `users/${user.uid}/posts`);
+  }, [user, firestore]);
+
+  const { data: posts, isLoading: isLoadingPosts } = useCollection<Post>(postsCollection);
+  
+  const sortedPosts = posts ? [...posts].sort((a, b) => (b.likes + b.comments + b.shares) - (a.likes + a.comments + a.shares)) : [];
   const bestPosts = sortedPosts.slice(0, 3);
   const worstPosts = sortedPosts.slice(-3).reverse();
 
@@ -107,7 +121,11 @@ export default function AnalyticsPage() {
             <CardTitle>Best Performing Content</CardTitle>
           </CardHeader>
           <CardContent>
-            <PostTable posts={bestPosts} />
+             {isLoadingPosts ? (
+               <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>
+             ) : (
+                <PostTable posts={bestPosts} />
+             )}
           </CardContent>
         </Card>
         <Card>
@@ -115,7 +133,11 @@ export default function AnalyticsPage() {
             <CardTitle>Worst Performing Content</CardTitle>
           </CardHeader>
           <CardContent>
-            <PostTable posts={worstPosts} />
+            {isLoadingPosts ? (
+               <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>
+             ) : (
+                <PostTable posts={worstPosts} />
+             )}
           </CardContent>
         </Card>
       </div>
@@ -123,7 +145,7 @@ export default function AnalyticsPage() {
   );
 }
 
-function PostTable({ posts }: { posts: typeof recentPosts }) {
+function PostTable({ posts }: { posts: Post[] }) {
   return (
     <Table>
       <TableHeader>
@@ -138,9 +160,9 @@ function PostTable({ posts }: { posts: typeof recentPosts }) {
           <TableRow key={post.id}>
             <TableCell>
               <div className="flex items-start gap-3">
-                 {post.imageUrl && (
+                 {post.mediaUrl && (
                          <Image
-                            src={post.imageUrl}
+                            src={post.mediaUrl}
                             alt="Post image"
                             width={40}
                             height={40}

@@ -40,7 +40,7 @@ import { SocialMediaAccount } from '@/lib/types';
 export default function ApiKeysPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [newKeyPlatform, setNewKeyPlatform] = useState('');
+  const [newKeyPlatform, setNewKeyPlatform] = useState<SocialMediaAccount['platform'] | ''>('');
   const [newKeyValue, setNewKeyValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,15 +54,15 @@ export default function ApiKeysPage() {
   const { data: keys, isLoading } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
 
   const handleAddKey = async () => {
-    if (!socialMediaAccountsCollection) return;
+    if (!socialMediaAccountsCollection || !user) return;
 
     if (newKeyPlatform && newKeyValue) {
       setIsSubmitting(true);
-      const newKeyData = {
-        platform: newKeyPlatform,
+      const newKeyData: Omit<SocialMediaAccount, 'id'> = {
+        platform: newKeyPlatform as SocialMediaAccount['platform'],
         apiKey: newKeyValue,
         username: 'default_user', // This would come from the API verification in a real app
-        userId: user!.uid,
+        userId: user.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -130,14 +130,14 @@ export default function ApiKeysPage() {
         </CardHeader>
         <CardContent className="space-y-4">
            <div className="grid sm:grid-cols-3 gap-4">
-             <Select value={newKeyPlatform} onValueChange={setNewKeyPlatform} disabled={isSubmitting}>
+             <Select value={newKeyPlatform} onValueChange={(value) => setNewKeyPlatform(value as SocialMediaAccount['platform'])} disabled={isSubmitting}>
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Platform" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="Instagram">Instagram</SelectItem>
                     <SelectItem value="Facebook">Facebook</SelectItem>
-                    <SelectItem value="X">X (Twitter)</SelectItem>
+                    <SelectItem value="X">X</SelectItem>
                     <SelectItem value="LinkedIn">LinkedIn</SelectItem>
                     <SelectItem value="YouTube">YouTube</SelectItem>
                 </SelectContent>

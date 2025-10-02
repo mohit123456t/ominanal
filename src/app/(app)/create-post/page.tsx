@@ -76,7 +76,7 @@ export default function CreatePostPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['x', 'facebook', 'instagram', 'linkedin', 'youtube']);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Post['platform'][]>(['x', 'facebook', 'instagram', 'linkedin', 'youtube']);
 
 
   const { toast } = useToast();
@@ -198,7 +198,7 @@ export default function CreatePostPage() {
       const postData: Omit<Post, 'id'> = {
         userId: user.uid,
         content: text,
-        platform: selectedPlatforms[0] as Post['platform'], // Simplified for now
+        platform: selectedPlatforms[0], // Simplified for now, just takes the first selected
         mediaUrl: mediaUrl,
         status: date ? 'Scheduled' : 'Published',
         scheduledAt: date?.toISOString(),
@@ -237,7 +237,7 @@ export default function CreatePostPage() {
   };
 
 
-  const platforms = [
+  const platforms: { id: Post['platform']; label: string }[] = [
     { id: 'x', label: 'X (Twitter)' },
     { id: 'facebook', label: 'Facebook' },
     { id: 'instagram', label: 'Instagram' },
@@ -245,7 +245,7 @@ export default function CreatePostPage() {
     { id: 'youtube', label: 'YouTube' },
   ];
   
-  const handlePlatformChange = (platformId: string) => {
+  const handlePlatformChange = (platformId: Post['platform']) => {
     setSelectedPlatforms(prev => 
         prev.includes(platformId) 
             ? prev.filter(id => id !== platformId)
