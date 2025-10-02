@@ -7,9 +7,10 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Instagram, Facebook, Twitter, Linkedin, Link2 } from 'lucide-react';
+import { Instagram, Facebook, Twitter, Linkedin, Link2, Plus } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -82,6 +83,12 @@ export default function ConnectedAccountsPage() {
             </div>
           ))}
         </CardContent>
+         <CardFooter className="border-t px-6 py-4">
+            <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add New Account
+            </Button>
+        </CardFooter>
       </Card>
     </div>
   );
