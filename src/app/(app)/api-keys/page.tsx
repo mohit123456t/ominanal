@@ -110,7 +110,7 @@ export default function ApiKeysPage() {
     }
   };
 
-  const handleDeleteKey = async (accountId: string) => {
+  const handleDeleteKey = (accountId: string) => {
     if (!socialMediaAccountsCollection) return;
     const docRef = doc(socialMediaAccountsCollection, accountId);
     deleteDocumentNonBlocking(docRef);
@@ -224,9 +224,9 @@ export default function ApiKeysPage() {
                         <div className="p-4 border rounded-lg space-y-4 bg-muted/20">
                             <Alert>
                                 <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Account Requirement</AlertTitle>
+                                <AlertTitle>Platform Requirement</AlertTitle>
                                 <AlertDescription>
-                                    Posting to Instagram & Facebook requires an Instagram <b>Business</b> or <b>Creator</b> account that is linked to a Facebook Page.
+                                    To post automatically, Instagram requires a <b>Business</b> or <b>Creator</b> account linked to a Facebook Page. This single connection enables posting to both platforms.
                                 </AlertDescription>
                             </Alert>
                             <div className="space-y-2">
