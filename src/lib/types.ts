@@ -31,3 +31,14 @@ export type Post = {
   updatedAt: string;
   scheduledAt?: string;
 };
+
+export type SocialMediaAccount = {
+    id: string;
+    userId: string;
+    platform: 'Instagram' | 'Facebook' | 'X' | 'LinkedIn' | 'YouTube';
+    username: string;
+    apiKey: string;
+    connected?: boolean;
+    createdAt: string;
+    updatedAt: string;
+};

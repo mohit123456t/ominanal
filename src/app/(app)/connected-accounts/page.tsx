@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -10,36 +10,47 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Instagram, Facebook, Twitter, Linkedin, Link2, Plus, Youtube } from 'lucide-react';
+import { Instagram, Facebook, Twitter, Linkedin, Link2, Plus, Youtube, LoaderCircle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, updateDoc } from 'firebase/firestore';
+import { SocialMediaAccount } from '@/lib/types';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useRouter } from 'next/navigation';
 
-type Platform = {
-  id: 'instagram' | 'facebook' | 'x' | 'linkedin' | 'youtube';
-  name: string;
-  icon: React.ElementType;
-  connected: boolean;
+
+const platformIcons = {
+  Instagram,
+  Facebook,
+  X: Twitter,
+  LinkedIn,
+  YouTube,
 };
 
-const initialPlatforms: Platform[] = [
-  { id: 'instagram', name: 'Instagram', icon: Instagram, connected: true },
-  { id: 'facebook', name: 'Facebook', icon: Facebook, connected: true },
-  { id: 'x', name: 'X (Twitter)', icon: Twitter, connected: true },
-  { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, connected: false },
-  { id: 'youtube', name: 'YouTube', icon: Youtube, connected: false },
-];
-
 export default function ConnectedAccountsPage() {
-  const [accounts, setAccounts] = useState<Platform[]>(initialPlatforms);
+  const { user } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
 
-  const toggleConnection = (id: string) => {
-    setAccounts((prevAccounts) =>
-      prevAccounts.map((account) =>
-        account.id === id ? { ...account, connected: !account.connected } : account
-      )
-    );
+  const accountsCollectionRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, `users/${user.uid}/socialMediaAccounts`);
+  }, [user, firestore]);
+
+  const { data: accounts, isLoading, error } = useCollection<SocialMediaAccount>(accountsCollectionRef);
+
+  const toggleConnection = (id: string, currentStatus: boolean) => {
+    if (!accountsCollectionRef) return;
+    const docRef = doc(accountsCollectionRef, id);
+    updateDocumentNonBlocking(docRef, { connected: !currentStatus });
   };
+  
+  const availablePlatforms = useMemo(() => {
+    const connectedPlatforms = accounts?.map(acc => acc.platform) || [];
+    return Object.keys(platformIcons).filter(p => !connectedPlatforms.includes(p));
+  }, [accounts]);
+
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -61,31 +72,38 @@ export default function ConnectedAccountsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {accounts.map((account) => (
-            <div
-              key={account.id}
-              className="flex items-center justify-between p-4 rounded-lg border"
-            >
-              <div className="flex items-center gap-4">
-                <account.icon className="h-8 w-8 text-muted-foreground" />
-                <span className="font-medium text-lg">{account.name}</span>
+          {isLoading && <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>}
+          {!isLoading && accounts && accounts.map((account) => {
+            const Icon = platformIcons[account.platform as keyof typeof platformIcons] || Link2;
+            return (
+              <div
+                key={account.id}
+                className="flex items-center justify-between p-4 rounded-lg border"
+              >
+                <div className="flex items-center gap-4">
+                  <Icon className="h-8 w-8 text-muted-foreground" />
+                  <span className="font-medium text-lg">{account.platform}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                   <span className={cn("text-sm font-medium", account.connected ? "text-primary" : "text-muted-foreground")}>
+                      {account.connected ? 'Connected' : 'Disconnected'}
+                   </span>
+                  <Switch
+                    id={account.id}
+                    checked={!!account.connected}
+                    onCheckedChange={() => toggleConnection(account.id, !!account.connected)}
+                    aria-label={`Connect/Disconnect ${account.platform}`}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-4">
-                 <span className={cn("text-sm font-medium", account.connected ? "text-primary" : "text-muted-foreground")}>
-                    {account.connected ? 'Connected' : 'Disconnected'}
-                 </span>
-                <Switch
-                  id={account.id}
-                  checked={account.connected}
-                  onCheckedChange={() => toggleConnection(account.id)}
-                  aria-label={`Connect/Disconnect ${account.name}`}
-                />
-              </div>
-            </div>
-          ))}
+            )
+           })}
+           {!isLoading && (!accounts || accounts.length === 0) && (
+             <p className="text-muted-foreground text-center py-8">No accounts connected yet. Add one to get started!</p>
+           )}
         </CardContent>
          <CardFooter className="border-t px-6 py-4">
-            <Button>
+            <Button onClick={() => router.push('/api-keys')}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add New Account
             </Button>
@@ -94,5 +112,3 @@ export default function ConnectedAccountsPage() {
     </div>
   );
 }
-
-    

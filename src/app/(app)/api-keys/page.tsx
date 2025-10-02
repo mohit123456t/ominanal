@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyRound, Plus, Trash2, Copy } from 'lucide-react';
+import { KeyRound, Plus, Trash2, Copy, LoaderCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,28 +31,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { SocialMediaAccount } from '@/lib/types';
 
-
-type ApiKey = {
-  platform: string;
-  key: string;
-};
 
 export default function ApiKeysPage() {
-  const [keys, setKeys] = useState<ApiKey[]>([
-    { platform: 'Instagram', key: 'IG-************' },
-    { platform: 'Facebook', key: 'FB-************' },
-  ]);
+  const { user } = useUser();
+  const firestore = useFirestore();
   const [newKeyPlatform, setNewKeyPlatform] = useState('');
   const [newKeyValue, setNewKeyValue] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
 
-  const handleAddKey = () => {
+  const socialMediaAccountsCollection = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
+  }, [user, firestore]);
+
+  const { data: keys, isLoading } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
+
+  const handleAddKey = async () => {
+    if (!socialMediaAccountsCollection) return;
+
     if (newKeyPlatform && newKeyValue) {
-      setKeys([...keys, { platform: newKeyPlatform, key: newKeyValue }]);
+      setIsSubmitting(true);
+      const newKeyData = {
+        platform: newKeyPlatform,
+        apiKey: newKeyValue,
+        username: 'default_user', // This would come from the API verification in a real app
+        userId: user!.uid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      await addDocumentNonBlocking(socialMediaAccountsCollection, newKeyData);
+
       setNewKeyPlatform('');
       setNewKeyValue('');
+      setIsSubmitting(false);
+
       toast({
         title: 'API Key Added',
         description: `Your key for ${newKeyPlatform} has been saved.`,
@@ -66,11 +86,13 @@ export default function ApiKeysPage() {
     }
   };
 
-  const handleDeleteKey = (platform: string) => {
-    setKeys(keys.filter((key) => key.platform !== platform));
+  const handleDeleteKey = async (accountId: string) => {
+    if (!socialMediaAccountsCollection) return;
+    const docRef = doc(socialMediaAccountsCollection, accountId);
+    await deleteDocumentNonBlocking(docRef);
     toast({
         title: 'API Key Removed',
-        description: `Your key for ${platform} has been removed.`,
+        description: `Your key has been removed.`,
       });
   };
   
@@ -80,6 +102,11 @@ export default function ApiKeysPage() {
       title: 'Copied to clipboard!',
     });
   };
+
+  const maskApiKey = (key: string) => {
+    if (!key) return '';
+    return `${key.substring(0, 4)}************${key.substring(key.length - 4)}`;
+  }
 
 
   return (
@@ -103,7 +130,7 @@ export default function ApiKeysPage() {
         </CardHeader>
         <CardContent className="space-y-4">
            <div className="grid sm:grid-cols-3 gap-4">
-             <Select value={newKeyPlatform} onValueChange={setNewKeyPlatform}>
+             <Select value={newKeyPlatform} onValueChange={setNewKeyPlatform} disabled={isSubmitting}>
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Platform" />
                 </SelectTrigger>
@@ -122,12 +149,13 @@ export default function ApiKeysPage() {
               placeholder="Paste your API Key here"
               className="sm:col-span-2"
               aria-label="API Key Value"
+              disabled={isSubmitting}
             />
            </div>
         </CardContent>
         <CardFooter>
-            <Button onClick={handleAddKey}>
-                <Plus className="mr-2 h-4 w-4" />
+            <Button onClick={handleAddKey} disabled={isSubmitting}>
+                {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                 Add Key
             </Button>
         </CardFooter>
@@ -141,21 +169,22 @@ export default function ApiKeysPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {keys.length > 0 ? (
+          {isLoading && <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" />}
+          {!isLoading && keys && keys.length > 0 ? (
             keys.map((apiKey) => (
               <div
-                key={apiKey.platform}
+                key={apiKey.id}
                 className="flex items-center justify-between p-4 rounded-lg border bg-muted/20"
               >
                 <div className="flex items-center gap-4">
                   <KeyRound className="h-6 w-6 text-primary" />
                   <div>
                     <p className="font-semibold text-lg">{apiKey.platform}</p>
-                    <p className="font-mono text-sm text-muted-foreground">{apiKey.key}</p>
+                    <p className="font-mono text-sm text-muted-foreground">{maskApiKey(apiKey.apiKey)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                   <Button variant="ghost" size="icon" onClick={() => copyToClipboard(apiKey.key)}>
+                   <Button variant="ghost" size="icon" onClick={() => copyToClipboard(apiKey.apiKey)}>
                         <Copy className="h-4 w-4"/>
                         <span className="sr-only">Copy Key</span>
                     </Button>
@@ -176,7 +205,7 @@ export default function ApiKeysPage() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteKey(apiKey.platform)}>
+                        <AlertDialogAction onClick={() => handleDeleteKey(apiKey.id)}>
                           Continue
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -186,8 +215,8 @@ export default function ApiKeysPage() {
               </div>
             ))
           ) : (
-            <p className="text-muted-foreground text-center py-8">
-              You haven't added any API keys yet.
+            !isLoading && <p className="text-muted-foreground text-center py-8">
+              You have not added any API keys yet.
             </p>
           )}
         </CardContent>
@@ -195,5 +224,3 @@ export default function ApiKeysPage() {
     </div>
   );
 }
-
-    
