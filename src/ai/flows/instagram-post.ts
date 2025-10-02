@@ -9,7 +9,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
-import { URLSearchParams } from 'url';
 
 const PostToInstagramInputSchema = z.object({
   instagramUserId: z.string().describe('The Instagram User ID.'),
@@ -39,18 +38,13 @@ const postToInstagramFlow = ai.defineFlow(
     }
     
     // Step 1: Create a container for the media
-    const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media`;
-    const containerParams = new URLSearchParams({
-      image_url: mediaUrl,
-      access_token: accessToken,
-    });
+    let containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media?image_url=${encodeURIComponent(mediaUrl)}&access_token=${accessToken}`;
     if (caption) {
-        containerParams.append('caption', caption);
+        containerUrl += `&caption=${encodeURIComponent(caption)}`;
     }
 
     const containerResponse = await fetch(containerUrl, {
       method: 'POST',
-      body: containerParams,
     });
 
     if (!containerResponse.ok) {
@@ -73,8 +67,9 @@ const postToInstagramFlow = ai.defineFlow(
       access_token: accessToken,
     });
     
-    // We need to wait a few seconds for the container to be ready for publishing.
-    // A more robust solution would poll the container status endpoint.
+    // A robust solution would poll the container status endpoint.
+    // For this example, we'll wait a few seconds.
+    // Instagram needs time to process the media before it can be published.
     await new Promise(resolve => setTimeout(resolve, 5000));
 
     const publishResponse = await fetch(publishUrl, {
@@ -84,6 +79,24 @@ const postToInstagramFlow = ai.defineFlow(
 
     if (!publishResponse.ok) {
         const errorData: any = await publishResponse.json();
+        // Poll for container status if it's not ready yet
+        if (errorData.error?.code === 9007) { // Error code for media processing
+             console.log("Media is still processing, waiting and retrying...");
+             await new Promise(resolve => setTimeout(resolve, 5000)); // wait 5 more seconds
+             const retryResponse = await fetch(publishUrl, {
+                 method: 'POST',
+                 body: publishParams,
+             });
+             if (!retryResponse.ok) {
+                 const retryErrorData: any = await retryResponse.json();
+                 console.error('Failed to publish Instagram media container on retry:', retryErrorData);
+                 throw new Error(`Failed to publish Instagram media on retry: ${retryErrorData.error?.message || 'Unknown error'}`);
+             }
+             const retryPublishData: any = await retryResponse.json();
+             const postId = retryPublishData.id;
+             if (!postId) throw new Error('Failed to get post ID from Instagram after retry.');
+             return { postId };
+        }
         console.error('Failed to publish Instagram media container:', errorData);
         throw new Error(`Failed to publish Instagram media: ${errorData.error?.message || 'Unknown error'}`);
     }
