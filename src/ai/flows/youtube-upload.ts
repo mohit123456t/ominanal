@@ -10,8 +10,10 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps } from 'firebase-admin/app';
 import { SocialMediaAccount } from '@/lib/types';
+import { getFirebaseAdminApp } from '@/firebase/admin';
 
 
 const UploadVideoToYoutubeInputSchema = z.object({
@@ -36,11 +38,12 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     outputSchema: UploadVideoToYoutubeOutputSchema,
 }, async ({ userId, accountId, videoDataUri, title, description }) => {
     
+    getFirebaseAdminApp();
     const firestore = getFirestore();
-    const accountDocRef = doc(firestore, 'users', userId, 'socialMediaAccounts', accountId);
-    const accountDoc = await getDoc(accountDocRef);
+    const accountDocRef = firestore.doc(`users/${userId}/socialMediaAccounts/${accountId}`);
+    const accountDoc = await accountDocRef.get();
 
-    if (!accountDoc.exists()) {
+    if (!accountDoc.exists) {
         throw new Error('YouTube account not found for this user.');
     }
     const accountData = accountDoc.data() as SocialMediaAccount;
