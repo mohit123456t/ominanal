@@ -16,11 +16,12 @@ const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
 ];
 
+const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI || 'https://6000-firebase-studio-1759399651500.cluster-c36dgv2kibakqwbbbsgmia3fny.cloudworkstations.dev/youtube-callback';
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.YOUTUBE_CLIENT_ID,
   process.env.YOUTUBE_CLIENT_SECRET,
-  // This redirect URI must be configured in your Google Cloud project
-  'https://6000-firebase-studio-1759399651500.cluster-c36dgv2kibakqwbbbsgmia3fny.cloudworkstations.dev/youtube-callback'
+  redirectUri
 );
 
 const GetYoutubeAuthUrlOutputSchema = z.object({

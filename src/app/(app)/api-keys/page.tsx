@@ -36,6 +36,7 @@ import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { SocialMediaAccount } from '@/lib/types';
 import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
+import { Label } from '@/components/ui/label';
 
 
 export default function ApiKeysPage() {
@@ -128,6 +129,8 @@ export default function ApiKeysPage() {
         setIsConnectingYouTube(false);
     }
   }
+  
+  const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI || 'https://6000-firebase-studio-1759399651500.cluster-c36dgv2kibakqwbbbsgmia3fny.cloudworkstations.dev/youtube-callback';
 
 
   return (
@@ -185,7 +188,17 @@ export default function ApiKeysPage() {
                 />
             )}
             {newKeyPlatform === 'YouTube' && (
-                <div className="pt-4">
+                <div className="space-y-4 pt-4">
+                     <div>
+                        <Label htmlFor="redirect-uri-display">Copy this exact Redirect URI to Google Cloud Console:</Label>
+                        <div className="flex items-center gap-2 mt-2">
+                           <Input id="redirect-uri-display" type="text" readOnly value={redirectUri} />
+                           <Button variant="ghost" size="icon" onClick={() => copyToClipboard(redirectUri)}>
+                                <Copy className="h-4 w-4"/>
+                                <span className="sr-only">Copy URI</span>
+                            </Button>
+                        </div>
+                    </div>
                     <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube} className="w-full sm:w-auto">
                         {isConnectingYouTube ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Youtube className="mr-2 h-4 w-4" />}
                         Connect with YouTube
@@ -226,10 +239,12 @@ export default function ApiKeysPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                   <Button variant="ghost" size="icon" onClick={() => copyToClipboard(apiKey.apiKey)}>
+                   {apiKey.apiKey.startsWith('ya29.') ? null : (
+                     <Button variant="ghost" size="icon" onClick={() => copyToClipboard(apiKey.apiKey)}>
                         <Copy className="h-4 w-4"/>
                         <span className="sr-only">Copy Key</span>
                     </Button>
+                   )}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="icon">
