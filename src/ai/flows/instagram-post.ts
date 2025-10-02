@@ -48,10 +48,11 @@ const postToInstagramFlow = ai.defineFlow(
         containerParams.append('caption', caption);
     }
 
-    const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media?${containerParams.toString()}`;
+    const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media`;
 
     const containerResponse = await fetch(containerUrl, {
       method: 'POST',
+      body: containerParams,
     });
 
     if (!containerResponse.ok) {
