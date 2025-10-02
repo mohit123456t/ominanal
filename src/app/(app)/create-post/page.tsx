@@ -51,10 +51,11 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { type Post } from '@/lib/types';
+import { type Post, SocialMediaAccount } from '@/lib/types';
+import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
 
 
 const fileToDataUri = (file: File) =>
@@ -84,6 +85,13 @@ export default function CreatePostPage() {
   const { user } = useUser();
   const firestore = useFirestore();
 
+  const socialMediaAccountsCollection = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
+  }, [user, firestore]);
+
+  const { data: accounts } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
+
   const userAvatar = useMemo(
     () => PlaceHolderImages.find((img) => img.id === 'user-avatar-1'),
     []
@@ -103,14 +111,27 @@ export default function CreatePostPage() {
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-       if (file.type.startsWith('image/')) {
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
+
+      // Allow videos only for YouTube
+      if (isVideo && !selectedPlatforms.includes('youtube')) {
+          toast({
+              variant: "destructive",
+              title: "Invalid File Type",
+              description: "Video uploads are only supported for YouTube at the moment.",
+          });
+          return;
+      }
+      
+       if (isImage || isVideo) {
         setMedia(file);
         setMediaPreview(URL.createObjectURL(file));
       } else {
         toast({
             variant: "destructive",
             title: "Invalid File Type",
-            description: "Please upload an image file.",
+            description: "Please upload an image or video file.",
         })
       }
     }
@@ -132,7 +153,7 @@ export default function CreatePostPage() {
     setIsGenerating(true);
     try {
       let mediaDataUri: string | undefined;
-      if (media) {
+      if (media && media.type.startsWith('image/')) {
         mediaDataUri = await fileToDataUri(media);
       }
 
@@ -163,75 +184,93 @@ export default function CreatePostPage() {
 
   const handlePublish = async () => {
     if (!user || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'You must be logged in to create a post.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a post.' });
       return;
     }
-
     if (!text && !media) {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Please add content or media to your post.',
-        });
+        toast({ variant: 'destructive', title: 'Error', description: 'Please add content or media to your post.' });
         return;
     }
-    
     if (selectedPlatforms.length === 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Please select at least one platform to post to.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Please select at least one platform to post to.' });
       return;
     }
 
     setIsPublishing(true);
 
     try {
-      // In a real app, you would handle image uploads to a storage service like Firebase Storage
-      // and get a URL. For this demo, we'll skip the upload.
-      const mediaUrl = mediaPreview || undefined;
+      let somethingPublished = false;
 
-      const postData: Omit<Post, 'id'> = {
-        userId: user.uid,
-        content: text,
-        platform: selectedPlatforms[0], // Simplified for now, just takes the first selected
-        mediaUrl: mediaUrl,
-        status: date ? 'Scheduled' : 'Published',
-        scheduledAt: date?.toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        likes: 0,
-        comments: 0,
-        shares: 0,
-        views: 0,
-      };
+      // YouTube Upload Logic
+      if (selectedPlatforms.includes('youtube')) {
+        const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
+        if (youtubeAccount && media && media.type.startsWith('video/')) {
+          const videoDataUri = await fileToDataUri(media);
+          const [title, ...descriptionParts] = text.split('\n');
+          const description = descriptionParts.join('\n');
+          
+          await uploadVideoToYoutube({
+            userId: user.uid,
+            accountId: youtubeAccount.id,
+            videoDataUri,
+            title: title || 'My YouTube Video',
+            description: description || 'Uploaded via OmniPost AI',
+          });
+
+          somethingPublished = true;
+          toast({ title: 'YouTube video is being uploaded!', description: 'It may take a few moments to appear on your channel.' });
+        } else {
+            if(!media || !media.type.startsWith('video/')) {
+                 toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must upload a video file to post to YouTube.' });
+            }
+             if(!youtubeAccount) {
+                 toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must connect your YouTube account first.' });
+            }
+        }
+      }
+
+      // Firestore post creation for other platforms (simplified)
+      for (const platform of selectedPlatforms.filter(p => p !== 'youtube')) {
+          const mediaUrl = mediaPreview || undefined;
+          const postData: Omit<Post, 'id'> = {
+            userId: user.uid,
+            content: text,
+            platform: platform,
+            mediaUrl: mediaUrl,
+            status: date ? 'Scheduled' : 'Published',
+            scheduledAt: date?.toISOString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            likes: 0,
+            comments: 0,
+            shares: 0,
+            views: 0,
+          };
+          const postsCollection = collection(firestore, `users/${user.uid}/posts`);
+          addDocumentNonBlocking(postsCollection, postData);
+          somethingPublished = true;
+      }
       
-      const postsCollection = collection(firestore, `users/${user.uid}/posts`);
-      addDocumentNonBlocking(postsCollection, postData);
 
+      if (somethingPublished) {
+          toast({
+            title: 'Post Published!',
+            description: 'Your post has been successfully saved and/or scheduled.',
+          });
 
-      toast({
-        title: 'Post Published!',
-        description: 'Your post has been successfully saved.',
-      });
+          // Reset form
+          setText('');
+          setMedia(null);
+          setMediaPreview(null);
+          setDate(new Date());
+      }
 
-      // Reset form
-      setText('');
-      setMedia(null);
-      setMediaPreview(null);
-      setDate(new Date());
-
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error creating post:", error);
         toast({
             variant: 'destructive',
-            title: 'Error',
-            description: 'Failed to publish post. Please try again.',
+            title: 'Error Publishing Post',
+            description: error.message || 'Failed to publish post. Please try again.',
         });
     } finally {
         setIsPublishing(false);
@@ -254,6 +293,8 @@ export default function CreatePostPage() {
             : [...prev, platformId]
     );
   }
+
+  const isVideo = media?.type.startsWith('video/');
 
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -294,19 +335,23 @@ export default function CreatePostPage() {
                   <p className="mb-2 text-sm text-muted-foreground">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF</p>
+                  <p className="text-xs text-muted-foreground">Image or Video (for YouTube)</p>
                 </div>
-                <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+                <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*,video/*" />
               </label>
             ) : (
                 <div className="relative">
-                    <Image
-                        src={mediaPreview}
-                        alt="Media preview"
-                        width={500}
-                        height={300}
-                        className="rounded-lg object-cover w-full max-h-[300px]"
-                    />
+                    {isVideo ? (
+                        <video src={mediaPreview} controls className="rounded-lg object-cover w-full max-h-[300px]" />
+                    ) : (
+                        <Image
+                            src={mediaPreview}
+                            alt="Media preview"
+                            width={500}
+                            height={300}
+                            className="rounded-lg object-cover w-full max-h-[300px]"
+                        />
+                    )}
                     <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => { setMedia(null); setMediaPreview(null)}}>
                         <ImageIcon className="h-4 w-4" />
                     </Button>
@@ -341,7 +386,7 @@ export default function CreatePostPage() {
             <div className="grid sm:grid-cols-2 gap-2">
               <Button
                 onClick={handleGenerateCaption}
-                disabled={isGenerating}
+                disabled={isGenerating || isVideo}
                 variant="outline"
               >
                 {isGenerating ? (
@@ -414,7 +459,7 @@ export default function CreatePostPage() {
                                 <MoreHorizontal className="h-4 w-4" />
                             </div>
                             <p className="text-sm whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                            {mediaPreview && <div className="mt-2 rounded-xl border border-gray-800 overflow-hidden"><Image src={mediaPreview} alt="preview" width={500} height={300} className="object-cover w-full"/></div>}
+                            {mediaPreview && !isVideo && <div className="mt-2 rounded-xl border border-gray-800 overflow-hidden"><Image src={mediaPreview} alt="preview" width={500} height={300} className="object-cover w-full"/></div>}
                             <div className="flex justify-between pt-2 text-gray-500">
                                 <div className="flex items-center space-x-1 hover:text-primary transition-colors"><MessageCircle size={18} /><span className="text-xs">12</span></div>
                                 <div className="flex items-center space-x-1 hover:text-green-500 transition-colors"><Repeat size={18} /><span className="text-xs">34</span></div>
@@ -438,7 +483,7 @@ export default function CreatePostPage() {
                     </div>}
                     <MoreHorizontal className="h-5 w-5"/>
                 </div>
-                {mediaPreview ? <Image src={mediaPreview} alt="preview" width={320} height={320} className="object-cover w-full aspect-square"/> : <div className="w-full aspect-square bg-gray-200 flex items-center justify-center text-muted-foreground"><ImageIcon/></div> }
+                {mediaPreview && !isVideo ? <Image src={mediaPreview} alt="preview" width={320} height={320} className="object-cover w-full aspect-square"/> : <div className="w-full aspect-square bg-gray-200 flex items-center justify-center text-muted-foreground"><ImageIcon/></div> }
                  <div className="p-3 flex flex-col flex-1">
                     <div className="flex items-center space-x-4">
                         <Heart className="h-6 w-6"/>
@@ -473,7 +518,7 @@ export default function CreatePostPage() {
                         </div>
                     </div>
                      <p className="text-sm mt-3 whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                     {mediaPreview && <div className="mt-3 -mx-4"><Image src={mediaPreview} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
+                     {mediaPreview && !isVideo && <div className="mt-3 -mx-4"><Image src={mediaPreview} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
                      <div className="flex justify-between items-center text-gray-600 text-xs mt-2 pt-2 border-t">
                         <span>56 Likes</span>
                         <span>12 Comments · 34 Shares</span>
@@ -504,7 +549,7 @@ export default function CreatePostPage() {
                   </div>
                 </div>
                   <p className="text-sm mt-3 whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                  {mediaPreview && <div className="mt-3 -mx-4"><Image src={mediaPreview} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
+                  {mediaPreview && !isVideo && <div className="mt-3 -mx-4"><Image src={mediaPreview} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
                   <div className="flex justify-between items-center text-gray-600 text-xs mt-2 pt-2 border-t">
                     <span>56 Likes</span>
                     <span>12 Comments</span>
@@ -521,7 +566,7 @@ export default function CreatePostPage() {
           <TabsContent value="youtube">
             <Card className="bg-[#f9f9f9] text-black border-gray-200">
               <CardContent className="p-0">
-                  {mediaPreview ? <Image src={mediaPreview} alt="preview" width={1280} height={720} className="object-cover w-full aspect-video bg-black"/> : <div className="w-full aspect-video bg-black flex items-center justify-center text-white"><Youtube className="w-16 h-16"/></div> }
+                  {mediaPreview && isVideo ? <video src={mediaPreview} controls className="w-full aspect-video bg-black"/> : <div className="w-full aspect-video bg-black flex items-center justify-center text-white"><Youtube className="w-16 h-16"/></div> }
                   <div className="p-4">
                      <h3 className="text-lg font-bold">{text.split('\n')[0] || "Your Video Title Here"}</h3>
                      <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">

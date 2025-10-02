@@ -11,7 +11,6 @@ import { z } from 'zod';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps } from 'firebase-admin/app';
 import { SocialMediaAccount } from '@/lib/types';
 import { getFirebaseAdminApp } from '@/firebase/admin';
 
@@ -63,7 +62,13 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
-    const videoBuffer = Buffer.from(videoDataUri.split(',')[1], 'base64');
+    // Extract content type and base64 data from data URI
+    const match = videoDataUri.match(/^data:(.*);base64,(.*)$/);
+    if (!match) {
+        throw new Error('Invalid video data URI format.');
+    }
+    const contentType = match[1];
+    const videoBuffer = Buffer.from(match[2], 'base64');
     const videoStream = Readable.from(videoBuffer);
 
     const response = await youtube.videos.insert({
