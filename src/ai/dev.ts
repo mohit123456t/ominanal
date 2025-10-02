@@ -7,3 +7,4 @@ import '@/ai/flows/ai-campaign-idea-generation.ts';
 import '@/ai/flows/ai-caption-generation.ts';
 import '@/ai/flows/youtube-auth.ts';
 import '@/ai/flows/youtube-upload.ts';
+// import '@/ai/flows/instagram-auth.ts'; // For future implementation
