@@ -51,11 +51,6 @@ const platformIcons = {
 export default function ApiKeysPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [newKeyPlatform, setNewKeyPlatform] = useState<SocialMediaAccount['platform'] | ''>('');
-  const [newKeyValue, setNewKeyValue] = useState('');
-  const [newKeySecret, setNewKeySecret] = useState('');
-  const [newKeyUsername, setNewKeyUsername] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConnectingYouTube, setIsConnectingYouTube] = useState(false);
   const [isConnectingInstagram, setIsConnectingInstagram] = useState(false);
 
@@ -74,41 +69,6 @@ export default function ApiKeysPage() {
   const youtubeRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/youtube-callback` : '';
   const instagramRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/instagram-callback` : '';
 
-  const handleAddKey = async () => {
-    if (!socialMediaAccountsCollection || !user) return;
-
-    if (newKeyPlatform && newKeyValue && newKeyUsername) {
-      setIsSubmitting(true);
-      const newKeyData: Omit<SocialMediaAccount, 'id' > = {
-        platform: newKeyPlatform as SocialMediaAccount['platform'],
-        apiKey: newKeyValue,
-        username: newKeyUsername,
-        userId: user.uid,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        connected: true,
-      };
-      
-      addDocumentNonBlocking(socialMediaAccountsCollection, newKeyData);
-
-      setNewKeyPlatform('');
-      setNewKeyValue('');
-      setNewKeySecret('');
-      setNewKeyUsername('');
-      setIsSubmitting(false);
-
-      toast({
-        title: 'Connection Added',
-        description: `Your connection for ${newKeyPlatform} has been saved.`,
-      });
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Please fill out all fields.',
-        });
-    }
-  };
 
   const handleDeleteKey = (accountId: string) => {
     if (!socialMediaAccountsCollection) return;
@@ -126,12 +86,6 @@ export default function ApiKeysPage() {
       title: 'Copied to clipboard!',
     });
   };
-
-  const maskApiKey = (key: string) => {
-    if (!key) return '';
-    if (key.startsWith('ya29.') || key.startsWith('EAA')) return 'Connected via OAuth';
-    return `${key.substring(0, 4)}************${key.substring(key.length - 4)}`;
-  }
 
   const handleConnectYouTube = async () => {
     setIsConnectingYouTube(true);
@@ -189,7 +143,7 @@ export default function ApiKeysPage() {
                  {/* Instagram Connection */}
                 <div className="space-y-4">
                     {instagramAccount ? (
-                        <div className='flex items-center justify-between'>
+                        <div className='flex items-center justify-between p-4 border rounded-lg'>
                             <div className='flex items-center gap-2'>
                                 <Instagram className="h-6 w-6 text-pink-600" />
                                 <div>
@@ -257,7 +211,7 @@ export default function ApiKeysPage() {
                 {/* YouTube Connection */}
                  <div className="space-y-4">
                     {youtubeAccount ? (
-                        <div className='flex items-center justify-between'>
+                        <div className='flex items-center justify-between p-4 border rounded-lg'>
                             <div className='flex items-center gap-2'>
                                 <Youtube className="h-6 w-6 text-red-600" />
                                 <div>
