@@ -45,10 +45,7 @@ const postToFacebookFlow = ai.defineFlow(
 
     const response = await fetch(postUrl, {
         method: 'POST',
-        body: params.toString(), // body should be a string for x-www-form-urlencoded
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        body: params, // Pass URLSearchParams directly
     });
 
 
