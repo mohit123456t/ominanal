@@ -11,6 +11,7 @@ import {
   PanelLeft,
   Link2,
   KeyRound,
+  LogOut,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -20,10 +21,10 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   useSidebar,
-  SidebarFooter,
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/firebase';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
@@ -38,6 +39,13 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { toggleSidebar } = useSidebar();
+  const auth = useAuth();
+
+  const handleLogout = () => {
+    if (auth) {
+      auth.signOut();
+    }
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -99,6 +107,16 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
+          <Separator className="my-2" />
+           <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={handleLogout}
+                icon={<LogOut />}
+                tooltip={{ children: 'Log Out' }}
+              >
+                Log Out
+              </SidebarMenuButton>
+            </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
     </Sidebar>
