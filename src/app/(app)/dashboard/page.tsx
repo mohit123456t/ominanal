@@ -25,7 +25,7 @@ import { collection } from 'firebase/firestore';
 import { type Post } from '@/lib/types';
 
 
-function SocialIcon({ platform }: { platform: 'x' | 'facebook' | 'instagram' }) {
+function SocialIcon({ platform }: { platform: Post['platform'] }) {
   const logo = PlaceHolderImages.find(
     (p) => p.id === `${platform}-logo`
   );
@@ -116,6 +116,7 @@ export default function DashboardPage() {
                   <TableHead className="text-right">Likes</TableHead>
                   <TableHead className="text-right">Comments</TableHead>
                   <TableHead className="text-right">Shares</TableHead>
+                  <TableHead className="text-right">Views</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -144,6 +145,7 @@ export default function DashboardPage() {
                     <TableCell className="text-right">{post.likes.toLocaleString()}</TableCell>
                     <TableCell className="text-right">{post.comments.toLocaleString()}</TableCell>
                     <TableCell className="text-right">{post.shares.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{post.views?.toLocaleString() ?? 'N/A'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

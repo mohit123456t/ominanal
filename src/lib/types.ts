@@ -26,6 +26,7 @@ export type Post = {
   likes: number;
   comments: number;
   shares: number;
+  views?: number;
   status: 'Published' | 'Scheduled' | 'Draft';
   createdAt: string;
   updatedAt: string;

@@ -24,6 +24,7 @@ import {
   ThumbsUp,
   Linkedin,
   Youtube,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -76,7 +77,7 @@ export default function CreatePostPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Post['platform'][]>(['x', 'facebook', 'instagram', 'linkedin', 'youtube']);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Post['platform'][]>(['x']);
 
 
   const { toast } = useToast();
@@ -207,6 +208,7 @@ export default function CreatePostPage() {
         likes: 0,
         comments: 0,
         shares: 0,
+        views: 0,
       };
       
       const postsCollection = collection(firestore, `users/${user.uid}/posts`);
@@ -521,16 +523,22 @@ export default function CreatePostPage() {
               <CardContent className="p-0">
                   {mediaPreview ? <Image src={mediaPreview} alt="preview" width={1280} height={720} className="object-cover w-full aspect-video bg-black"/> : <div className="w-full aspect-video bg-black flex items-center justify-center text-white"><Youtube className="w-16 h-16"/></div> }
                   <div className="p-4">
-                     <h3 className="text-lg font-bold">Your Video Title Here</h3>
-                     <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{text || "Your video description will appear here..."}</p>
+                     <h3 className="text-lg font-bold">{text.split('\n')[0] || "Your Video Title Here"}</h3>
                      <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
                         {userAvatar && <Avatar size="sm">
                             <AvatarImage src={userAvatar.imageUrl} />
                             <AvatarFallback>JD</AvatarFallback>
                         </Avatar>}
-                        <span>Jane Doe</span>
-                        <span>1M views &bull; 1 minute ago</span>
+                        <div className='flex flex-col'>
+                            <span className="font-semibold">Jane Doe's Channel</span>
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1"><Eye size={14}/> <span>1.2M views</span></div>
+                                <div className="flex items-center gap-1"><ThumbsUp size={14}/> <span>56K</span></div>
+                                <span>&bull; 1 minute ago</span>
+                            </div>
+                        </div>
                      </div>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{text.split('\n').slice(1).join('\n') || "Your video description will appear here..."}</p>
                   </div>
               </CardContent>
             </Card>

@@ -42,6 +42,7 @@ export default function ApiKeysPage() {
   const firestore = useFirestore();
   const [newKeyPlatform, setNewKeyPlatform] = useState<SocialMediaAccount['platform'] | ''>('');
   const [newKeyValue, setNewKeyValue] = useState('');
+  const [newKeyUsername, setNewKeyUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { toast } = useToast();
@@ -56,12 +57,12 @@ export default function ApiKeysPage() {
   const handleAddKey = async () => {
     if (!socialMediaAccountsCollection || !user) return;
 
-    if (newKeyPlatform && newKeyValue) {
+    if (newKeyPlatform && newKeyValue && newKeyUsername) {
       setIsSubmitting(true);
       const newKeyData: Omit<SocialMediaAccount, 'id'> = {
         platform: newKeyPlatform as SocialMediaAccount['platform'],
         apiKey: newKeyValue,
-        username: 'default_user', // This would come from the API verification in a real app
+        username: newKeyUsername,
         userId: user.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -71,6 +72,7 @@ export default function ApiKeysPage() {
 
       setNewKeyPlatform('');
       setNewKeyValue('');
+      setNewKeyUsername('');
       setIsSubmitting(false);
 
       toast({
@@ -81,7 +83,7 @@ export default function ApiKeysPage() {
         toast({
             variant: 'destructive',
             title: 'Error',
-            description: 'Please select a platform and enter a key.',
+            description: 'Please fill out all fields.',
         });
     }
   };
@@ -129,7 +131,7 @@ export default function ApiKeysPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-           <div className="grid sm:grid-cols-3 gap-4">
+           <div className="grid sm:grid-cols-2 gap-4">
              <Select value={newKeyPlatform} onValueChange={(value) => setNewKeyPlatform(value as SocialMediaAccount['platform'])} disabled={isSubmitting}>
                 <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Platform" />
@@ -144,14 +146,21 @@ export default function ApiKeysPage() {
             </Select>
             <Input
               type="text"
-              value={newKeyValue}
-              onChange={(e) => setNewKeyValue(e.target.value)}
-              placeholder="Paste your API Key here"
-              className="sm:col-span-2"
-              aria-label="API Key Value"
+              value={newKeyUsername}
+              onChange={(e) => setNewKeyUsername(e.target.value)}
+              placeholder="Username or Channel Name"
+              aria-label="Username or Channel Name"
               disabled={isSubmitting}
             />
            </div>
+            <Input
+              type="text"
+              value={newKeyValue}
+              onChange={(e) => setNewKeyValue(e.target.value)}
+              placeholder="Paste your API Key here"
+              aria-label="API Key Value"
+              disabled={isSubmitting}
+            />
         </CardContent>
         <CardFooter>
             <Button onClick={handleAddKey} disabled={isSubmitting}>
@@ -179,7 +188,7 @@ export default function ApiKeysPage() {
                 <div className="flex items-center gap-4">
                   <KeyRound className="h-6 w-6 text-primary" />
                   <div>
-                    <p className="font-semibold text-lg">{apiKey.platform}</p>
+                    <p className="font-semibold text-lg">{apiKey.platform} <span className="text-base font-normal text-muted-foreground">({apiKey.username})</span></p>
                     <p className="font-mono text-sm text-muted-foreground">{maskApiKey(apiKey.apiKey)}</p>
                   </div>
                 </div>
