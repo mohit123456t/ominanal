@@ -22,6 +22,7 @@ import {
   MoreHorizontal,
   UploadCloud,
   ThumbsUp,
+  Linkedin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -151,6 +152,7 @@ export default function CreatePostPage() {
     { id: 'x', label: 'X (Twitter)' },
     { id: 'facebook', label: 'Facebook' },
     { id: 'instagram', label: 'Instagram' },
+    { id: 'linkedin', label: 'LinkedIn' },
   ];
 
   return (
@@ -160,7 +162,7 @@ export default function CreatePostPage() {
           <CardContent className="p-4 space-y-4">
             <div>
               <Label>Select Platforms</Label>
-              <div className="flex items-center space-x-4 pt-2">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
                 {platforms.map((p) => (
                   <div key={p.id} className="flex items-center space-x-2">
                     <Checkbox id={p.id} defaultChecked />
@@ -284,10 +286,11 @@ export default function CreatePostPage() {
       <div className="lg:sticky top-24">
         <h2 className="font-headline text-lg font-semibold mb-4">Live Preview</h2>
         <Tabs defaultValue="x" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="x"><Twitter className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="instagram"><Instagram className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="facebook"><Facebook className="w-5 h-5"/></TabsTrigger>
+            <TabsTrigger value="linkedin"><Linkedin className="w-5 h-5"/></TabsTrigger>
           </TabsList>
           <TabsContent value="x">
             <Card className="bg-[#000] text-white border-gray-800">
@@ -376,6 +379,39 @@ export default function CreatePostPage() {
                          <Button variant="ghost" className="text-gray-600"><Repeat className="mr-2 h-4 w-4"/>Share</Button>
                      </div>
                 </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="linkedin">
+            <Card className="bg-white text-black border-gray-200">
+              <CardContent className="p-4">
+                <div className="flex space-x-3">
+                  {userAvatar && <Avatar>
+                      <AvatarImage src={userAvatar.imageUrl} />
+                      <AvatarFallback>JD</AvatarFallback>
+                  </Avatar>}
+                  <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                              <h4 className="text-sm font-semibold">Jane Doe</h4>
+                              <p className="text-xs text-gray-500">1m ago</p>
+                          </div>
+                          <MoreHorizontal className="h-4 w-4" />
+                      </div>
+                  </div>
+                </div>
+                  <p className="text-sm mt-3 whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
+                  {mediaPreview && <div className="mt-3 -mx-4"><Image src={mediaPreview} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
+                  <div className="flex justify-between items-center text-gray-600 text-xs mt-2 pt-2 border-t">
+                    <span>56 Likes</span>
+                    <span>12 Comments</span>
+                  </div>
+                  <div className="flex justify-around pt-2 mt-2 border-t">
+                      <Button variant="ghost" className="text-gray-600"><ThumbsUp className="mr-2 h-4 w-4"/>Like</Button>
+                      <Button variant="ghost" className="text-gray-600"><MessageCircle className="mr-2 h-4 w-4"/>Comment</Button>
+                      <Button variant="ghost" className="text-gray-600"><Repeat className="mr-2 h-4 w-4"/>Repost</Button>
+                      <Button variant="ghost" className="text-gray-600"><Send className="mr-2 h-4 w-4"/>Send</Button>
+                  </div>
+              </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
