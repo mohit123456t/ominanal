@@ -112,6 +112,7 @@ export default function ApiKeysPage() {
                     <SelectItem value="Facebook">Facebook</SelectItem>
                     <SelectItem value="X">X (Twitter)</SelectItem>
                     <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                    <SelectItem value="YouTube">YouTube</SelectItem>
                 </SelectContent>
             </Select>
             <Input
@@ -194,3 +195,5 @@ export default function ApiKeysPage() {
     </div>
   );
 }
+
+    

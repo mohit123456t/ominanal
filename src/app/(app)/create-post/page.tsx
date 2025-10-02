@@ -23,6 +23,7 @@ import {
   UploadCloud,
   ThumbsUp,
   Linkedin,
+  Youtube,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -153,6 +154,7 @@ export default function CreatePostPage() {
     { id: 'facebook', label: 'Facebook' },
     { id: 'instagram', label: 'Instagram' },
     { id: 'linkedin', label: 'LinkedIn' },
+    { id: 'youtube', label: 'YouTube' },
   ];
 
   return (
@@ -286,11 +288,12 @@ export default function CreatePostPage() {
       <div className="lg:sticky top-24">
         <h2 className="font-headline text-lg font-semibold mb-4">Live Preview</h2>
         <Tabs defaultValue="x" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="x"><Twitter className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="instagram"><Instagram className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="facebook"><Facebook className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="linkedin"><Linkedin className="w-5 h-5"/></TabsTrigger>
+            <TabsTrigger value="youtube"><Youtube className="w-5 h-5"/></TabsTrigger>
           </TabsList>
           <TabsContent value="x">
             <Card className="bg-[#000] text-white border-gray-800">
@@ -375,8 +378,7 @@ export default function CreatePostPage() {
                      </div>
                      <div className="flex justify-around pt-2 mt-2 border-t">
                          <Button variant="ghost" className="text-gray-600"><ThumbsUp className="mr-2 h-4 w-4"/>Like</Button>
-                         <Button variant="ghost" className="text-gray-600"><MessageCircle className="mr-2 h-4 w-4"/>Comment</Button>
-                         <Button variant="ghost" className="text-gray-600"><Repeat className="mr-2 h-4 w-4"/>Share</Button>
+                         <Button variant="ghost" className="text-gray-600"><MessageCircle className="mr-2 h-4 w-4"/>Comment</Button>                         <Button variant="ghost" className="text-gray-600"><Repeat className="mr-2 h-4 w-4"/>Share</Button>
                      </div>
                 </CardContent>
             </Card>
@@ -414,8 +416,29 @@ export default function CreatePostPage() {
               </CardContent>
             </Card>
           </TabsContent>
+          <TabsContent value="youtube">
+            <Card className="bg-[#f9f9f9] text-black border-gray-200">
+              <CardContent className="p-0">
+                  {mediaPreview ? <Image src={mediaPreview} alt="preview" width={1280} height={720} className="object-cover w-full aspect-video bg-black"/> : <div className="w-full aspect-video bg-black flex items-center justify-center text-white"><Youtube className="w-16 h-16"/></div> }
+                  <div className="p-4">
+                     <h3 className="text-lg font-bold">Your Video Title Here</h3>
+                     <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{text || "Your video description will appear here..."}</p>
+                     <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
+                        {userAvatar && <Avatar size="sm">
+                            <AvatarImage src={userAvatar.imageUrl} />
+                            <AvatarFallback>JD</AvatarFallback>
+                        </Avatar>}
+                        <span>Jane Doe</span>
+                        <span>1M views &bull; 1 minute ago</span>
+                     </div>
+                  </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
   );
 }
+
+    

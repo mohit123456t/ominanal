@@ -10,13 +10,13 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Instagram, Facebook, Twitter, Linkedin, Link2, Plus } from 'lucide-react';
+import { Instagram, Facebook, Twitter, Linkedin, Link2, Plus, Youtube } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 type Platform = {
-  id: 'instagram' | 'facebook' | 'x' | 'linkedin';
+  id: 'instagram' | 'facebook' | 'x' | 'linkedin' | 'youtube';
   name: string;
   icon: React.ElementType;
   connected: boolean;
@@ -27,6 +27,7 @@ const initialPlatforms: Platform[] = [
   { id: 'facebook', name: 'Facebook', icon: Facebook, connected: true },
   { id: 'x', name: 'X (Twitter)', icon: Twitter, connected: true },
   { id: 'linkedin', name: 'LinkedIn', icon: Linkedin, connected: false },
+  { id: 'youtube', name: 'YouTube', icon: Youtube, connected: false },
 ];
 
 export default function ConnectedAccountsPage() {
@@ -93,3 +94,5 @@ export default function ConnectedAccountsPage() {
     </div>
   );
 }
+
+    
