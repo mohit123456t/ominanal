@@ -14,7 +14,7 @@ const PostToFacebookInputSchema = z.object({
   facebookPageId: z.string().describe('The ID of the Facebook Page.'),
   mediaUrl: z.string().url().describe('The public URL of the image to post.'),
   caption: z.string().optional().describe('The caption for the post.'),
-  accessToken: z.string().describe('The user access token with pages_manage_posts permission.'),
+  userAccessToken: z.string().describe('The user access token with pages_manage_posts permission.'),
 });
 export type PostToFacebookInput = z.infer<typeof PostToFacebookInputSchema>;
 
@@ -25,32 +25,62 @@ export type PostToFacebookOutput = z.infer<typeof PostToFacebookOutputSchema>;
 
 const FACEBOOK_GRAPH_API_URL = 'https://graph.facebook.com/v20.0';
 
+// Helper flow to get a long-lived page access token
+const getPageAccessToken = ai.defineFlow(
+  {
+    name: 'getPageAccessToken',
+    inputSchema: z.object({
+      pageId: z.string(),
+      userAccessToken: z.string(),
+    }),
+    outputSchema: z.object({ pageAccessToken: z.string() }),
+  },
+  async ({ pageId, userAccessToken }) => {
+    const url = `${FACEBOOK_GRAPH_API_URL}/${pageId}?fields=access_token&access_token=${userAccessToken}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errorData: any = await response.json();
+      console.error('Failed to get Page Access Token:', errorData);
+      throw new Error(`Failed to get Page Access Token: ${errorData.error?.message || 'Unknown error'}`);
+    }
+    const data: any = await response.json();
+    if (!data.access_token) {
+      throw new Error('Page Access Token not found in response.');
+    }
+    return { pageAccessToken: data.access_token };
+  }
+);
+
+
 const postToFacebookFlow = ai.defineFlow(
   {
     name: 'postToFacebookFlow',
     inputSchema: PostToFacebookInputSchema,
     outputSchema: PostToFacebookOutputSchema,
   },
-  async ({ facebookPageId, mediaUrl, caption, accessToken }) => {
+  async ({ facebookPageId, mediaUrl, caption, userAccessToken }) => {
+    
+    // Step 1: Get the Page Access Token. This is crucial.
+    const { pageAccessToken } = await getPageAccessToken({
+        pageId: facebookPageId,
+        userAccessToken: userAccessToken
+    });
 
+    // Step 2: Use the Page Access Token to post the photo.
     const postUrl = `${FACEBOOK_GRAPH_API_URL}/${facebookPageId}/photos`;
     
     const params = new URLSearchParams({
         url: mediaUrl,
-        access_token: accessToken,
+        access_token: pageAccessToken, // Use the page access token here
     });
 
     if (caption) {
-        params.append('caption', caption);
+        params.append('message', caption); // Use 'message' for photo captions
     }
 
     const response = await fetch(postUrl, {
         method: 'POST',
-        // The body should not be a stringified URLSearchParams for photos,
-        // but rather the params should be in the URL itself for a GET-like POST
-        // or a multipart form for an upload. For URL-based photos, params in URL is fine.
-        // Let's stick to the URL Search Params in the body as it is a common pattern.
-        body: params,
+        body: params, // Send params in the body for this endpoint
     });
 
 
@@ -64,16 +94,18 @@ const postToFacebookFlow = ai.defineFlow(
 
     const responseData: any = await response.json();
     
-    if (!responseData.id) {
+    // The photo post returns a 'post_id' which is the ID of the post container, and an 'id' which is the photo ID.
+    // We want the post ID to construct a URL.
+    const postId = responseData.post_id || responseData.id;
+    if (!postId) {
         throw new Error('Failed to get post ID from Facebook after publishing.');
     }
 
-    return { postId: responseData.id };
+    return { postId };
   }
 );
 
 
 export async function postToFacebook(input: PostToFacebookInput): Promise<PostToFacebookOutput> {
-    // This is a wrapper function to call the Genkit flow.
     return postToFacebookFlow(input);
 }

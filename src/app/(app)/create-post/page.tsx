@@ -226,7 +226,7 @@ export default function CreatePostPage() {
         if (!facebookAccount || !facebookAccount.facebookPageId) {
             toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID is required.' });
         } else if (!facebookAccount.connected) {
-            toast({ variant: 'destructive', title: 'Facebook Error', description: "Your Facebook account is disconnected. Please connect it in the 'Connected Accounts' page." });
+            toast({ variant: 'destructive', title: 'Facebook Error', description: "Your Facebook account is disconnected. Please reconnect it in the 'API Keys' page." });
         } else if (!mediaUrl) {
             toast({ variant: 'destructive', title: 'Facebook Error', description: 'Facebook posts from this app require a public Media URL.' });
         } else {
@@ -234,7 +234,7 @@ export default function CreatePostPage() {
                 facebookPageId: facebookAccount.facebookPageId,
                 mediaUrl: mediaUrl,
                 caption: text,
-                accessToken: facebookAccount.apiKey,
+                userAccessToken: facebookAccount.apiKey,
             });
             toast({ title: 'Posted to Facebook!', description: 'Your post should be live on your Facebook Page.' });
             somethingPublished = true;
