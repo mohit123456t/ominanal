@@ -1,0 +1,327 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the OmniPost AI platform.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user.",
+          "format": "uuid"
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was last updated.",
+          "format": "date-time"
+        },
+        "subscriptionId": {
+          "type": "string",
+          "description": "Reference to Subscription. (Relationship: User 1:1 Subscription)"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "createdAt",
+        "updatedAt",
+        "subscriptionId"
+      ]
+    },
+    "SocialMediaAccount": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SocialMediaAccount",
+      "type": "object",
+      "description": "Represents a social media account connected to a user's OmniPost AI account.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the social media account."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N SocialMediaAccount)"
+        },
+        "platform": {
+          "type": "string",
+          "description": "The social media platform (e.g., Instagram, Facebook, X)."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the social media account."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the social media account was connected.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the social media account was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "platform",
+        "username",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Post": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Post",
+      "type": "object",
+      "description": "Represents a social media post created and managed within OmniPost AI.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the post."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Post)"
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the post."
+        },
+        "mediaUrl": {
+          "type": "string",
+          "description": "URL of the media file associated with the post, if any.",
+          "format": "uri"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the post (e.g., Scheduled, Published, Draft).",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the post was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the post was last updated.",
+          "format": "date-time"
+        },
+        "scheduledAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the post is scheduled to be published, if applicable.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "content",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PlatformPost": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PlatformPost",
+      "type": "object",
+      "description": "Represents a social media post created and managed within OmniPost AI.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Platform post."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Reference to Post. (Relationship: Post 1:N PlatformPost)"
+        },
+        "socialMediaAccountId": {
+          "type": "string",
+          "description": "Reference to SocialMediaAccount. (Relationship: SocialMediaAccount 1:N PlatformPost)"
+        },
+        "publishedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the post was published.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the Platform post (e.g., Published, Error).",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "postId",
+        "socialMediaAccountId",
+        "publishedAt",
+        "status"
+      ]
+    },
+    "Subscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subscription",
+      "type": "object",
+      "description": "Represents a subscription plan for OmniPost AI.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the subscription plan."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the subscription plan (e.g., Free, Pro, Agency)."
+        },
+        "price": {
+          "type": "number",
+          "description": "Monthly price of the subscription plan."
+        },
+        "accountLimit": {
+          "type": "number",
+          "description": "Maximum number of social media accounts allowed for the subscription plan."
+        },
+        "postLimit": {
+          "type": "number",
+          "description": "Maximum number of scheduled posts allowed per month."
+        },
+        "aiFeatures": {
+          "type": "string",
+          "description": "AI content generation feature availability."
+        },
+        "analyticsLevel": {
+          "type": "string",
+          "description": "Level of analytics available for the subscription plan."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price",
+        "accountLimit",
+        "postLimit",
+        "aiFeatures",
+        "analyticsLevel"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile information.  Root document for all user-owned data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/socialMediaAccounts/{socialMediaAccountId}",
+        "definition": {
+          "entityName": "SocialMediaAccount",
+          "schema": {
+            "$ref": "#/backend/entities/SocialMediaAccount"
+          },
+          "description": "Stores social media account information associated with a user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "socialMediaAccountId",
+              "description": "The unique identifier of the social media account."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/posts/{postId}",
+        "definition": {
+          "entityName": "Post",
+          "schema": {
+            "$ref": "#/backend/entities/Post"
+          },
+          "description": "Stores post information created by a user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "postId",
+              "description": "The unique identifier of the post."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/posts/{postId}/platformPosts/{platformPostId}",
+        "definition": {
+          "entityName": "PlatformPost",
+          "schema": {
+            "$ref": "#/backend/entities/PlatformPost"
+          },
+          "description": "Stores platform-specific post information related to a main post. Inherits authorization from parent post.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "postId",
+              "description": "The unique identifier of the parent post."
+            },
+            {
+              "name": "platformPostId",
+              "description": "The unique identifier of the platform-specific post."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subscriptions/{subscriptionId}",
+        "definition": {
+          "entityName": "Subscription",
+          "schema": {
+            "$ref": "#/backend/entities/Subscription"
+          },
+          "description": "Stores subscription plan information.",
+          "params": [
+            {
+              "name": "subscriptionId",
+              "description": "The unique identifier of the subscription plan."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the OmniPost AI platform's core features, emphasizing authorization independence, scalability, and security. It leverages path-based ownership for user-specific data and a membership map model for collaborative data. Denormalization is employed to avoid `get()` calls in security rules and to ensure atomic operations.\n\n1.  **User Data:** User profiles are stored under `/users/{userId}`, providing straightforward ownership-based access control.\n2.  **Social Media Accounts:** Social media accounts owned by users are stored in `/users/{userId}/socialMediaAccounts/{accountId}`, ensuring that only the user can manage their connected accounts. This path-based structure makes security rules simple and efficient.\n3.  **Posts:** Posts created by users are stored in `/users/{userId}/posts/{postId}`. This structure maintains clear ownership and simplifies security rules. Each `Post` document contains the `userId`, which is denormalized for authorization independence. Posts intended for specific platforms (e.g., Instagram, Facebook) are represented via `platformPosts`.\n4.  **Platform Posts:** Platform-specific post instances are located in `/users/{userId}/posts/{postId}/platformPosts/{platformPostId}`. Each `PlatformPost` stores a reference to the parent `Post` and `socialMediaAccountId`. This design allows efficient querying and management of published posts on different platforms, with clear ownership inherited from the parent `Post`.\n5.  **Subscriptions:** Subscription plans are stored in `/subscriptions/{subscriptionId}`. Since subscriptions are global and not user-specific, a dedicated top-level collection is used. User's `subscriptionId` is stored on `/users/{userId}`.\n\nThis structure achieves Authorization Independence by denormalizing the user ID into the `Post` documents. This eliminates the need for `get()` calls in security rules when validating access to posts. The use of path-based ownership ensures that list operations can be securely implemented by scoping queries to the user's collection. The segregation of data based on ownership (`/users/{userId}`) supports the required QAPs by allowing secure filtering and listing of resources."
+  }
+}

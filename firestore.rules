@@ -1,0 +1,130 @@
+/**
+ * @file Firestore Security Rules for OmniPost AI Platform
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for data stored under the `/users/{userId}` path. Users can only create, read, update, and delete their own data. Top-level collections like `/subscriptions` are publicly readable but not writable by clients.
+ *
+ * Data Structure:
+ * - `/users/{userId}`: Stores user profile data.
+ * - `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}`: Stores social media accounts linked to a user.
+ * - `/users/{userId}/posts/{postId}`: Stores posts created by a user.  The `userId` is denormalized on the document for simpler rules.
+ * - `/users/{userId}/posts/{postId}/platformPosts/{platformPostId}`: Stores platform-specific instances of a post.
+ * - `/subscriptions/{subscriptionId}`: Stores subscription plan information (publicly readable).
+ *
+ * Key Security Decisions:
+ * - Users can only manage their own user document.
+ * - Social Media Accounts are scoped to the owning user.
+ * - Posts are scoped to the owning user.
+ * - Subscriptions are publicly readable.
+ * - Listing all users is disallowed.
+ *
+ * Denormalization for Authorization:
+ * - The `Post` entity denormalizes the `userId` field. This is CRITICAL for authorization and avoids costly `get()` calls.
+ *
+ * Structural Segregation:
+ * - Public vs. Private Data: Subscription data is stored in a public top-level collection, while user-specific data is stored under `/users/{userId}`.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secure user profiles. Users can only read and write their own profile data.
+     * @path /users/{userId}
+     * @allow (create) - User with ID 'user123' can create their own profile if request.auth.uid == 'user123'.
+     * @allow (get, update, delete) - User with ID 'user123' can access their profile if request.auth.uid == 'user123'.
+     * @deny (create) - User with ID 'user456' cannot create a profile with ID 'user123'.
+     * @deny (update, delete) - User with ID 'user456' cannot update or delete the profile with ID 'user123'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // Listing users is not permitted.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && resource.data.id == request.resource.data.id;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Secure social media accounts. Users can only manage their own social media accounts.
+     * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}
+     * @allow (create) - User with ID 'user123' can create a social media account under their profile.
+     * @allow (get, update, delete) - User with ID 'user123' can access a social media account under their profile.
+     * @deny (create) - User with ID 'user456' cannot create a social media account under user 'user123'.
+     * @deny (update, delete) - User with ID 'user456' cannot update or delete a social media account under user 'user123'.
+     * @principle Enforces ownership for social media accounts within the user's data tree.
+     */
+    match /users/{userId}/socialMediaAccounts/{socialMediaAccountId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Secure posts. Users can only manage their own posts.
+     * @path /users/{userId}/posts/{postId}
+     * @allow (create) - User with ID 'user123' can create a post under their profile.
+     * @allow (get, update, delete) - User with ID 'user123' can access a post under their profile.
+     * @deny (create) - User with ID 'user456' cannot create a post under user 'user123'.
+     * @deny (update, delete) - User with ID 'user456' cannot update or delete a post under user 'user123'.
+     * @principle Enforces ownership for posts within the user's data tree.
+     */
+    match /users/{userId}/posts/{postId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isOwner(userId) && resource != null && resource.data.userId == request.resource.data.userId;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Secure platform-specific post information.  Authorization is inherited from the parent post.
+     * @path /users/{userId}/posts/{postId}/platformPosts/{platformPostId}
+     * @allow (create) - User with ID 'user123' can create a platform post under their post.
+     * @allow (get, update, delete) - User with ID 'user123' can access a platform post under their post.
+     * @deny (create) - User with ID 'user456' cannot create a platform post under user 'user123's post.
+     * @deny (update, delete) - User with ID 'user456' cannot update or delete a platform post under user 'user123's post.
+     * @principle Enforces ownership inherited from the parent post.
+     */
+    match /users/{userId}/posts/{postId}/platformPosts/{platformPostId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Allow public read access to subscription plans, but deny write access to clients.
+     * @path /subscriptions/{subscriptionId}
+     * @allow (get, list) - Any user can read subscription plan information.
+     * @deny (create, update, delete) - No user can create, update, or delete subscription plan information.
+     * @principle Allows public read access to subscription plans.
+     */
+    match /subscriptions/{subscriptionId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
