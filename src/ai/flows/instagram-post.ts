@@ -9,6 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
+import { URLSearchParams } from 'url';
 
 const PostToInstagramInputSchema = z.object({
   instagramUserId: z.string().describe('The Instagram User ID.'),
@@ -38,10 +39,16 @@ const postToInstagramFlow = ai.defineFlow(
     }
     
     // Step 1: Create a container for the media
-    let containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media?image_url=${encodeURIComponent(mediaUrl)}&access_token=${accessToken}`;
+    const containerParams = new URLSearchParams({
+        image_url: mediaUrl,
+        access_token: accessToken,
+    });
+
     if (caption) {
-        containerUrl += `&caption=${encodeURIComponent(caption)}`;
+        containerParams.append('caption', caption);
     }
+
+    const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media?${containerParams.toString()}`;
 
     const containerResponse = await fetch(containerUrl, {
       method: 'POST',
@@ -61,7 +68,6 @@ const postToInstagramFlow = ai.defineFlow(
     }
 
     // Step 2: Publish the container
-    const publishUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media_publish`;
     const publishParams = new URLSearchParams({
       creation_id: creationId,
       access_token: accessToken,
@@ -71,6 +77,8 @@ const postToInstagramFlow = ai.defineFlow(
     // For this example, we'll wait a few seconds.
     // Instagram needs time to process the media before it can be published.
     await new Promise(resolve => setTimeout(resolve, 5000));
+    
+    const publishUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media_publish`;
 
     const publishResponse = await fetch(publishUrl, {
         method: 'POST',
