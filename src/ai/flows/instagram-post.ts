@@ -13,7 +13,7 @@ import { URLSearchParams } from 'url';
 
 const PostToInstagramInputSchema = z.object({
   instagramUserId: z.string().describe('The Instagram User ID.'),
-  mediaUrl: z.string().describe('The URL of the image to post.'),
+  mediaUrl: z.string().url().describe('The public URL of the image to post.'),
   caption: z.string().optional().describe('The caption for the post.'),
 });
 export type PostToInstagramInput = z.infer<typeof PostToInstagramInputSchema>;
@@ -39,20 +39,24 @@ const postToInstagramFlow = ai.defineFlow(
     }
     
     // Step 1: Create a container for the media
-    const containerParams = new URLSearchParams({
+    const params = new URLSearchParams({
         image_url: mediaUrl,
+        media_type: 'IMAGE', // Explicitly define the media type
         access_token: accessToken,
     });
 
     if (caption) {
-        containerParams.append('caption', caption);
+        params.append('caption', caption);
     }
-
+    
     const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media`;
+    
+    console.log("Instagram media payload:", params.toString());
+
 
     const containerResponse = await fetch(containerUrl, {
       method: 'POST',
-      body: containerParams,
+      body: params,
     });
 
     if (!containerResponse.ok) {
