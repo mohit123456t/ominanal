@@ -347,7 +347,7 @@ export default function CreatePostPage() {
                         onChange={handleUrlChange}
                         disabled={isYouTubeSelected}
                     />
-                    {isYouTubeSelected && <p className="text-xs text-destructive">YouTube only supports file uploads.</p>}
+                    {isYouTubeSelected && <p className="text-xs text-muted-foreground">YouTube only supports file uploads from this interface.</p>}
                 </TabsContent>
                 <TabsContent value="upload" className="space-y-2">
                     <Label htmlFor="media-file">Upload Image/Video</Label>
@@ -358,7 +358,7 @@ export default function CreatePostPage() {
                         accept="image/*,video/*"
                         disabled={isInstagramSelected || isFacebookSelected}
                     />
-                    {(isInstagramSelected || isFacebookSelected) && <p className="text-xs text-destructive">Instagram & Facebook only support public URLs from this interface.</p>}
+                    {(isInstagramSelected || isFacebookSelected) && <p className="text-xs text-muted-foreground">Instagram & Facebook only support public URLs from this interface.</p>}
                 </TabsContent>
             </Tabs>
 
