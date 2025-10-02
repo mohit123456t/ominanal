@@ -14,6 +14,7 @@ const PostToInstagramInputSchema = z.object({
   instagramUserId: z.string().describe('The Instagram User ID.'),
   mediaUrl: z.string().url().describe('The public URL of the image to post.'),
   caption: z.string().optional().describe('The caption for the post.'),
+  accessToken: z.string().describe('The user access token with instagram_content_publish permission.'),
 });
 export type PostToInstagramInput = z.infer<typeof PostToInstagramInputSchema>;
 
@@ -30,31 +31,25 @@ const postToInstagramFlow = ai.defineFlow(
     inputSchema: PostToInstagramInputSchema,
     outputSchema: PostToInstagramOutputSchema,
   },
-  async ({ instagramUserId, mediaUrl, caption }) => {
-    const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
-
+  async ({ instagramUserId, mediaUrl, caption, accessToken }) => {
     if (!accessToken) {
-      throw new Error('Instagram Access Token is not configured in .env file.');
+      throw new Error('Instagram Access Token is required.');
     }
     
     // Step 1: Create a container for the media
-    
-    // Manually build the request body as a string
-    let requestBody = `image_url=${encodeURIComponent(mediaUrl)}&media_type=IMAGE&access_token=${encodeURIComponent(accessToken)}`;
-    if (caption) {
-        requestBody += `&caption=${encodeURIComponent(caption)}`;
-    }
-    
     const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media`;
     
-    console.log("Instagram media payload:", requestBody);
+    const containerParams = new URLSearchParams({
+        image_url: mediaUrl,
+        access_token: accessToken,
+    });
+    if (caption) {
+        containerParams.append('caption', caption);
+    }
 
     const containerResponse = await fetch(containerUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: requestBody,
+      body: containerParams,
     });
 
     if (!containerResponse.ok) {
@@ -70,19 +65,38 @@ const postToInstagramFlow = ai.defineFlow(
       throw new Error('Failed to get creation ID from Instagram.');
     }
 
-    // Step 2: Publish the container
+    // Step 2: Poll for container status until it is 'FINISHED'
+    let containerStatus = '';
+    let pollingAttempts = 0;
+    const maxPollingAttempts = 10;
+
+    while (containerStatus !== 'FINISHED' && pollingAttempts < maxPollingAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for 3 seconds
+        
+        const statusUrl = `${INSTAGRAM_GRAPH_API_URL}/${creationId}?fields=status_code&access_token=${accessToken}`;
+        const statusResponse = await fetch(statusUrl);
+        const statusData: any = await statusResponse.json();
+        
+        containerStatus = statusData.status_code;
+        pollingAttempts++;
+
+        if (containerStatus === 'ERROR') {
+             throw new Error('Media container processing failed on Instagram.');
+        }
+    }
+
+    if (containerStatus !== 'FINISHED') {
+        throw new Error('Media container did not finish processing in time.');
+    }
+
+
+    // Step 3: Publish the container
+    const publishUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media_publish`;
     const publishParams = new URLSearchParams({
       creation_id: creationId,
       access_token: accessToken,
     });
     
-    // A robust solution would poll the container status endpoint.
-    // For this example, we'll wait a few seconds.
-    // Instagram needs time to process the media before it can be published.
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    const publishUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media_publish`;
-
     const publishResponse = await fetch(publishUrl, {
         method: 'POST',
         body: publishParams,
@@ -90,24 +104,6 @@ const postToInstagramFlow = ai.defineFlow(
 
     if (!publishResponse.ok) {
         const errorData: any = await publishResponse.json();
-        // Poll for container status if it's not ready yet
-        if (errorData.error?.code === 9007) { // Error code for media processing
-             console.log("Media is still processing, waiting and retrying...");
-             await new Promise(resolve => setTimeout(resolve, 5000)); // wait 5 more seconds
-             const retryResponse = await fetch(publishUrl, {
-                 method: 'POST',
-                 body: publishParams,
-             });
-             if (!retryResponse.ok) {
-                 const retryErrorData: any = await retryResponse.json();
-                 console.error('Failed to publish Instagram media container on retry:', retryErrorData);
-                 throw new Error(`Failed to publish Instagram media on retry: ${retryErrorData.error?.message || 'Unknown error'}`);
-             }
-             const retryPublishData: any = await retryResponse.json();
-             const postId = retryPublishData.id;
-             if (!postId) throw new Error('Failed to get post ID from Instagram after retry.');
-             return { postId };
-        }
         console.error('Failed to publish Instagram media container:', errorData);
         throw new Error(`Failed to publish Instagram media: ${errorData.error?.message || 'Unknown error'}`);
     }

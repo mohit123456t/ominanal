@@ -210,6 +210,7 @@ export default function CreatePostPage() {
                   instagramUserId: instagramAccount.instagramId,
                   mediaUrl: mediaUrl,
                   caption: text,
+                  accessToken: instagramAccount.apiKey,
               });
 
               toast({
