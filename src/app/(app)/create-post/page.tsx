@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, ChangeEvent } from 'react';
+import { useState, useMemo, ChangeEvent, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Bold,
@@ -24,6 +24,8 @@ import {
   Linkedin,
   Youtube,
   Eye,
+  Upload,
+  AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,9 +59,10 @@ import { type Post, SocialMediaAccount } from '@/lib/types';
 import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
 import { postToInstagram } from '@/ai/flows/instagram-post';
 import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const fileToDataUri = (file: File) =>
-  new Promise<string>((resolve, reject) => {
+const fileToDataUri = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       resolve(event.target?.result as string);
@@ -70,14 +73,16 @@ const fileToDataUri = (file: File) =>
 
 export default function CreatePostPage() {
   const [text, setText] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaUrl, setMediaUrl] = useState(''); // For URL input
+  const [mediaFile, setMediaFile] = useState<File | null>(null); // For file upload
+  const [mediaPreview, setMediaPreview] = useState<string>(''); // For file upload preview
+
   const [tone, setTone] = useState('Casual');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Post['platform'][]>(['x']);
-
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Post['platform'][]>([]);
 
   const { toast } = useToast();
   const { user } = useUser();
@@ -95,12 +100,32 @@ export default function CreatePostPage() {
     []
   );
 
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMediaFile(file);
+      const dataUri = await fileToDataUri(file);
+      setMediaPreview(dataUri);
+      setMediaUrl(''); // Clear URL if a file is selected
+    }
+  };
+  
+  const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
+      setMediaUrl(e.target.value);
+      setMediaFile(null); // Clear file if a URL is entered
+      setMediaPreview('');
+  }
+
+  const effectiveMediaUrl = mediaUrl || mediaPreview;
+
+
   const handleGenerateCaption = async () => {
     setIsGenerating(true);
     try {
       const result = await generateAiCaption({
         topic: text || 'a social media post',
         tone: tone as any,
+        mediaDataUri: effectiveMediaUrl,
       });
 
       if (result.caption) {
@@ -127,7 +152,7 @@ export default function CreatePostPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a post.' });
       return;
     }
-    if (!text && !mediaUrl) {
+    if (!text && !effectiveMediaUrl) {
         toast({ variant: 'destructive', title: 'Error', description: 'Please add content or media to your post.' });
         return;
     }
@@ -141,20 +166,41 @@ export default function CreatePostPage() {
     try {
       let somethingPublished = false;
 
-      // YouTube Upload Logic - Remains unchanged for now. A different flow would be needed for URL-based video uploads.
+      // YouTube Upload Logic
       if (selectedPlatforms.includes('youtube')) {
-         toast({ variant: 'destructive', title: 'YouTube Error', description: 'Video upload from URL is not supported yet. Please use file upload for YouTube.' });
+        const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
+        if (!youtubeAccount) {
+            toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must connect your YouTube account first.' });
+        } else if (!mediaFile) {
+            toast({ variant: 'destructive', title: 'YouTube Error', description: 'YouTube requires a video file to be uploaded.' });
+        } else {
+            const videoDataUri = await fileToDataUri(mediaFile);
+            const [title, ...descriptionParts] = text.split('\n');
+            const description = descriptionParts.join('\n');
+            
+            await uploadVideoToYoutube({
+                userId: user.uid,
+                accountId: youtubeAccount.id,
+                videoDataUri,
+                title: title || 'My OmniPost AI Video',
+                description: description || '',
+                accessToken: youtubeAccount.apiKey,
+                refreshToken: youtubeAccount.refreshToken,
+            });
+            toast({ title: 'Video sent to YouTube!', description: 'Your video is being processed by YouTube.' });
+            somethingPublished = true;
+        }
       }
 
       // Instagram Post Logic
       if (selectedPlatforms.includes('instagram')) {
           const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
           if (!instagramAccount || !instagramAccount.instagramId) {
-              toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first in API Keys.' });
+              toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first.' });
           } else if (!text) {
                toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require a caption.' });
-          } else if (!mediaUrl) {
-              toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require a media URL.' });
+          } else if (!mediaUrl) { // Instagram requires a public URL
+              toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require a public Media URL. File uploads are not supported for Instagram directly.' });
           }
           else {
               await postToInstagram({
@@ -172,14 +218,14 @@ export default function CreatePostPage() {
       }
 
 
-      // Firestore post creation for other platforms
+      // Firestore post creation for other platforms (X, Facebook, LinkedIn)
       const otherPlatforms = selectedPlatforms.filter(p => p !== 'youtube' && p !== 'instagram');
       for (const platform of otherPlatforms) {
           const postData: Omit<Post, 'id'> = {
             userId: user.uid,
             content: text,
             platform: platform,
-            mediaUrl: mediaUrl || undefined,
+            mediaUrl: mediaUrl || undefined, // Only use URL for these
             status: date ? 'Scheduled' : 'Published',
             scheduledAt: date?.toISOString(),
             createdAt: new Date().toISOString(),
@@ -194,17 +240,19 @@ export default function CreatePostPage() {
           somethingPublished = true;
       }
       
-
       if (somethingPublished) {
           toast({
-            title: 'Post Published!',
-            description: 'Your post has been successfully saved and/or scheduled.',
+            title: 'Post Published/Scheduled!',
+            description: 'Your post has been successfully saved.',
           });
 
           // Reset form
           setText('');
           setMediaUrl('');
+          setMediaFile(null);
+          setMediaPreview('');
           setDate(new Date());
+          setSelectedPlatforms([]);
       }
 
     } catch (error: any) {
@@ -225,9 +273,9 @@ export default function CreatePostPage() {
     { id: 'facebook', label: 'Facebook' },
     { id: 'instagram', label: 'Instagram' },
     { id: 'linkedin', label: 'LinkedIn' },
-    { id: 'youtube', label: 'YouTube (File Upload Only)' },
+    { id: 'youtube', label: 'YouTube' },
   ];
-  
+
   const handlePlatformChange = (platformId: Post['platform']) => {
     setSelectedPlatforms(prev => 
         prev.includes(platformId) 
@@ -235,6 +283,9 @@ export default function CreatePostPage() {
             : [...prev, platformId]
     );
   }
+  
+  const isYouTubeSelected = selectedPlatforms.includes('youtube');
+  const isInstagramSelected = selectedPlatforms.includes('instagram');
 
 
   return (
@@ -246,9 +297,9 @@ export default function CreatePostPage() {
               <Label>Select Platforms</Label>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
                 {platforms.map((p) => (
-                  <div key={p.id} className="flex items-center space-x-2">
-                    <Checkbox id={p.id} checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => handlePlatformChange(p.id)} disabled={p.id === 'youtube'} />
-                    <label htmlFor={p.id} className={cn("text-sm font-medium", p.id === 'youtube' && "text-muted-foreground")}>
+                   <div key={p.id} className="flex items-center space-x-2">
+                    <Checkbox id={p.id} checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => handlePlatformChange(p.id)} />
+                    <label htmlFor={p.id} className="text-sm font-medium">
                       {p.label}
                     </label>
                   </div>
@@ -263,16 +314,40 @@ export default function CreatePostPage() {
               className="min-h-[150px] text-base"
             />
             
-            <div className="space-y-2">
-                <Label htmlFor="media-url">Media URL (Optional)</Label>
-                <Input 
-                    id="media-url"
-                    type="url"
-                    placeholder="https://... (publicly accessible image URL)"
-                    value={mediaUrl}
-                    onChange={(e) => setMediaUrl(e.target.value)}
-                />
-            </div>
+            <Tabs defaultValue="url" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="url" disabled={isYouTubeSelected}>
+                        <Link className="mr-2 h-4 w-4"/> Media URL
+                    </TabsTrigger>
+                    <TabsTrigger value="upload" disabled={isInstagramSelected}>
+                        <Upload className="mr-2 h-4 w-4"/> Upload File
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="url" className="space-y-2">
+                     <Label htmlFor="media-url">Image/Video URL</Label>
+                    <Input 
+                        id="media-url"
+                        type="url"
+                        placeholder="https://... (publicly accessible media URL)"
+                        value={mediaUrl}
+                        onChange={handleUrlChange}
+                        disabled={isYouTubeSelected}
+                    />
+                    {isYouTubeSelected && <p className="text-xs text-destructive">YouTube only supports file uploads.</p>}
+                </TabsContent>
+                <TabsContent value="upload" className="space-y-2">
+                    <Label htmlFor="media-file">Upload Image/Video</Label>
+                     <Input 
+                        id="media-file"
+                        type="file"
+                        onChange={handleFileChange}
+                        accept="image/*,video/*"
+                        disabled={isInstagramSelected}
+                    />
+                    {isInstagramSelected && <p className="text-xs text-destructive">Instagram only supports public URLs from this interface.</p>}
+                </TabsContent>
+            </Tabs>
+
             
           </CardContent>
         </Card>
@@ -302,7 +377,7 @@ export default function CreatePostPage() {
             <div className="grid sm:grid-cols-2 gap-2">
               <Button
                 onClick={handleGenerateCaption}
-                disabled={isGenerating}
+                disabled={isGenerating || (!text && !effectiveMediaUrl)}
                 variant="outline"
               >
                 {isGenerating ? (
@@ -375,7 +450,7 @@ export default function CreatePostPage() {
                                 <MoreHorizontal className="h-4 w-4" />
                             </div>
                             <p className="text-sm whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                            {mediaUrl && <div className="mt-2 rounded-xl border border-gray-800 overflow-hidden"><Image src={mediaUrl} alt="preview" width={500} height={300} className="object-cover w-full"/></div>}
+                            {effectiveMediaUrl && <div className="mt-2 rounded-xl border border-gray-800 overflow-hidden"><Image src={effectiveMediaUrl} alt="preview" width={500} height={300} className="object-cover w-full"/></div>}
                             <div className="flex justify-between pt-2 text-gray-500">
                                 <div className="flex items-center space-x-1 hover:text-primary transition-colors"><MessageCircle size={18} /><span className="text-xs">12</span></div>
                                 <div className="flex items-center space-x-1 hover:text-green-500 transition-colors"><Repeat size={18} /><span className="text-xs">34</span></div>
@@ -399,7 +474,7 @@ export default function CreatePostPage() {
                     </div>}
                     <MoreHorizontal className="h-5 w-5"/>
                 </div>
-                {mediaUrl ? <Image src={mediaUrl} alt="preview" width={320} height={320} className="object-cover w-full aspect-square"/> : <div className="w-full aspect-square bg-gray-200 flex items-center justify-center text-muted-foreground"><ImageIcon/></div> }
+                {effectiveMediaUrl ? <Image src={effectiveMediaUrl} alt="preview" width={320} height={320} className="object-cover w-full aspect-square"/> : <div className="w-full aspect-square bg-gray-200 flex items-center justify-center text-muted-foreground"><ImageIcon/></div> }
                  <div className="p-3 flex flex-col flex-1">
                     <div className="flex items-center space-x-4">
                         <Heart className="h-6 w-6"/>
@@ -434,7 +509,7 @@ export default function CreatePostPage() {
                         </div>
                     </div>
                      <p className="text-sm mt-3 whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                     {mediaUrl && <div className="mt-3 -mx-4"><Image src={mediaUrl} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
+                     {effectiveMediaUrl && <div className="mt-3 -mx-4"><Image src={effectiveMediaUrl} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
                      <div className="flex justify-between items-center text-gray-600 text-xs mt-2 pt-2 border-t">
                         <span>56 Likes</span>
                         <span>12 Comments · 34 Shares</span>
@@ -465,7 +540,7 @@ export default function CreatePostPage() {
                   </div>
                 </div>
                   <p className="text-sm mt-3 whitespace-pre-wrap">{text || "Your post content will appear here..."}</p>
-                  {mediaUrl && <div className="mt-3 -mx-4"><Image src={mediaUrl} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
+                  {effectiveMediaUrl && <div className="mt-3 -mx-4"><Image src={effectiveMediaUrl} alt="preview" width={600} height={400} className="object-cover w-full"/></div>}
                   <div className="flex justify-between items-center text-gray-600 text-xs mt-2 pt-2 border-t">
                     <span>56 Likes</span>
                     <span>12 Comments</span>
@@ -482,7 +557,12 @@ export default function CreatePostPage() {
           <TabsContent value="youtube">
             <Card className="bg-[#f9f9f9] text-black border-gray-200">
               <CardContent className="p-0">
-                  <div className="w-full aspect-video bg-black flex items-center justify-center text-white"><Youtube className="w-16 h-16"/></div>
+                  {effectiveMediaUrl && mediaFile?.type.startsWith('video/') ? (
+                    <video controls src={effectiveMediaUrl} className="w-full aspect-video bg-black" />
+                  ) : (
+                    <div className="w-full aspect-video bg-black flex items-center justify-center text-white"><Youtube className="w-16 h-16"/></div>
+                  )}
+
                   <div className="p-4">
                      <h3 className="text-lg font-bold">{text.split('\n')[0] || "Your Video Title Here"}</h3>
                      <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
