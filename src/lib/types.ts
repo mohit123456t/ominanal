@@ -39,6 +39,7 @@ export type SocialMediaAccount = {
     platform: 'Instagram' | 'Facebook' | 'X' | 'LinkedIn' | 'YouTube';
     username: string;
     apiKey: string;
+    refreshToken?: string;
     connected?: boolean;
     createdAt: string;
     updatedAt: string;

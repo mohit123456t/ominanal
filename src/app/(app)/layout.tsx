@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { AppHeader } from '@/components/layout/app-header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
+
+const unauthenticatedRoutes = ['/youtube-callback'];
 
 export default function AppLayout({
   children,
@@ -15,12 +17,18 @@ export default function AppLayout({
 }>) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isUserLoading && !user) {
+    if (!isUserLoading && !user && !unauthenticatedRoutes.includes(pathname)) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, pathname]);
+  
+  if (unauthenticatedRoutes.includes(pathname)) {
+    return <>{children}</>;
+  }
+
 
   if (isUserLoading || !user) {
     return (

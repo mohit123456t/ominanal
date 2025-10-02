@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyRound, Plus, Trash2, Copy, LoaderCircle } from 'lucide-react';
+import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,7 @@ import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebas
 import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { SocialMediaAccount } from '@/lib/types';
+import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
 
 
 export default function ApiKeysPage() {
@@ -44,6 +45,7 @@ export default function ApiKeysPage() {
   const [newKeyValue, setNewKeyValue] = useState('');
   const [newKeyUsername, setNewKeyUsername] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isConnectingYouTube, setIsConnectingYouTube] = useState(false);
 
   const { toast } = useToast();
 
@@ -59,7 +61,7 @@ export default function ApiKeysPage() {
 
     if (newKeyPlatform && newKeyValue && newKeyUsername) {
       setIsSubmitting(true);
-      const newKeyData: Omit<SocialMediaAccount, 'id'> = {
+      const newKeyData: Omit<SocialMediaAccount, 'id' | 'connected'> = {
         platform: newKeyPlatform as SocialMediaAccount['platform'],
         apiKey: newKeyValue,
         username: newKeyUsername,
@@ -107,7 +109,24 @@ export default function ApiKeysPage() {
 
   const maskApiKey = (key: string) => {
     if (!key) return '';
+    if (key.startsWith('ya29.')) return 'Connected via OAuth'; // YouTube
     return `${key.substring(0, 4)}************${key.substring(key.length - 4)}`;
+  }
+
+  const handleConnectYouTube = async () => {
+    setIsConnectingYouTube(true);
+    try {
+        const { url } = await getYoutubeAuthUrl();
+        window.location.href = url;
+    } catch (error) {
+        console.error("Failed to get YouTube auth URL", error);
+        toast({
+            variant: "destructive",
+            title: "YouTube Connection Failed",
+            description: "Could not initiate connection with YouTube. Please try again.",
+        });
+        setIsConnectingYouTube(false);
+    }
   }
 
 
@@ -116,18 +135,18 @@ export default function ApiKeysPage() {
       <div className="text-center">
         <KeyRound className="mx-auto h-12 w-12 text-primary" />
         <h1 className="mt-4 text-3xl font-headline font-bold tracking-tight text-foreground sm:text-4xl">
-          API Keys Management
+          API Keys & Connections
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Securely manage your API keys to connect your social media accounts and enable posting.
+          Securely manage your connections to enable posting to your social media accounts.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Add New API Key</CardTitle>
+          <CardTitle>Add New Connection</CardTitle>
           <CardDescription>
-            Select a platform and paste your API key below.
+            Select a platform to connect your account.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -144,37 +163,51 @@ export default function ApiKeysPage() {
                     <SelectItem value="YouTube">YouTube</SelectItem>
                 </SelectContent>
             </Select>
-            <Input
-              type="text"
-              value={newKeyUsername}
-              onChange={(e) => setNewKeyUsername(e.target.value)}
-              placeholder="Username or Channel Name"
-              aria-label="Username or Channel Name"
-              disabled={isSubmitting}
-            />
+            {newKeyPlatform !== 'YouTube' && (
+                <Input
+                type="text"
+                value={newKeyUsername}
+                onChange={(e) => setNewKeyUsername(e.target.value)}
+                placeholder="Username"
+                aria-label="Username"
+                disabled={isSubmitting}
+                />
+            )}
            </div>
-            <Input
-              type="text"
-              value={newKeyValue}
-              onChange={(e) => setNewKeyValue(e.target.value)}
-              placeholder="Paste your API Key here"
-              aria-label="API Key Value"
-              disabled={isSubmitting}
-            />
+            {newKeyPlatform && newKeyPlatform !== 'YouTube' && (
+                <Input
+                type="text"
+                value={newKeyValue}
+                onChange={(e) => setNewKeyValue(e.target.value)}
+                placeholder="Paste your API Key here"
+                aria-label="API Key Value"
+                disabled={isSubmitting}
+                />
+            )}
+            {newKeyPlatform === 'YouTube' && (
+                <div className="pt-4">
+                    <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube} className="w-full sm:w-auto">
+                        {isConnectingYouTube ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Youtube className="mr-2 h-4 w-4" />}
+                        Connect with YouTube
+                    </Button>
+                </div>
+            )}
         </CardContent>
-        <CardFooter>
-            <Button onClick={handleAddKey} disabled={isSubmitting}>
-                {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                Add Key
-            </Button>
-        </CardFooter>
+        {newKeyPlatform && newKeyPlatform !== 'YouTube' && (
+            <CardFooter>
+                <Button onClick={handleAddKey} disabled={isSubmitting}>
+                    {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+                    Add Key
+                </Button>
+            </CardFooter>
+        )}
       </Card>
       
       <Card>
         <CardHeader>
-          <CardTitle>Your API Keys</CardTitle>
+          <CardTitle>Your Connections</CardTitle>
           <CardDescription>
-            Here are the API keys you have connected to your account.
+            Here are the accounts you have connected.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -208,7 +241,7 @@ export default function ApiKeysPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your API key
+                          This action cannot be undone. This will permanently delete your connection
                           for {apiKey.platform} and you will need to re-add it to post to this platform.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
@@ -225,7 +258,7 @@ export default function ApiKeysPage() {
             ))
           ) : (
             !isLoading && <p className="text-muted-foreground text-center py-8">
-              You have not added any API keys yet.
+              You have not added any connections yet.
             </p>
           )}
         </CardContent>
