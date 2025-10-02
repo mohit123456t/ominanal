@@ -13,6 +13,8 @@ const getPageTitle = (pathname: string): string => {
       return 'Advanced Analytics';
     case '/create-post':
       return 'Create Post';
+    case '/posts':
+        return 'Recent Posts';
     case '/campaign-ideas':
       return 'AI Campaign Ideas';
     case '/connected-accounts':
