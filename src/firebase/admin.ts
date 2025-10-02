@@ -1,25 +1,20 @@
-import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
-import { ServiceAccount } from 'firebase-admin';
+import { initializeApp, getApps, App } from 'firebase-admin/app';
 
 let adminApp: App;
 
+/**
+ * Initializes and returns the Firebase Admin App instance.
+ * In a managed Google Cloud environment, initializeApp() automatically
+ * discovers the service account credentials.
+ */
 export function getFirebaseAdminApp(): App {
+  // If the app is already initialized, return the existing instance.
   if (getApps().length > 0) {
     return getApps()[0];
   }
 
-  // Construct the service account object from environment variables
-  // This is a workaround because we cannot use a JSON file in this environment.
-  const serviceAccount: ServiceAccount = {
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    clientEmail: `firebase-adminsdk-gcp-sa@${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.iam.gserviceaccount.com`,
-    privateKey: "", // This will be empty, but initializeApp will use default credentials.
-  };
-
-  adminApp = initializeApp({
-    credential: cert(serviceAccount),
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  });
+  // Initialize the Firebase Admin SDK.
+  adminApp = initializeApp();
 
   return adminApp;
 }
