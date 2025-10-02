@@ -1,17 +1,17 @@
 'use server';
 
+import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, App, credential } from 'firebase-admin';
 import { SocialMediaAccount } from '@/lib/types';
 
 // Helper function to initialize Firebase Admin SDK
-function initializeFirebaseAdmin(): App {
-    if (getApps().length > 0) {
-        return getApps()[0];
+function initializeFirebaseAdmin(): admin.app.App {
+    if (admin.apps.length > 0) {
+        return admin.apps[0]!;
     }
     // This uses the default service account credentials in a Google Cloud environment.
-    return initializeApp({
-        credential: credential.applicationDefault(),
+    return admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
     });
 }
 
