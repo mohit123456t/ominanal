@@ -17,6 +17,7 @@ function InstagramCallback() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('Connecting to Instagram...');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -33,7 +34,8 @@ function InstagramCallback() {
       return;
     }
 
-    if (code && user && firestore) {
+    if (code && user && firestore && !isProcessing) {
+      setIsProcessing(true); // Set processing flag
       const handleTokenExchange = async () => {
         try {
           setMessage('Exchanging authorization code for access token...');
@@ -108,11 +110,11 @@ function InstagramCallback() {
     } else if (!user || !firestore) {
         // Wait for user and firestore to be available
     }
-     else {
+     else if (!code) {
       setError('Invalid request. No authorization code found.');
       setTimeout(() => router.push('/api-keys'), 3000);
     }
-  }, [searchParams, router, user, firestore, toast]);
+  }, [searchParams, router, user, firestore, toast, isProcessing]);
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center">
