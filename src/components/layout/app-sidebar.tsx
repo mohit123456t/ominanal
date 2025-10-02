@@ -10,6 +10,7 @@ import {
   MessageSquarePlus,
   PanelLeft,
   Link2,
+  KeyRound,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -30,6 +31,7 @@ const navItems = [
   { href: '/create-post', icon: MessageSquarePlus, label: 'Create Post' },
   { href: '/campaign-ideas', icon: Lightbulb, label: 'Campaign Ideas' },
   { href: '/connected-accounts', icon: Link2, label: 'Connected Accounts' },
+  { href: '/api-keys', icon: KeyRound, label: 'API Keys' },
   { href: '/pricing', icon: DollarSign, label: 'Pricing' },
 ];
 
