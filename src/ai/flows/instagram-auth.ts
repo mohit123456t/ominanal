@@ -37,7 +37,7 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
     const params = new URLSearchParams({
         client_id: INSTAGRAM_APP_ID,
         redirect_uri: REDIRECT_URI,
-        scope: 'instagram_basic,pages_show_list,instagram_content_publish',
+        scope: 'instagram_basic,pages_show_list,instagram_content_publish,pages_manage_posts,pages_read_engagement',
         response_type: 'code',
         state: 'XOgiVQIYbuN4CHeFLE9BYhj7Snw1' // Using a static state for now. Should be dynamic in a real app.
     });
@@ -113,6 +113,7 @@ export type GetInstagramUserDetailsInput = z.infer<typeof GetInstagramUserDetail
 const GetInstagramUserDetailsOutputSchema = z.object({
     username: z.string(),
     instagramId: z.string(),
+    facebookPageId: z.string().optional(),
 });
 export type GetInstagramUserDetailsOutput = z.infer<typeof GetInstagramUserDetailsOutputSchema>;
 
@@ -125,7 +126,7 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     // Then use the page's access token and ID to get the Instagram Business Account ID.
 
     // 1. Get user's pages, explicitly asking for the instagram_business_account field.
-    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=instagram_business_account&access_token=${accessToken}`;
+    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=instagram_business_account,name&access_token=${accessToken}`;
     const pagesResponse = await fetch(pagesUrl);
     if (!pagesResponse.ok) throw new Error('Failed to fetch Facebook pages.');
     const pagesData: any = await pagesResponse.json();
@@ -142,6 +143,7 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     }
 
     const instagramBusinessAccountId = pageWithIg.instagram_business_account.id;
+    const facebookPageId = pageWithIg.id;
 
     // 3. Get Instagram account details (username)
     const igUrl = `https://graph.facebook.com/${instagramBusinessAccountId}?fields=username&access_token=${accessToken}`;
@@ -154,7 +156,7 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     }
     
     const data: any = await igResponse.json();
-    return { username: data.username, instagramId: instagramBusinessAccountId };
+    return { username: data.username, instagramId: instagramBusinessAccountId, facebookPageId: facebookPageId };
 });
 
 export async function getInstagramUserDetails(input: GetInstagramUserDetailsInput): Promise<GetInstagramUserDetailsOutput> {

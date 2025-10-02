@@ -56,6 +56,7 @@ import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type Post, SocialMediaAccount } from '@/lib/types';
 import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
 import { postToInstagram } from '@/ai/flows/instagram-post';
+import { postToFacebook } from '@/ai/flows/facebook-post';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -215,12 +216,27 @@ export default function CreatePostPage() {
           }
       }
 
+      // Facebook Post Logic
+      if (selectedPlatforms.includes('facebook')) {
+        const facebookAccount = accounts?.find(acc => acc.platform === 'Instagram'); // Instagram connection holds FB data
+        if (!facebookAccount || !facebookAccount.facebookPageId) {
+            toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID is required.' });
+        } else if (!mediaUrl) {
+            toast({ variant: 'destructive', title: 'Facebook Error', description: 'Facebook posts from this app require a public Media URL.' });
+        } else {
+            await postToFacebook({
+                facebookPageId: facebookAccount.facebookPageId,
+                mediaUrl: mediaUrl,
+                caption: text,
+                accessToken: facebookAccount.apiKey,
+            });
+            toast({ title: 'Posted to Facebook!', description: 'Your post should be live on your Facebook Page.' });
+            somethingPublished = true;
+        }
+      }
 
-      // Firestore post creation for other platforms (Facebook)
-      // We also save a record for platforms that were published via API for our internal tracking.
-      const platformsToSaveInDb = selectedPlatforms.filter(p => p === 'facebook' || somethingPublished);
-
-      for (const platform of platformsToSaveInDb) {
+      // Save a record to Firestore for our own analytics, even if posted via API
+      for (const platform of selectedPlatforms) {
           const postData: Omit<Post, 'id'> = {
             userId: user.uid,
             content: text,
@@ -237,9 +253,6 @@ export default function CreatePostPage() {
           };
           const postsCollection = collection(firestore, `users/${user.uid}/posts`);
           addDocumentNonBlocking(postsCollection, postData);
-          if (platform === 'facebook') {
-            somethingPublished = true;
-          }
       }
       
       if (somethingPublished) {
@@ -286,6 +299,7 @@ export default function CreatePostPage() {
   
   const isYouTubeSelected = selectedPlatforms.includes('youtube');
   const isInstagramSelected = selectedPlatforms.includes('instagram');
+  const isFacebookSelected = selectedPlatforms.includes('facebook');
 
 
   return (
@@ -319,7 +333,7 @@ export default function CreatePostPage() {
                     <TabsTrigger value="url" disabled={isYouTubeSelected}>
                         <Link className="mr-2 h-4 w-4"/> Media URL
                     </TabsTrigger>
-                    <TabsTrigger value="upload" disabled={isInstagramSelected}>
+                    <TabsTrigger value="upload" disabled={isInstagramSelected || isFacebookSelected}>
                         <Upload className="mr-2 h-4 w-4"/> Upload File
                     </TabsTrigger>
                 </TabsList>
@@ -342,9 +356,9 @@ export default function CreatePostPage() {
                         type="file"
                         onChange={handleFileChange}
                         accept="image/*,video/*"
-                        disabled={isInstagramSelected}
+                        disabled={isInstagramSelected || isFacebookSelected}
                     />
-                    {isInstagramSelected && <p className="text-xs text-destructive">Instagram only supports public URLs from this interface.</p>}
+                    {(isInstagramSelected || isFacebookSelected) && <p className="text-xs text-destructive">Instagram & Facebook only support public URLs from this interface.</p>}
                 </TabsContent>
             </Tabs>
 

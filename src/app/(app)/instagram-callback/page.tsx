@@ -53,8 +53,8 @@ function InstagramCallback() {
             throw new Error('Failed to retrieve a valid access token.');
           }
 
-          setMessage('Fetching user details from Instagram...');
-          const { username, instagramId } = await getInstagramUserDetails({ accessToken });
+          setMessage('Fetching user details from Instagram & Facebook...');
+          const { username, instagramId, facebookPageId } = await getInstagramUserDetails({ accessToken });
 
           const socialMediaAccountsCollection = collection(
             firestore,
@@ -74,16 +74,21 @@ function InstagramCallback() {
              setMessage('Creating new Instagram connection...');
           }
 
-          const accountData: Omit<SocialMediaAccount, 'id'> = {
+          const accountData: Partial<SocialMediaAccount> = {
             userId: user.uid,
             platform: 'Instagram',
             username: username,
             apiKey: accessToken,
             instagramId: instagramId,
+            facebookPageId: facebookPageId,
             connected: true,
-            createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
+          
+          if (!accountIdToUpdate) {
+            accountData.createdAt = new Date().toISOString();
+          }
+
 
           const batch = writeBatch(firestore);
           if (accountIdToUpdate) {
@@ -91,7 +96,7 @@ function InstagramCallback() {
             batch.update(docRef, accountData);
           } else {
             const newDocRef = doc(socialMediaAccountsCollection);
-            batch.set(newDocRef, accountData);
+            batch.set(newDocRef, accountData as SocialMediaAccount);
           }
 
           await batch.commit();

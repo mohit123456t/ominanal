@@ -9,3 +9,4 @@ import '@/ai/flows/youtube-auth.ts';
 import '@/ai/flows/youtube-upload.ts';
 import '@/ai/flows/instagram-post.ts';
 import '@/ai/flows/instagram-auth.ts';
+import '@/ai/flows/facebook-post.ts';
