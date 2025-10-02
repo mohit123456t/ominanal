@@ -237,8 +237,8 @@ export default function CreatePostPage() {
           const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
           if (!instagramAccount || !instagramAccount.instagramId) {
               toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first in API Keys.' });
-          } else if (!mediaPreview && !text) {
-               toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require an image and a caption.' });
+          } else if (!text) {
+               toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require a caption.' });
           }
           else {
               // The mediaUrl must be a public URL. The temporary blob URL from the browser will not work.
@@ -625,3 +625,5 @@ export default function CreatePostPage() {
     </div>
   );
 }
+
+    
