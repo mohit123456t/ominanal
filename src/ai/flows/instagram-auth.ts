@@ -15,7 +15,7 @@ import { URLSearchParams } from 'url';
 
 const INSTAGRAM_APP_ID = process.env.FACEBOOK_CLIENT_ID;
 const INSTAGRAM_APP_SECRET = process.env.FACEBOOK_CLIENT_SECRET;
-const REDIRECT_URI = process.env.NEXT_PUBLIC_URL ? `${process.env.NEXT_PUBLIC_URL}/instagram-callback` : 'https://localhost:9002/instagram-callback';
+const REDIRECT_URI = process.env.NEXT_PUBLIC_URL ? `${process.env.NEXT_PUBLIC_URL}/instagram-callback` : 'http://localhost:9002/instagram-callback';
 
 
 // #################### Get Auth URL Flow ####################
@@ -124,8 +124,8 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     // This part is complex because you first need to get the Facebook Page linked to the Instagram account.
     // Then use the page's access token and ID to get the Instagram Business Account ID.
 
-    // 1. Get user's pages
-    const pagesUrl = `https://graph.facebook.com/me/accounts?access_token=${accessToken}`;
+    // 1. Get user's pages, explicitly asking for the instagram_business_account field.
+    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=instagram_business_account&access_token=${accessToken}`;
     const pagesResponse = await fetch(pagesUrl);
     if (!pagesResponse.ok) throw new Error('Failed to fetch Facebook pages.');
     const pagesData: any = await pagesResponse.json();
