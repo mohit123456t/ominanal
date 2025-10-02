@@ -130,7 +130,7 @@ export default function ApiKeysPage() {
     }
   }
   
-  const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI || 'https://6000-firebase-studio-1759399651500.cluster-c36dgv2kibakqwbbbsgmia3fny.cloudworkstations.dev/youtube-callback';
+  const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI || '';
 
 
   return (
@@ -190,7 +190,7 @@ export default function ApiKeysPage() {
             {newKeyPlatform === 'YouTube' && (
                 <div className="space-y-4 pt-4">
                      <div>
-                        <Label htmlFor="redirect-uri-display">Copy this exact Redirect URI to Google Cloud Console:</Label>
+                        <Label htmlFor="redirect-uri-display">Copy this exact Redirect URI to your Google Cloud Console:</Label>
                         <div className="flex items-center gap-2 mt-2">
                            <Input id="redirect-uri-display" type="text" readOnly value={redirectUri} />
                            <Button variant="ghost" size="icon" onClick={() => copyToClipboard(redirectUri)}>
