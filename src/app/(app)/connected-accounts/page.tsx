@@ -24,8 +24,8 @@ const platformIcons = {
   Instagram,
   Facebook,
   X: Twitter,
-  LinkedIn,
-  YouTube,
+  LinkedIn: Linkedin,
+  YouTube: Youtube,
 };
 
 export default function ConnectedAccountsPage() {
