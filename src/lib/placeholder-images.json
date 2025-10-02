@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "User avatar for Jane Doe",
+      "imageUrl": "https://images.unsplash.com/photo-1719087358997-12957d0859e2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzU5MzYxNDEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "post-image-1",
+      "description": "A vibrant cityscape at dusk",
+      "imageUrl": "https://images.unsplash.com/photo-1758515110502-f02dbc8a2c9d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjaXR5c2NhcGUlMjBkdXNrfGVufDB8fHx8MTc1OTMwNzkwNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cityscape dusk"
+    },
+    {
+      "id": "post-image-2",
+      "description": "A serene forest path in autumn",
+      "imageUrl": "https://images.unsplash.com/photo-1605196560547-b2f7281b7355?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxmb3Jlc3QlMjBwYXRofGVufDB8fHx8MTc1OTM2ODYxOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "forest path"
+    },
+    {
+      "id": "post-image-3",
+      "description": "A minimalist workspace with a laptop",
+      "imageUrl": "https://images.unsplash.com/photo-1745910020846-3d4d0088d24d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtaW5pbWFsaXN0JTIwd29ya3NwYWNlfGVufDB8fHx8MTc1OTMzMjUxM3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "minimalist workspace"
+    },
+    {
+      "id": "post-image-4",
+      "description": "A delicious-looking cup of coffee",
+      "imageUrl": "https://images.unsplash.com/photo-1596018589878-217d8603c4c6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxsYXR0ZSUyMGFydHxlbnwwfHx8fDE3NTkzNDY5NzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "latte art"
+    },
+    {
+      "id": "post-image-5",
+      "description": "A mountain range with a clear blue sky",
+      "imageUrl": "https://images.unsplash.com/photo-1615729947596-a598e5de0ab3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtb3VudGFpbiUyMHJhbmdlfGVufDB8fHx8MTc1OTMyOTA3Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "mountain range"
+    },
+    {
+      "id": "x-logo",
+      "description": "Logo for X (formerly Twitter)",
+      "imageUrl": "https://images.unsplash.com/photo-1690766636278-006d1219dbf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx4JTIwbG9nb3xlbnwwfHx8fDE3NTkzMzE2NTV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "x logo"
+    },
+    {
+      "id": "facebook-logo",
+      "description": "Logo for Facebook",
+      "imageUrl": "https://images.unsplash.com/photo-1611605698323-b1e99cfd37ea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxmYWNlYm9vayUyMGxvZ298ZW58MHx8fHwxNzU5NDAwMjA0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "facebook logo"
+    },
+    {
+      "id": "instagram-logo",
+      "description": "Logo for Instagram",
+      "imageUrl": "https://images.unsplash.com/photo-1666408738188-212c470d08b0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxpbnN0YWdyYW0lMjBsb2dvfGVufDB8fHx8MTc1OTMzMTY1NHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "instagram logo"
+    }
+  ]
 }
