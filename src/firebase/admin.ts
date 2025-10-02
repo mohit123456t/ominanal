@@ -13,7 +13,8 @@ export function getFirebaseAdminApp(): App {
     return getApps()[0];
   }
 
-  // Initialize the Firebase Admin SDK.
+  // Initialize the Firebase Admin SDK. In a managed environment like Cloud Workstations,
+  // this will automatically use the environment's service account.
   adminApp = initializeApp();
 
   return adminApp;
