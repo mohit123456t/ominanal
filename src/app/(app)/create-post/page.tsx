@@ -50,6 +50,11 @@ import {
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { useFirestore, useUser } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { type Post } from '@/lib/types';
+
 
 const fileToDataUri = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -67,10 +72,16 @@ export default function CreatePostPage() {
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [tone, setTone] = useState('Casual');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
+  
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['x', 'facebook', 'instagram', 'linkedin', 'youtube']);
+
 
   const { toast } = useToast();
+  const { user } = useUser();
+  const firestore = useFirestore();
 
   const userAvatar = useMemo(
     () => PlaceHolderImages.find((img) => img.id === 'user-avatar-1'),
@@ -149,6 +160,83 @@ export default function CreatePostPage() {
     }
   };
 
+  const handlePublish = async () => {
+    if (!user || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'You must be logged in to create a post.',
+      });
+      return;
+    }
+
+    if (!text && !media) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Please add content or media to your post.',
+        });
+        return;
+    }
+    
+    if (selectedPlatforms.length === 0) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please select at least one platform to post to.',
+      });
+      return;
+    }
+
+    setIsPublishing(true);
+
+    try {
+      // In a real app, you would handle image uploads to a storage service like Firebase Storage
+      // and get a URL. For this demo, we'll skip the upload.
+      const mediaUrl = mediaPreview || undefined;
+
+      const postData: Omit<Post, 'id'> = {
+        userId: user.uid,
+        content: text,
+        platform: selectedPlatforms[0] as Post['platform'], // Simplified for now
+        mediaUrl: mediaUrl,
+        status: date ? 'Scheduled' : 'Published',
+        scheduledAt: date?.toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        likes: 0,
+        comments: 0,
+        shares: 0,
+      };
+      
+      const postsCollection = collection(firestore, `users/${user.uid}/posts`);
+      addDocumentNonBlocking(postsCollection, postData);
+
+
+      toast({
+        title: 'Post Published!',
+        description: 'Your post has been successfully saved.',
+      });
+
+      // Reset form
+      setText('');
+      setMedia(null);
+      setMediaPreview(null);
+      setDate(new Date());
+
+    } catch (error) {
+        console.error("Error creating post:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to publish post. Please try again.',
+        });
+    } finally {
+        setIsPublishing(false);
+    }
+  };
+
+
   const platforms = [
     { id: 'x', label: 'X (Twitter)' },
     { id: 'facebook', label: 'Facebook' },
@@ -156,6 +244,14 @@ export default function CreatePostPage() {
     { id: 'linkedin', label: 'LinkedIn' },
     { id: 'youtube', label: 'YouTube' },
   ];
+  
+  const handlePlatformChange = (platformId: string) => {
+    setSelectedPlatforms(prev => 
+        prev.includes(platformId) 
+            ? prev.filter(id => id !== platformId)
+            : [...prev, platformId]
+    );
+  }
 
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -167,7 +263,7 @@ export default function CreatePostPage() {
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
                 {platforms.map((p) => (
                   <div key={p.id} className="flex items-center space-x-2">
-                    <Checkbox id={p.id} defaultChecked />
+                    <Checkbox id={p.id} checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => handlePlatformChange(p.id)} />
                     <label htmlFor={p.id} className="text-sm font-medium">
                       {p.label}
                     </label>
@@ -196,7 +292,7 @@ export default function CreatePostPage() {
                   <p className="mb-2 text-sm text-muted-foreground">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                  <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF</p>
                 </div>
                 <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
               </label>
@@ -278,8 +374,12 @@ export default function CreatePostPage() {
               />
             </PopoverContent>
           </Popover>
-          <Button size="lg">
-            <Send className="mr-2 h-4 w-4" />
+          <Button size="lg" onClick={handlePublish} disabled={isPublishing}>
+             {isPublishing ? (
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
             Publish Now
           </Button>
         </div>
@@ -440,5 +540,3 @@ export default function CreatePostPage() {
     </div>
   );
 }
-
-    

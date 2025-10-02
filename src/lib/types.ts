@@ -18,12 +18,16 @@ export type EngagementData = {
 
 export type Post = {
   id: string;
-  platform: 'x' | 'facebook' | 'instagram';
+  userId: string;
+  platform: 'x' | 'facebook' | 'instagram' | 'linkedin' | 'youtube';
   content: string;
-  imageUrl?: string;
+  mediaUrl?: string;
   imageHint?: string;
   likes: number;
   comments: number;
   shares: number;
   status: 'Published' | 'Scheduled' | 'Draft';
+  createdAt: string;
+  updatedAt: string;
+  scheduledAt?: string;
 };
