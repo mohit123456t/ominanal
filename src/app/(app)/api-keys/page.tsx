@@ -419,7 +419,7 @@ export default function ApiKeysPage() {
                         <AlertDialogDescription>
                           This action cannot be undone. This will permanently remove your connection
                           for {apiKey.platform}.
-                        </description>
+                        </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -445,5 +445,3 @@ export default function ApiKeysPage() {
     </div>
   );
 }
-    
-    
