@@ -17,6 +17,7 @@ import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
 // Initialize Firebase Admin SDK if not already initialized
 if (getApps().length === 0) {
     initializeApp({
+        credential: credential.applicationDefault(),
         projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     });
 }
