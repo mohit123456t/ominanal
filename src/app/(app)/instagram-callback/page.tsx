@@ -69,6 +69,7 @@ function InstagramCallback() {
             platform: 'Instagram',
             username: username,
             apiKey: accessToken,
+            instagramId: instagramId,
             connected: true,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

@@ -235,7 +235,7 @@ export default function CreatePostPage() {
       // Instagram Post Logic
       if (selectedPlatforms.includes('instagram')) {
           const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
-          if (!instagramAccount) {
+          if (!instagramAccount || !instagramAccount.instagramId) {
               toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first in API Keys.' });
           } else if (!media || !media.type.startsWith('image/')) {
               toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require an image.' });
@@ -245,6 +245,7 @@ export default function CreatePostPage() {
               const publicMediaUrl = 'https://picsum.photos/seed/1/800/800';
               
               await postToInstagram({
+                  instagramUserId: instagramAccount.instagramId,
                   mediaUrl: publicMediaUrl,
                   caption: text,
               });

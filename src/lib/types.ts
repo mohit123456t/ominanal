@@ -40,6 +40,7 @@ export type SocialMediaAccount = {
     username: string;
     apiKey: string;
     refreshToken?: string;
+    instagramId?: string; // Specific ID for Instagram Graph API
     connected?: boolean;
     createdAt: string;
     updatedAt: string;

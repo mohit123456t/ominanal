@@ -11,6 +11,7 @@ import { z } from 'zod';
 import fetch from 'node-fetch';
 
 const PostToInstagramInputSchema = z.object({
+  instagramUserId: z.string().describe('The Instagram User ID.'),
   mediaUrl: z.string().describe('The URL of the image to post.'),
   caption: z.string().optional().describe('The caption for the post.'),
 });
@@ -29,18 +30,13 @@ const postToInstagramFlow = ai.defineFlow(
     inputSchema: PostToInstagramInputSchema,
     outputSchema: PostToInstagramOutputSchema,
   },
-  async ({ mediaUrl, caption }) => {
-    const instagramUserId = process.env.INSTAGRAM_USER_ID;
+  async ({ instagramUserId, mediaUrl, caption }) => {
     const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
 
-    if (!instagramUserId || !accessToken) {
-      throw new Error('Instagram User ID or Access Token is not configured in .env file.');
+    if (!accessToken) {
+      throw new Error('Instagram Access Token is not configured in .env file.');
     }
     
-    if (instagramUserId === 'YOUR_INSTAGRAM_USER_ID') {
-        throw new Error('Please replace YOUR_INSTAGRAM_USER_ID in the .env file with your actual Instagram User ID.');
-    }
-
     // Step 1: Create a container for the media
     const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media`;
     const containerParams = new URLSearchParams({
