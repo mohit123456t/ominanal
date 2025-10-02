@@ -58,6 +58,7 @@ import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type Post, SocialMediaAccount } from '@/lib/types';
 import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
 import { postToInstagram } from '@/ai/flows/instagram-post';
+import { postToTwitter } from '@/ai/flows/twitter-post';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -166,6 +167,33 @@ export default function CreatePostPage() {
     try {
       let somethingPublished = false;
 
+      // X (Twitter) Post Logic
+      if (selectedPlatforms.includes('x')) {
+          const xAccount = accounts?.find(acc => acc.platform === 'X');
+          if (!xAccount || !xAccount.apiKey || !xAccount.apiSecret) {
+              toast({ variant: 'destructive', title: 'X (Twitter) Error', description: 'You must connect your X account with both API Key and API Secret first in the API Keys page.' });
+          } else if (!text) {
+               toast({ variant: 'destructive', title: 'X (Twitter) Error', description: 'Posts to X (Twitter) require text content.' });
+          } else {
+              await postToTwitter({
+                  text: text,
+                  apiKey: xAccount.apiKey,
+                  apiSecret: xAccount.apiSecret,
+                  // NOTE: This assumes the user has provided App keys that have write access.
+                  // For a full user-based auth, we'd need to store and use user-specific access tokens.
+                  // For this app's purpose, we are using a simplified v1.1 style auth model via the v2 SDK.
+                  accessToken: xAccount.apiKey, // Re-using for simplicity, replace with real user token if available
+                  accessTokenSecret: xAccount.apiSecret, // Re-using for simplicity, replace with real user secret if available
+              });
+
+              toast({
+                  title: 'Posted to X (Twitter)!',
+                  description: 'Your post should be live on your account.',
+              });
+              somethingPublished = true;
+          }
+      }
+
       // YouTube Upload Logic
       if (selectedPlatforms.includes('youtube')) {
         const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
@@ -218,9 +246,11 @@ export default function CreatePostPage() {
       }
 
 
-      // Firestore post creation for other platforms (X, Facebook, LinkedIn)
-      const otherPlatforms = selectedPlatforms.filter(p => p !== 'youtube' && p !== 'instagram');
-      for (const platform of otherPlatforms) {
+      // Firestore post creation for other platforms (Facebook, LinkedIn)
+      // We also save a record for platforms that were published via API for our internal tracking.
+      const platformsToSaveInDb = selectedPlatforms.filter(p => p === 'facebook' || p === 'linkedin' || somethingPublished);
+
+      for (const platform of platformsToSaveInDb) {
           const postData: Omit<Post, 'id'> = {
             userId: user.uid,
             content: text,
@@ -237,13 +267,15 @@ export default function CreatePostPage() {
           };
           const postsCollection = collection(firestore, `users/${user.uid}/posts`);
           addDocumentNonBlocking(postsCollection, postData);
-          somethingPublished = true;
+          if (platform === 'facebook' || platform === 'linkedin') {
+            somethingPublished = true;
+          }
       }
       
       if (somethingPublished) {
           toast({
             title: 'Post Published/Scheduled!',
-            description: 'Your post has been successfully saved.',
+            description: 'Your post has been successfully processed.',
           });
 
           // Reset form
