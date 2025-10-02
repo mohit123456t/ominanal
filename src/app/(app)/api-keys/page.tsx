@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube, Link, Unlink } from 'lucide-react';
+import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube, Link, Unlink, Instagram, Facebook, Twitter as XIcon, Linkedin } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +39,15 @@ import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
 import { Label } from '@/components/ui/label';
 
 
+const platformIcons = {
+  Instagram: <Instagram className="h-8 w-8 text-pink-600" />,
+  Facebook: <Facebook className="h-8 w-8 text-blue-700" />,
+  X: <XIcon className="h-8 w-8" />,
+  LinkedIn: <Linkedin className="h-8 w-8 text-sky-600" />,
+  YouTube: <Youtube className="h-8 w-8 text-red-600" />,
+};
+
+
 export default function ApiKeysPage() {
   const { user } = useUser();
   const firestore = useFirestore();
@@ -64,16 +73,17 @@ export default function ApiKeysPage() {
 
     if (newKeyPlatform && newKeyValue && newKeyUsername) {
       setIsSubmitting(true);
-      const newKeyData: Omit<SocialMediaAccount, 'id' | 'connected'> = {
+      const newKeyData: Omit<SocialMediaAccount, 'id' > = {
         platform: newKeyPlatform as SocialMediaAccount['platform'],
         apiKey: newKeyValue,
         username: newKeyUsername,
         userId: user.uid,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        connected: true,
       };
       
-      await addDocumentNonBlocking(socialMediaAccountsCollection, newKeyData);
+      addDocumentNonBlocking(socialMediaAccountsCollection, newKeyData);
 
       setNewKeyPlatform('');
       setNewKeyValue('');
@@ -81,8 +91,8 @@ export default function ApiKeysPage() {
       setIsSubmitting(false);
 
       toast({
-        title: 'API Key Added',
-        description: `Your key for ${newKeyPlatform} has been saved.`,
+        title: 'Connection Added',
+        description: `Your connection for ${newKeyPlatform} has been saved.`,
       });
     } else {
         toast({
@@ -96,7 +106,7 @@ export default function ApiKeysPage() {
   const handleDeleteKey = async (accountId: string) => {
     if (!socialMediaAccountsCollection) return;
     const docRef = doc(socialMediaAccountsCollection, accountId);
-    await deleteDocumentNonBlocking(docRef);
+    deleteDocumentNonBlocking(docRef);
     toast({
         title: 'Connection Removed',
         description: `The connection has been removed.`,
@@ -132,7 +142,7 @@ export default function ApiKeysPage() {
     }
   }
   
-  const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI || '';
+  const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/youtube-callback` : '';
 
 
   return (
@@ -151,7 +161,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Add New Connection</CardTitle>
           <CardDescription>
-            Select a platform to connect your account or manage your existing connections below.
+            Select a platform to connect your account. For YouTube, you'll be redirected. For others, enter your details.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -164,10 +174,10 @@ export default function ApiKeysPage() {
                     <SelectItem value="Facebook">Facebook</SelectItem>
                     <SelectItem value="X">X</SelectItem>
                     <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                    <SelectItem value="YouTube" disabled={!!youtubeAccount}>YouTube (Connected)</SelectItem>
                 </SelectContent>
             </Select>
-            {newKeyPlatform && newKeyPlatform !== 'YouTube' && (
+            
+            {newKeyPlatform && (
               <>
                 <div className="grid sm:grid-cols-2 gap-4">
                     <Input
@@ -193,6 +203,59 @@ export default function ApiKeysPage() {
                 </Button>
               </>
             )}
+
+            <div className='border-t pt-4 space-y-2'>
+                {youtubeAccount ? (
+                    <div className='flex items-center justify-between'>
+                        <div className='flex items-center gap-2'>
+                            <Youtube className="h-6 w-6 text-red-600" />
+                            <p className='font-medium'>YouTube Connected</p>
+                        </div>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button variant="destructive">
+                                <Unlink className="mr-2 h-4 w-4" />
+                                Disconnect
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will permanently remove your connection for YouTube.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteKey(youtubeAccount.id)}>
+                                  Continue
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </div>
+                ) : (
+                    <>
+                        <div className="space-y-2 pt-2">
+                            <Label htmlFor="redirect-uri-display">To connect YouTube, copy this Redirect URI to your Google Cloud Console credentials page:</Label>
+                             <div className="flex items-center gap-2">
+                                <Input id="redirect-uri-display" type="text" readOnly value={redirectUri} className="bg-muted" />
+                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(redirectUri)}>
+                                    <Copy className="h-4 w-4"/>
+                                    <span className="sr-only">Copy URI</span>
+                                </Button>
+                            </div>
+                        </div>
+                        <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube} className='w-full sm:w-auto'>
+                           {isConnectingYouTube ? (
+                               <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
+                            ) : (
+                               <><Link className="mr-2 h-4 w-4" /> Connect YouTube</>
+                           )}
+                        </Button>
+                    </>
+                )}
+            </div>
         </CardContent>
       </Card>
       
@@ -200,78 +263,23 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Your Connections</CardTitle>
           <CardDescription>
-            Here are the accounts you have connected.
+            Here are the accounts you have connected (excluding YouTube).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isLoading && <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" />}
+          {isLoading && <div className="flex justify-center p-4"><LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" /></div>}
           
-          {/* YouTube Section */}
-          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
-              <div className="flex items-center gap-4">
-                  <Youtube className="h-8 w-8 text-red-600" />
-                  <div>
-                      <p className="font-semibold text-lg">YouTube</p>
-                      <p className="font-mono text-sm text-muted-foreground">{youtubeAccount ? `Connected as ${youtubeAccount.username}` : 'Not Connected'}</p>
-                  </div>
-              </div>
-              {youtubeAccount ? (
-                   <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive">
-                        <Unlink className="mr-2 h-4 w-4" />
-                        Disconnect
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will disconnect your YouTube account. You will need to re-authorize to upload videos again.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDeleteKey(youtubeAccount.id)}>
-                          Disconnect
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-              ) : (
-                <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube}>
-                    {isConnectingYouTube ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Link className="mr-2 h-4 w-4" />}
-                    Connect with YouTube
-                </Button>
-              )}
-          </div>
-           {/* Info box for YouTube Redirect URI */}
-           {!youtubeAccount && (
-            <div className="space-y-2 pt-2">
-                <Label htmlFor="redirect-uri-display">Before connecting, copy this Redirect URI to your Google Cloud Console credentials page:</Label>
-                <div className="flex items-center gap-2">
-                    <Input id="redirect-uri-display" type="text" readOnly value={redirectUri} className="bg-muted" />
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(redirectUri)}>
-                        <Copy className="h-4 w-4"/>
-                        <span className="sr-only">Copy URI</span>
-                    </Button>
-                </div>
-            </div>
-           )}
-
-
-          {/* Other API Keys */}
-          {!isLoading && keys && keys.filter(k => k.platform !== 'YouTube').length > 0 && (
-            keys.filter(k => k.platform !== 'YouTube').map((apiKey) => (
+          {!isLoading && keys && keys.filter(k => k.platform !== 'YouTube').map((apiKey) => (
               <div
                 key={apiKey.id}
                 className="flex items-center justify-between p-4 rounded-lg border"
               >
                 <div className="flex items-center gap-4">
-                  <KeyRound className="h-6 w-6 text-primary" />
+                  {platformIcons[apiKey.platform as keyof typeof platformIcons] || <KeyRound className="h-8 w-8 text-primary" />}
                   <div>
-                    <p className="font-semibold text-lg">{apiKey.platform} <span className="text-base font-normal text-muted-foreground">({apiKey.username})</span></p>
-                    <p className="font-mono text-sm text-muted-foreground">{maskApiKey(apiKey.apiKey)}</p>
+                    <p className="font-semibold text-lg">{apiKey.platform}</p>
+                    <p className="font-mono text-sm text-muted-foreground">{apiKey.username}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{maskApiKey(apiKey.apiKey)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -281,16 +289,16 @@ export default function ApiKeysPage() {
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="icon">
+                       <Button variant="destructive" size="icon">
                         <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete Key</span>
+                        <span className="sr-only">Delete Connection</span>
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your API key
+                          This action cannot be undone. This will permanently remove your connection
                           for {apiKey.platform}.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
@@ -305,11 +313,11 @@ export default function ApiKeysPage() {
                 </div>
               </div>
             ))
-          )}
+          }
 
-          {!isLoading && (!keys || keys.length === 0) && (
+          {!isLoading && (!keys || keys.filter(k => k.platform !== 'YouTube').length === 0) && (
             <p className="text-muted-foreground text-center py-8">
-              You have not added any connections yet.
+              You have not added any manual connections yet.
             </p>
           )}
 

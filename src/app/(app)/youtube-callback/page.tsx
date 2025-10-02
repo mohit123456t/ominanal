@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
 import { useFirestore, useUser } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { SocialMediaAccount } from '@/lib/types';
@@ -17,6 +17,7 @@ function YouTubeCallback() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState('Connecting to YouTube...');
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -36,7 +37,8 @@ function YouTubeCallback() {
     if (code && user && firestore) {
       const handleTokenExchange = async () => {
         try {
-          const { accessToken, refreshToken } = await getYoutubeTokens({ code });
+          setMessage('Exchanging authorization code for tokens...');
+          const { accessToken, refreshToken, expiryDate } = await getYoutubeTokens({ code });
 
           const socialMediaAccountsCollection = collection(
             firestore,
@@ -45,9 +47,22 @@ function YouTubeCallback() {
             'socialMediaAccounts'
           );
 
-          // For this example, we'll use a placeholder username.
+          // Check if a YouTube account already exists
+          const q = query(socialMediaAccountsCollection, where("platform", "==", "YouTube"));
+          const querySnapshot = await getDocs(q);
+          
+          let accountIdToUpdate: string | null = null;
+          if (!querySnapshot.empty) {
+            // Account exists, update it
+            accountIdToUpdate = querySnapshot.docs[0].id;
+            setMessage('Found existing YouTube connection. Updating...');
+          } else {
+             setMessage('Creating new YouTube connection...');
+          }
+
+
           // A real app would make another API call to get the channel name.
-          const newAccount: Omit<SocialMediaAccount, 'id'> = {
+          const accountData: Omit<SocialMediaAccount, 'id'> = {
             userId: user.uid,
             platform: 'YouTube',
             username: 'YouTube Account', // Placeholder
@@ -58,7 +73,16 @@ function YouTubeCallback() {
             updatedAt: new Date().toISOString(),
           };
 
-          await addDocumentNonBlocking(socialMediaAccountsCollection, newAccount);
+          const batch = writeBatch(firestore);
+          if (accountIdToUpdate) {
+            const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
+            batch.update(docRef, accountData);
+          } else {
+            const newDocRef = doc(socialMediaAccountsCollection);
+            batch.set(newDocRef, accountData);
+          }
+
+          await batch.commit();
 
           toast({
             title: 'YouTube Account Connected!',
@@ -66,9 +90,9 @@ function YouTubeCallback() {
           });
 
           router.push('/connected-accounts');
-        } catch (err) {
+        } catch (err: any) {
           console.error('Failed to exchange token or save account:', err);
-          setError('An error occurred while finalizing the connection.');
+          setError(err.message || 'An error occurred while finalizing the connection.');
           toast({
             variant: 'destructive',
             title: 'Connection Failed',
@@ -89,17 +113,17 @@ function YouTubeCallback() {
   }, [searchParams, router, user, firestore, toast]);
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center">
       {error ? (
         <>
           <h1 className="text-xl font-semibold text-destructive">Connection Failed</h1>
-          <p className="text-muted-foreground">{error}</p>
+          <p className="text-muted-foreground max-w-md">{error}</p>
           <p className="text-sm text-muted-foreground">Redirecting you back...</p>
         </>
       ) : (
         <>
           <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
-          <h1 className="text-xl font-semibold">Connecting to YouTube...</h1>
+          <h1 className="text-xl font-semibold">{message}</h1>
           <p className="text-muted-foreground">Please wait while we finalize the connection.</p>
         </>
       )}
@@ -110,8 +134,10 @@ function YouTubeCallback() {
 
 export default function YouTubeCallbackPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><LoaderCircle className="h-10 w-10 animate-spin text-primary" /></div>}>
             <YouTubeCallback />
         </Suspense>
     )
 }
+
+    
