@@ -75,12 +75,15 @@ const postToFacebookFlow = ai.defineFlow(
     });
 
     if (caption) {
-        params.append('message', caption); // Use 'message' for photo captions
+        params.append('caption', caption);
     }
-
+    
     const response = await fetch(postUrl, {
         method: 'POST',
-        body: params, // Send params in the body for this endpoint
+        body: params.toString(),
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
     });
 
 
