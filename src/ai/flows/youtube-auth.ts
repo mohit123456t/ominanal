@@ -20,7 +20,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.YOUTUBE_CLIENT_ID,
   process.env.YOUTUBE_CLIENT_SECRET,
   // This redirect URI must be configured in your Google Cloud project
-  'http://localhost:9002/youtube-callback'
+  'https://6000-firebase-studio-1759399651500.cluster-c36dgv2kibakqwbbbsgmia3fny.cloudworkstations.dev/youtube-callback'
 );
 
 const GetYoutubeAuthUrlOutputSchema = z.object({
