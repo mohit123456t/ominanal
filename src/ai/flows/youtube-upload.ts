@@ -10,20 +10,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
-import { getFirestore } from 'firebase-admin/firestore';
-import { SocialMediaAccount } from '@/lib/types';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { credential } from 'firebase-admin';
-
-
-// Initialize Firebase Admin SDK if not already initialized
-if (getApps().length === 0) {
-    initializeApp({
-        credential: credential.applicationDefault(),
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
-}
-
+import { getYouTubeCredentials } from '@/actions/youtube';
+import { updateYouTubeAccessToken } from '@/actions/youtube';
 
 const UploadVideoToYoutubeInputSchema = z.object({
   userId: z.string().describe('The ID of the user uploading the video.'),
@@ -46,16 +34,9 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     inputSchema: UploadVideoToYoutubeInputSchema,
     outputSchema: UploadVideoToYoutubeOutputSchema,
 }, async ({ userId, accountId, videoDataUri, title, description }) => {
-    
-    const firestore = getFirestore();
-    const accountDocRef = firestore.doc(`users/${userId}/socialMediaAccounts/${accountId}`);
-    const accountDoc = await accountDocRef.get();
 
-    if (!accountDoc.exists) {
-        throw new Error('YouTube account not found for this user.');
-    }
-    const accountData = accountDoc.data() as SocialMediaAccount;
-    const { apiKey: accessToken, refreshToken } = accountData;
+    const credentials = await getYouTubeCredentials({ userId, accountId });
+    const { accessToken, refreshToken } = credentials;
 
     if (!refreshToken) {
         throw new Error('Missing refresh token for YouTube account. Please reconnect the account.');
@@ -69,17 +50,17 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
 
-    // Add a listener for when the token is refreshed.
     oauth2Client.on('tokens', (tokens) => {
         if (tokens.access_token) {
           console.log("Refreshed YouTube access token. Updating in Firestore.");
           // IMPORTANT: Update the document with the new access token.
-          // We use .update() and don't await it to avoid blocking the main flow.
-          accountDocRef.update({
-            apiKey: tokens.access_token,
-            updatedAt: new Date().toISOString(),
+          // We call the server action and don't await it to avoid blocking the main flow.
+          updateYouTubeAccessToken({
+            userId,
+            accountId,
+            newAccessToken: tokens.access_token,
           }).catch(err => {
-            console.error("Failed to update new access token in Firestore:", err);
+            console.error("Failed to trigger access token update:", err);
           });
         }
     });
