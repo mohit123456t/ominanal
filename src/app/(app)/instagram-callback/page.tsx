@@ -65,31 +65,31 @@ function InstagramCallback() {
           const q = query(socialMediaAccountsCollection, where("platform", "==", "Instagram"));
           const querySnapshot = await getDocs(q);
           
-          let accountIdToUpdate: string | null = null;
-          if (!querySnapshot.empty) {
-            accountIdToUpdate = querySnapshot.docs[0].id;
-            setMessage('Found existing Instagram connection. Updating...');
-          } else {
-             setMessage('Creating new Instagram connection...');
-          }
-
-          const accountData: Omit<SocialMediaAccount, 'id' | 'createdAt'> & { createdAt?: string } = {
-            userId: user.uid,
-            platform: 'Instagram',
-            username: username, 
-            apiKey: accessToken,
-            connected: true,
-            updatedAt: new Date().toISOString(),
-          };
-          
           const batch = writeBatch(firestore);
-          if (accountIdToUpdate) {
-            const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
-            batch.update(docRef, accountData);
+
+          // If an Instagram account already exists, update it. Otherwise, create a new one.
+          if (!querySnapshot.empty) {
+            const docRef = querySnapshot.docs[0].ref;
+             batch.update(docRef, {
+                apiKey: accessToken,
+                username: username,
+                connected: true,
+                updatedAt: new Date().toISOString(),
+             });
+             setMessage('Found existing Instagram connection. Updating...');
           } else {
-            const newDocRef = doc(socialMediaAccountsCollection);
-            accountData.createdAt = new Date().toISOString();
-            batch.set(newDocRef, accountData as SocialMediaAccount);
+             const newDocRef = doc(socialMediaAccountsCollection);
+             const accountData: Omit<SocialMediaAccount, 'id'> = {
+                userId: user.uid,
+                platform: 'Instagram',
+                username: username, 
+                apiKey: accessToken,
+                connected: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+             };
+             batch.set(newDocRef, accountData);
+             setMessage('Creating new Instagram connection...');
           }
           await batch.commit();
 
@@ -151,5 +151,3 @@ export default function InstagramCallbackPage() {
         </Suspense>
     )
 }
-
-    
