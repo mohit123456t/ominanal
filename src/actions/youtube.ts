@@ -2,7 +2,6 @@
 
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import { type SocialMediaAccount } from '@/lib/types';
 
 // Helper function to initialize Firebase Admin SDK
 function initializeFirebaseAdmin(): admin.app.App {
@@ -10,44 +9,8 @@ function initializeFirebaseAdmin(): admin.app.App {
         return admin.apps[0]!;
     }
     // This uses the default service account credentials in a Google Cloud environment.
-    return admin.initializeApp({
-        credential: admin.credential.applicationDefault(),
-    });
+    return admin.initializeApp();
 }
-
-type GetCredentialsParams = {
-    userId: string;
-    accountId: string;
-}
-
-type Credentials = {
-    accessToken: string;
-    refreshToken: string | undefined;
-}
-
-export async function getYouTubeCredentials({ userId, accountId }: GetCredentialsParams): Promise<Credentials> {
-    initializeFirebaseAdmin();
-    const firestore = getFirestore();
-
-    const accountDocRef = firestore.doc(`users/${userId}/socialMediaAccounts/${accountId}`);
-    const accountDoc = await accountDocRef.get();
-
-    if (!accountDoc.exists) {
-        throw new Error('YouTube account not found for this user.');
-    }
-
-    const accountData = accountDoc.data() as SocialMediaAccount;
-
-    if (!accountData.apiKey) {
-        throw new Error('Access token not found for this YouTube account.');
-    }
-
-    return {
-        accessToken: accountData.apiKey,
-        refreshToken: accountData.refreshToken,
-    };
-}
-
 
 type UpdateTokenParams = {
     userId: string;

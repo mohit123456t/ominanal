@@ -215,6 +215,8 @@ export default function CreatePostPage() {
             videoDataUri,
             title: title || 'My YouTube Video',
             description: description || 'Uploaded via OmniPost AI',
+            accessToken: youtubeAccount.apiKey,
+            refreshToken: youtubeAccount.refreshToken,
           });
 
           somethingPublished = true;
