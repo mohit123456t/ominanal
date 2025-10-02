@@ -65,7 +65,7 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
         }
     });
 
-    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+    const youtube = google.youtube({ version: 'v3' });
 
     // Extract content type and base64 data from data URI
     const match = videoDataUri.match(/^data:(.*);base64,(.*)$/);
@@ -76,6 +76,7 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     const videoStream = Readable.from(videoBuffer);
 
     const response = await youtube.videos.insert({
+        auth: oauth2Client, // Pass the authenticated client
         part: ['snippet', 'status'],
         requestBody: {
             snippet: {
