@@ -39,16 +39,18 @@ const postToFacebookFlow = ai.defineFlow(
         url: mediaUrl,
         access_token: accessToken,
     });
+
     if (caption) {
-        params.append('caption', caption); // Use 'caption' for photos
+        params.append('caption', caption);
     }
 
     const response = await fetch(postUrl, {
         method: 'POST',
-        body: params.toString(), // Send as x-www-form-urlencoded string
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        // The body should not be a stringified URLSearchParams for photos,
+        // but rather the params should be in the URL itself for a GET-like POST
+        // or a multipart form for an upload. For URL-based photos, params in URL is fine.
+        // Let's stick to the URL Search Params in the body as it is a common pattern.
+        body: params,
     });
 
 
