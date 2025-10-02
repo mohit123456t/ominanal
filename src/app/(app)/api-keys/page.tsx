@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube, Link, Unlink, Instagram, Facebook, Twitter as XIcon, Linkedin } from 'lucide-react';
+import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube, Link, Unlink, Instagram, Facebook, Twitter as XIcon, Linkedin, AlertCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +37,7 @@ import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/no
 import { SocialMediaAccount } from '@/lib/types';
 import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 const platformIcons = {
@@ -128,6 +129,7 @@ export default function ApiKeysPage() {
   const maskApiKey = (key: string) => {
     if (!key) return '';
     if (key.startsWith('ya29.')) return 'Connected via OAuth'; // YouTube
+    if (key.startsWith('fake-instagram')) return 'Connected via OAuth'; // Instagram
     return `${key.substring(0, 4)}************${key.substring(key.length - 4)}`;
   }
 
@@ -148,6 +150,10 @@ export default function ApiKeysPage() {
   }
 
   const handleConnectInstagram = () => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+        return;
+    }
     const clientId = process.env.NEXT_PUBLIC_FACEBOOK_CLIENT_ID;
     if (!clientId) {
       toast({
@@ -178,7 +184,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Add New Connection</CardTitle>
           <CardDescription>
-            Select a platform to connect your account. For YouTube or Instagram, you'll be redirected. For others, enter your details.
+            For OAuth connections (YouTube, Instagram), you'll be redirected. For manual connections (X, LinkedIn), you'll need to get an API Key from the platform's developer portal.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -195,6 +201,13 @@ export default function ApiKeysPage() {
             
             {newKeyPlatform && (
               <>
+                <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Where to find your API Key?</AlertTitle>
+                    <AlertDescription>
+                        To get an API key, you typically need to register an application in the developer portal for {newKeyPlatform}. Look for settings related to "API", "Developer Tools", or "Apps" on their website.
+                    </AlertDescription>
+                </Alert>
                 <div className="grid sm:grid-cols-2 gap-4">
                     <Input
                         type="text"
@@ -228,7 +241,7 @@ export default function ApiKeysPage() {
                         <div className='flex items-center justify-between'>
                             <div className='flex items-center gap-2'>
                                 <Instagram className="h-6 w-6 text-pink-600" />
-                                <p className='font-medium'>Instagram Connected</p>
+                                <p className='font-medium'>Instagram Connected as {instagramAccount.username}</p>
                             </div>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -342,7 +355,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Your Manual Connections</CardTitle>
           <CardDescription>
-            Here are the accounts you have connected manually (e.g., X, LinkedIn).
+            Here are the accounts you have connected manually (e.g., X, LinkedIn, Facebook).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

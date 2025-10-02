@@ -11,11 +11,13 @@ import { SocialMediaAccount } from '@/lib/types';
 // FAKE flow for now until real API is implemented
 async function getInstagramTokens(code: string) {
   console.log('Exchanging code for token (simulated):', code);
+  // In a real app, you would make a server-side call here to your backend to exchange the code for a token.
+  // This backend service would use your App Secret.
   await new Promise(resolve => setTimeout(resolve, 1000));
   return {
     accessToken: `fake-instagram-access-token-${Date.now()}`,
     userId: 'fake-user-id', // This would be the IG user ID
-    username: 'YourInstagramProfile' // This would be fetched from the API
+    username: 'YourInstagram' // This would be fetched from the API
   };
 }
 
@@ -32,6 +34,7 @@ function InstagramCallback() {
   useEffect(() => {
     const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
+    const state = searchParams.get('state');
 
     if (errorParam) {
       setError(`Failed to connect to Instagram: ${errorParam}`);
@@ -44,7 +47,7 @@ function InstagramCallback() {
       return;
     }
 
-    if (code && user && firestore) {
+    if (code && user && firestore && state === user.uid) {
       const handleTokenExchange = async () => {
         try {
           setMessage('Finalizing Instagram connection...');
@@ -70,13 +73,12 @@ function InstagramCallback() {
              setMessage('Creating new Instagram connection...');
           }
 
-          const accountData: Omit<SocialMediaAccount, 'id'> = {
+          const accountData: Omit<SocialMediaAccount, 'id' | 'createdAt'> & { createdAt?: string } = {
             userId: user.uid,
             platform: 'Instagram',
             username: username, 
             apiKey: accessToken,
             connected: true,
-            createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
           
@@ -86,7 +88,8 @@ function InstagramCallback() {
             batch.update(docRef, accountData);
           } else {
             const newDocRef = doc(socialMediaAccountsCollection);
-            batch.set(newDocRef, accountData);
+            accountData.createdAt = new Date().toISOString();
+            batch.set(newDocRef, accountData as SocialMediaAccount);
           }
           await batch.commit();
 
@@ -111,7 +114,11 @@ function InstagramCallback() {
       handleTokenExchange();
     } else if (!user || !firestore) {
       // Wait for user and firestore to be available
-    } else {
+    } else if (state !== user?.uid) {
+        setError('Invalid state parameter. This could be a security risk. Aborting.');
+        setTimeout(() => router.push('/api-keys'), 3000);
+    }
+     else {
       setError('Invalid request. No authorization code found.');
       setTimeout(() => router.push('/api-keys'), 3000);
     }
@@ -144,3 +151,5 @@ export default function InstagramCallbackPage() {
         </Suspense>
     )
 }
+
+    
