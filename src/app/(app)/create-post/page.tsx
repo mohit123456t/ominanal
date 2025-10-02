@@ -237,12 +237,13 @@ export default function CreatePostPage() {
           const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
           if (!instagramAccount || !instagramAccount.instagramId) {
               toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first in API Keys.' });
-          } else if (!media || !media.type.startsWith('image/')) {
-              toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require an image.' });
-          } else {
-              // This is a public URL for a placeholder image. 
-              // A real app would need to upload the user's image to a public URL first (e.g., Cloud Storage).
-              const publicMediaUrl = 'https://picsum.photos/seed/1/800/800';
+          } else if (!mediaPreview && !text) {
+               toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require an image and a caption.' });
+          }
+          else {
+              // The mediaUrl must be a public URL. The temporary blob URL from the browser will not work.
+              // For this example, we'll use a static placeholder. A real app would upload the file to a cloud storage first to get a public URL.
+              const publicMediaUrl = 'https://picsum.photos/seed/insta1/800/1000';
               
               await postToInstagram({
                   instagramUserId: instagramAccount.instagramId,
