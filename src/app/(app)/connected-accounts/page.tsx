@@ -82,7 +82,10 @@ export default function ConnectedAccountsPage() {
               >
                 <div className="flex items-center gap-4">
                   <Icon className="h-8 w-8 text-muted-foreground" />
-                  <span className="font-medium text-lg">{account.platform}</span>
+                  <div>
+                    <p className="font-medium text-lg">{account.platform}</p>
+                    <p className="text-sm text-muted-foreground">{account.username}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                    <span className={cn("text-sm font-medium", account.connected ? "text-primary" : "text-muted-foreground")}>
