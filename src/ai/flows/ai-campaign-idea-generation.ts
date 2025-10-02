@@ -11,7 +11,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AICampaignIdeaInputSchema = z.object({
-  goal: z.string().describe('The user\u2019s goal for the campaign (e.g., \"New product launch\" or \"Holiday sale\").'),
+  goal: z.string().describe('The user’s goal for the campaign (e.g., "New product launch" or "Holiday sale").'),
 });
 export type AICampaignIdeaInput = z.infer<typeof AICampaignIdeaInputSchema>;
 
