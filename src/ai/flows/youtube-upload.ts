@@ -12,9 +12,7 @@ import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { getFirestore } from 'firebase-admin/firestore';
 import { SocialMediaAccount } from '@/lib/types';
-import { initializeApp, getApps, App } from 'firebase-admin/app';
-import { getAuth as getAdminAuth } from 'firebase-admin/auth';
-import { credential } from 'firebase-admin';
+import { initializeApp, getApps, App, credential } from 'firebase-admin/app';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (getApps().length === 0) {
@@ -56,8 +54,8 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     const accountData = accountDoc.data() as SocialMediaAccount;
     const { apiKey: accessToken, refreshToken } = accountData;
 
-    if (!accessToken) {
-        throw new Error('Missing access token for YouTube account.');
+    if (!refreshToken) {
+        throw new Error('Missing refresh token for YouTube account. Please reconnect the account.');
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -68,6 +66,21 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
 
+    // Add a listener for when the token is refreshed.
+    oauth2Client.on('tokens', (tokens) => {
+        if (tokens.access_token) {
+          console.log("Refreshed YouTube access token. Updating in Firestore.");
+          // IMPORTANT: Update the document with the new access token.
+          // We use .update() and don't await it to avoid blocking the main flow.
+          accountDocRef.update({
+            apiKey: tokens.access_token,
+            updatedAt: new Date().toISOString(),
+          }).catch(err => {
+            console.error("Failed to update new access token in Firestore:", err);
+          });
+        }
+    });
+
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     // Extract content type and base64 data from data URI
@@ -75,7 +88,6 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     if (!match) {
         throw new Error('Invalid video data URI format.');
     }
-    const contentType = match[1];
     const videoBuffer = Buffer.from(match[2], 'base64');
     const videoStream = Readable.from(videoBuffer);
 
@@ -85,6 +97,8 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
             snippet: {
                 title,
                 description,
+                tags: ['OmniPostAI', 'AI', 'SocialMedia'],
+                categoryId: '28', // Category for "Science & Technology"
             },
             status: {
                 privacyStatus: 'private', // Or 'public', 'unlisted'
