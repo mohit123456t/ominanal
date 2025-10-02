@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube } from 'lucide-react';
+import { KeyRound, Plus, Trash2, Copy, LoaderCircle, Youtube, Link, Unlink } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +57,8 @@ export default function ApiKeysPage() {
 
   const { data: keys, isLoading } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
 
+  const youtubeAccount = useMemo(() => keys?.find(k => k.platform === 'YouTube'), [keys]);
+
   const handleAddKey = async () => {
     if (!socialMediaAccountsCollection || !user) return;
 
@@ -96,8 +98,8 @@ export default function ApiKeysPage() {
     const docRef = doc(socialMediaAccountsCollection, accountId);
     await deleteDocumentNonBlocking(docRef);
     toast({
-        title: 'API Key Removed',
-        description: `Your key has been removed.`,
+        title: 'Connection Removed',
+        description: `The connection has been removed.`,
       });
   };
   
@@ -149,71 +151,49 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Add New Connection</CardTitle>
           <CardDescription>
-            Select a platform to connect your account.
+            Select a platform to connect your account or manage your existing connections below.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-           <div className="grid sm:grid-cols-2 gap-4">
              <Select value={newKeyPlatform} onValueChange={(value) => setNewKeyPlatform(value as SocialMediaAccount['platform'])} disabled={isSubmitting}>
-                <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Platform" />
+                <SelectTrigger className="w-full sm:w-1/2">
+                    <SelectValue placeholder="Select Platform..." />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem value="Instagram">Instagram</SelectItem>
                     <SelectItem value="Facebook">Facebook</SelectItem>
                     <SelectItem value="X">X</SelectItem>
                     <SelectItem value="LinkedIn">LinkedIn</SelectItem>
-                    <SelectItem value="YouTube">YouTube</SelectItem>
+                    <SelectItem value="YouTube" disabled={!!youtubeAccount}>YouTube (Connected)</SelectItem>
                 </SelectContent>
             </Select>
-            {newKeyPlatform !== 'YouTube' && (
-                <Input
-                type="text"
-                value={newKeyUsername}
-                onChange={(e) => setNewKeyUsername(e.target.value)}
-                placeholder="Username"
-                aria-label="Username"
-                disabled={isSubmitting}
-                />
-            )}
-           </div>
             {newKeyPlatform && newKeyPlatform !== 'YouTube' && (
-                <Input
-                type="text"
-                value={newKeyValue}
-                onChange={(e) => setNewKeyValue(e.target.value)}
-                placeholder="Paste your API Key here"
-                aria-label="API Key Value"
-                disabled={isSubmitting}
-                />
-            )}
-            {newKeyPlatform === 'YouTube' && (
-                <div className="space-y-4 pt-4">
-                     <div>
-                        <Label htmlFor="redirect-uri-display">Copy this exact Redirect URI to your Google Cloud Console:</Label>
-                        <div className="flex items-center gap-2 mt-2">
-                           <Input id="redirect-uri-display" type="text" readOnly value={redirectUri} />
-                           <Button variant="ghost" size="icon" onClick={() => copyToClipboard(redirectUri)}>
-                                <Copy className="h-4 w-4"/>
-                                <span className="sr-only">Copy URI</span>
-                            </Button>
-                        </div>
-                    </div>
-                    <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube} className="w-full sm:w-auto">
-                        {isConnectingYouTube ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Youtube className="mr-2 h-4 w-4" />}
-                        Connect with YouTube
-                    </Button>
+              <>
+                <div className="grid sm:grid-cols-2 gap-4">
+                    <Input
+                        type="text"
+                        value={newKeyUsername}
+                        onChange={(e) => setNewKeyUsername(e.target.value)}
+                        placeholder="Username"
+                        aria-label="Username"
+                        disabled={isSubmitting}
+                    />
+                    <Input
+                        type="password"
+                        value={newKeyValue}
+                        onChange={(e) => setNewKeyValue(e.target.value)}
+                        placeholder="Paste your API Key here"
+                        aria-label="API Key Value"
+                        disabled={isSubmitting}
+                    />
                 </div>
-            )}
-        </CardContent>
-        {newKeyPlatform && newKeyPlatform !== 'YouTube' && (
-            <CardFooter>
                 <Button onClick={handleAddKey} disabled={isSubmitting}>
                     {isSubmitting ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                     Add Key
                 </Button>
-            </CardFooter>
-        )}
+              </>
+            )}
+        </CardContent>
       </Card>
       
       <Card>
@@ -225,11 +205,67 @@ export default function ApiKeysPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading && <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-primary" />}
-          {!isLoading && keys && keys.length > 0 ? (
-            keys.map((apiKey) => (
+          
+          {/* YouTube Section */}
+          <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/20">
+              <div className="flex items-center gap-4">
+                  <Youtube className="h-8 w-8 text-red-600" />
+                  <div>
+                      <p className="font-semibold text-lg">YouTube</p>
+                      <p className="font-mono text-sm text-muted-foreground">{youtubeAccount ? `Connected as ${youtubeAccount.username}` : 'Not Connected'}</p>
+                  </div>
+              </div>
+              {youtubeAccount ? (
+                   <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive">
+                        <Unlink className="mr-2 h-4 w-4" />
+                        Disconnect
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will disconnect your YouTube account. You will need to re-authorize to upload videos again.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDeleteKey(youtubeAccount.id)}>
+                          Disconnect
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+              ) : (
+                <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube}>
+                    {isConnectingYouTube ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Link className="mr-2 h-4 w-4" />}
+                    Connect with YouTube
+                </Button>
+              )}
+          </div>
+           {/* Info box for YouTube Redirect URI */}
+           {!youtubeAccount && (
+            <div className="space-y-2 pt-2">
+                <Label htmlFor="redirect-uri-display">Before connecting, copy this Redirect URI to your Google Cloud Console credentials page:</Label>
+                <div className="flex items-center gap-2">
+                    <Input id="redirect-uri-display" type="text" readOnly value={redirectUri} className="bg-muted" />
+                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(redirectUri)}>
+                        <Copy className="h-4 w-4"/>
+                        <span className="sr-only">Copy URI</span>
+                    </Button>
+                </div>
+            </div>
+           )}
+
+
+          {/* Other API Keys */}
+          {!isLoading && keys && keys.filter(k => k.platform !== 'YouTube').length > 0 && (
+            keys.filter(k => k.platform !== 'YouTube').map((apiKey) => (
               <div
                 key={apiKey.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-muted/20"
+                className="flex items-center justify-between p-4 rounded-lg border"
               >
                 <div className="flex items-center gap-4">
                   <KeyRound className="h-6 w-6 text-primary" />
@@ -239,12 +275,10 @@ export default function ApiKeysPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                   {apiKey.apiKey.startsWith('ya29.') ? null : (
-                     <Button variant="ghost" size="icon" onClick={() => copyToClipboard(apiKey.apiKey)}>
-                        <Copy className="h-4 w-4"/>
-                        <span className="sr-only">Copy Key</span>
-                    </Button>
-                   )}
+                   <Button variant="ghost" size="icon" onClick={() => copyToClipboard(apiKey.apiKey)}>
+                      <Copy className="h-4 w-4"/>
+                      <span className="sr-only">Copy Key</span>
+                  </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="icon">
@@ -256,8 +290,8 @@ export default function ApiKeysPage() {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your connection
-                          for {apiKey.platform} and you will need to re-add it to post to this platform.
+                          This action cannot be undone. This will permanently delete your API key
+                          for {apiKey.platform}.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -271,11 +305,14 @@ export default function ApiKeysPage() {
                 </div>
               </div>
             ))
-          ) : (
-            !isLoading && <p className="text-muted-foreground text-center py-8">
+          )}
+
+          {!isLoading && (!keys || keys.length === 0) && (
+            <p className="text-muted-foreground text-center py-8">
               You have not added any connections yet.
             </p>
           )}
+
         </CardContent>
       </Card>
     </div>

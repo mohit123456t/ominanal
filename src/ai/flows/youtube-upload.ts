@@ -36,10 +36,6 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     outputSchema: UploadVideoToYoutubeOutputSchema,
 }, async ({ userId, accountId, videoDataUri, title, description, accessToken, refreshToken }) => {
 
-    if (!refreshToken) {
-        throw new Error('Missing refresh token for YouTube account. Please reconnect the account.');
-    }
-
     const oauth2Client = new google.auth.OAuth2(
       process.env.YOUTUBE_CLIENT_ID,
       process.env.YOUTUBE_CLIENT_SECRET,
@@ -48,24 +44,29 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
 
-    // This listener is critical. It fires when the access token is refreshed.
-    // We then trigger a non-blocking server action to update the new token in Firestore.
     oauth2Client.on('tokens', (tokens) => {
         if (tokens.access_token) {
           console.log("Refreshed YouTube access token. Updating in Firestore.");
-          // We don't await this, it's a "fire and forget" update.
           updateYouTubeAccessToken({
             userId,
             accountId,
             newAccessToken: tokens.access_token,
           }).catch(err => {
-            // Log if the trigger fails, but don't block the upload.
             console.error("Failed to trigger access token update:", err);
           });
         }
     });
 
     const youtube = google.youtube({ version: 'v3' });
+
+    try {
+      // Proactively refresh the token if needed before the API call
+      await oauth2Client.getAccessToken();
+    } catch (err) {
+      console.error("Token refresh failed:", err);
+      throw new Error("Invalid YouTube credentials. Please disconnect and reconnect your account.");
+    }
+
 
     // Extract content type and base64 data from data URI
     const match = videoDataUri.match(/^data:(.*);base64,(.*)$/);
