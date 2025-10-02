@@ -2,7 +2,7 @@
 
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import { SocialMediaAccount } from '@/lib/types';
+import { type SocialMediaAccount } from '@/lib/types';
 
 // Helper function to initialize Firebase Admin SDK
 function initializeFirebaseAdmin(): admin.app.App {
@@ -37,6 +37,10 @@ export async function getYouTubeCredentials({ userId, accountId }: GetCredential
     }
 
     const accountData = accountDoc.data() as SocialMediaAccount;
+
+    if (!accountData.apiKey) {
+        throw new Error('Access token not found for this YouTube account.');
+    }
 
     return {
         accessToken: accountData.apiKey,
