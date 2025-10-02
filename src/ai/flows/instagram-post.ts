@@ -9,6 +9,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
+import { URLSearchParams } from 'url';
 
 const PostToInstagramInputSchema = z.object({
   instagramUserId: z.string().describe('The Instagram User ID.'),
@@ -41,12 +42,15 @@ const postToInstagramFlow = ai.defineFlow(
     const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media`;
     const containerParams = new URLSearchParams({
       image_url: mediaUrl,
-      caption: caption || '',
       access_token: accessToken,
     });
+    if (caption) {
+        containerParams.append('caption', caption);
+    }
 
-    const containerResponse = await fetch(`${containerUrl}?${containerParams}`, {
+    const containerResponse = await fetch(containerUrl, {
       method: 'POST',
+      body: containerParams,
     });
 
     if (!containerResponse.ok) {
@@ -69,8 +73,13 @@ const postToInstagramFlow = ai.defineFlow(
       access_token: accessToken,
     });
     
-    const publishResponse = await fetch(`${publishUrl}?${publishParams}`, {
+    // We need to wait a few seconds for the container to be ready for publishing.
+    // A more robust solution would poll the container status endpoint.
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    const publishResponse = await fetch(publishUrl, {
         method: 'POST',
+        body: publishParams,
     });
 
     if (!publishResponse.ok) {
