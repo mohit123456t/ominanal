@@ -244,8 +244,11 @@ export default function CreatePostPage() {
                    toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require an image.' });
                    continue; // Skip to next platform
               }
-              // Here you would typically call the Instagram API.
-              // For now, we just save to firestore.
+              // This is a simulation. The post is saved to Firestore but not sent to the actual Instagram API.
+              toast({
+                  title: 'Instagram Post Saved (Simulation)',
+                  description: 'This post is saved for tracking in your dashboard. Real posting via API is not yet implemented.',
+              });
           }
 
           const mediaUrl = mediaPreview || undefined;
