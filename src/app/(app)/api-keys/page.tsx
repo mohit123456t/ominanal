@@ -68,6 +68,9 @@ export default function ApiKeysPage() {
 
   const youtubeAccount = useMemo(() => keys?.find(k => k.platform === 'YouTube'), [keys]);
   const instagramAccount = useMemo(() => keys?.find(k => k.platform === 'Instagram'), [keys]);
+  
+  const youtubeRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/youtube-callback` : '';
+  const instagramRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/instagram-callback` : '';
 
 
   const handleAddKey = async () => {
@@ -154,15 +157,11 @@ export default function ApiKeysPage() {
       });
       return;
     }
-    const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/instagram-callback` : '';
     const scope = 'instagram_basic,pages_show_list,instagram_content_publish';
-    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&response_type=code&state=${user?.uid}`;
+    const authUrl = `https://www.facebook.com/v19.0/dialog/oauth?client_id=${clientId}&redirect_uri=${encodeURIComponent(instagramRedirectUri)}&scope=${scope}&response_type=code&state=${user?.uid}`;
     window.location.href = authUrl;
   };
   
-  const youtubeRedirectUri = typeof window !== 'undefined' ? `${window.location.origin}/youtube-callback` : '';
-
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="text-center">
@@ -221,95 +220,120 @@ export default function ApiKeysPage() {
               </>
             )}
 
-            <div className='border-t pt-4 space-y-4'>
+            <div className='border-t pt-4 space-y-6'>
                  {/* Instagram Connection */}
-                {instagramAccount ? (
-                    <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2'>
-                            <Instagram className="h-6 w-6 text-pink-600" />
-                            <p className='font-medium'>Instagram Connected</p>
+                 <div className="space-y-4">
+                     <h3 className="font-medium text-lg">OAuth Connections</h3>
+                    {instagramAccount ? (
+                        <div className='flex items-center justify-between'>
+                            <div className='flex items-center gap-2'>
+                                <Instagram className="h-6 w-6 text-pink-600" />
+                                <p className='font-medium'>Instagram Connected</p>
+                            </div>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                    <Unlink className="mr-2 h-4 w-4" />
+                                    Disconnect
+                                </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    This will disconnect your Instagram account. You will need to reconnect to continue posting.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteKey(instagramAccount.id)}>
+                                    Continue
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                               <Button variant="destructive">
-                                <Unlink className="mr-2 h-4 w-4" />
-                                Disconnect
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This will disconnect your Instagram account. You will need to reconnect to continue posting.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteKey(instagramAccount.id)}>
-                                  Continue
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                ) : (
-                     <Button onClick={handleConnectInstagram} className='w-full sm:w-auto bg-[#E1306C] hover:bg-[#c12a5a] text-white'>
-                       <Link className="mr-2 h-4 w-4" /> Connect Instagram
-                    </Button>
-                )}
-
-
-                {/* YouTube Connection */}
-                {youtubeAccount ? (
-                    <div className='flex items-center justify-between'>
-                        <div className='flex items-center gap-2'>
-                            <Youtube className="h-6 w-6 text-red-600" />
-                            <p className='font-medium'>YouTube Connected</p>
-                        </div>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                               <Button variant="destructive">
-                                <Unlink className="mr-2 h-4 w-4" />
-                                Disconnect
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This action cannot be undone. This will permanently remove your connection for YouTube.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDeleteKey(youtubeAccount.id)}>
-                                  Continue
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </div>
-                ) : (
-                    <div className='space-y-2'>
-                        <div className="space-y-2 pt-2">
-                            <Label htmlFor="redirect-uri-display">To connect YouTube, copy this Redirect URI to your Google Cloud Console credentials page:</Label>
-                             <div className="flex items-center gap-2">
-                                <Input id="redirect-uri-display" type="text" readOnly value={youtubeRedirectUri} className="bg-muted" />
-                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(youtubeRedirectUri)}>
-                                    <Copy className="h-4 w-4"/>
-                                    <span className="sr-only">Copy URI</span>
+                    ) : (
+                        <div className="p-4 border rounded-lg space-y-4 bg-muted/20">
+                            <div className="space-y-2">
+                                <Label htmlFor="instagram-redirect-uri">1. Add Redirect URI to Facebook App</Label>
+                                <p className="text-xs text-muted-foreground">Copy this URI and paste it into your Facebook App's "Valid OAuth Redirect URIs" field under Client OAuth Settings.</p>
+                                <div className="flex items-center gap-2">
+                                    <Input id="instagram-redirect-uri" type="text" readOnly value={instagramRedirectUri} className="bg-background" />
+                                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(instagramRedirectUri)}>
+                                        <Copy className="h-4 w-4"/>
+                                        <span className="sr-only">Copy URI</span>
+                                    </Button>
+                                </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>2. Connect Your Account</Label>
+                                <Button onClick={handleConnectInstagram} className='w-full sm:w-auto bg-[#E1306C] hover:bg-[#c12a5a] text-white'>
+                                <Link className="mr-2 h-4 w-4" /> Connect Instagram
                                 </Button>
                             </div>
                         </div>
-                        <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube} className='w-full sm:w-auto'>
-                           {isConnectingYouTube ? (
-                               <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
-                            ) : (
-                               <><Link className="mr-2 h-4 w-4" /> Connect YouTube</>
-                           )}
-                        </Button>
-                    </div>
-                )}
+                    )}
+                </div>
+
+
+                {/* YouTube Connection */}
+                 <div className="space-y-4">
+                    {youtubeAccount ? (
+                        <div className='flex items-center justify-between'>
+                            <div className='flex items-center gap-2'>
+                                <Youtube className="h-6 w-6 text-red-600" />
+                                <p className='font-medium'>YouTube Connected</p>
+                            </div>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                <Button variant="destructive">
+                                    <Unlink className="mr-2 h-4 w-4" />
+                                    Disconnect
+                                </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently remove your connection for YouTube.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteKey(youtubeAccount.id)}>
+                                    Continue
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        </div>
+                    ) : (
+                        <div className="p-4 border rounded-lg space-y-4 bg-muted/20">
+                            <div className="space-y-2">
+                                <Label htmlFor="youtube-redirect-uri">1. Add Redirect URI to Google Cloud Console</Label>
+                                 <p className="text-xs text-muted-foreground">Copy this URI and paste it into your Google Cloud Console's OAuth 2.0 Client ID "Authorized redirect URIs" list.</p>
+                                <div className="flex items-center gap-2">
+                                    <Input id="youtube-redirect-uri" type="text" readOnly value={youtubeRedirectUri} className="bg-background" />
+                                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(youtubeRedirectUri)}>
+                                        <Copy className="h-4 w-4"/>
+                                        <span className="sr-only">Copy URI</span>
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className='space-y-2'>
+                                <Label>2. Connect Your Account</Label>
+                                <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube} className='w-full sm:w-auto'>
+                                {isConnectingYouTube ? (
+                                    <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
+                                    ) : (
+                                    <><Link className="mr-2 h-4 w-4" /> Connect YouTube</>
+                                )}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </CardContent>
       </Card>
@@ -381,3 +405,5 @@ export default function ApiKeysPage() {
     </div>
   );
 }
+
+    
