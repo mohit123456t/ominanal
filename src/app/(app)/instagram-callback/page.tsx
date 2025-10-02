@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getInstagramAccessToken, getInstagramUserDetails } from '@/ai/flows/instagram-auth';
@@ -17,9 +17,18 @@ function InstagramCallback() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('Connecting to Instagram...');
-  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Use a ref to prevent the effect from running twice in strict mode
+  const effectRan = useRef(false);
 
   useEffect(() => {
+    // Check if the effect has already run
+    if (effectRan.current === true) {
+      return;
+    }
+    // Mark the effect as run
+    effectRan.current = true;
+
     const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
 
@@ -34,8 +43,7 @@ function InstagramCallback() {
       return;
     }
 
-    if (code && user && firestore && !isProcessing) {
-      setIsProcessing(true); // Set processing flag
+    if (code && user && firestore) {
       const handleTokenExchange = async () => {
         try {
           setMessage('Exchanging authorization code for access token...');
@@ -100,24 +108,27 @@ function InstagramCallback() {
           toast({
             variant: 'destructive',
             title: 'Connection Failed',
-            description: 'Could not save your Instagram account connection. Please try again.',
+            description: err.message || 'Could not save your Instagram account connection. Please try again.',
           });
-          setTimeout(() => router.push('/api-keys'), 3000);
+          setTimeout(() => router.push('/api-keys'), 5000);
         }
       };
 
       handleTokenExchange();
-    } else if (!user || !firestore) {
-        // Wait for user and firestore to be available
-    }
-     else if (!code) {
+    } else if (!code && !errorParam) {
+        if (!user || !firestore) {
+            // This can happen if the page loads before Firebase is ready.
+            // We'll wait for user/firestore to become available.
+             setMessage('Waiting for user session...');
+             return;
+        }
       setError('Invalid request. No authorization code found.');
       setTimeout(() => router.push('/api-keys'), 3000);
     }
-  }, [searchParams, router, user, firestore, toast, isProcessing]);
+  }, [searchParams, router, user, firestore, toast]);
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center">
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center p-4">
       {error ? (
         <>
           <h1 className="text-xl font-semibold text-destructive">Connection Failed</h1>
@@ -128,7 +139,7 @@ function InstagramCallback() {
         <>
           <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
           <h1 className="text-xl font-semibold">{message}</h1>
-          <p className="text-muted-foreground">Please wait while we finalize the connection.</p>
+          <p className="text-muted-foreground">Please wait while we finalize the connection. Do not close this tab.</p>
         </>
       )}
     </div>
