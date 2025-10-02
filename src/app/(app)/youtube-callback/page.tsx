@@ -1,14 +1,13 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { SocialMediaAccount } from '@/lib/types';
+import { type SocialMediaAccount } from '@/lib/types';
 
 function YouTubeCallback() {
   const searchParams = useSearchParams();
@@ -18,8 +17,13 @@ function YouTubeCallback() {
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState('Connecting to YouTube...');
+  const effectRan = useRef(false);
+
 
   useEffect(() => {
+    if (effectRan.current) return;
+    effectRan.current = true;
+
     const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
 
@@ -38,7 +42,7 @@ function YouTubeCallback() {
       const handleTokenExchange = async () => {
         try {
           setMessage('Exchanging authorization code for tokens...');
-          const { accessToken, refreshToken, expiryDate } = await getYoutubeTokens({ code });
+          const { accessToken, refreshToken } = await getYoutubeTokens({ code });
 
           const socialMediaAccountsCollection = collection(
             firestore,
@@ -51,35 +55,35 @@ function YouTubeCallback() {
           const q = query(socialMediaAccountsCollection, where("platform", "==", "YouTube"));
           const querySnapshot = await getDocs(q);
           
-          let accountIdToUpdate: string | null = null;
-          if (!querySnapshot.empty) {
-            // Account exists, update it
-            accountIdToUpdate = querySnapshot.docs[0].id;
-            setMessage('Found existing YouTube connection. Updating...');
-          } else {
-             setMessage('Creating new YouTube connection...');
-          }
-
-
-          // A real app would make another API call to get the channel name.
-          const accountData: Omit<SocialMediaAccount, 'id'> = {
-            userId: user.uid,
-            platform: 'YouTube',
-            username: 'YouTube Account', // Placeholder
-            apiKey: accessToken, // Store access token
-            refreshToken: refreshToken, // Store refresh token
-            connected: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-
           const batch = writeBatch(firestore);
-          if (accountIdToUpdate) {
+          
+          if (!querySnapshot.empty) {
+            const accountIdToUpdate = querySnapshot.docs[0].id;
+            setMessage('Found existing YouTube connection. Updating...');
             const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
+            const accountData: Partial<SocialMediaAccount> = {
+                apiKey: accessToken,
+                refreshToken: refreshToken,
+                connected: true,
+                updatedAt: new Date().toISOString(),
+            };
             batch.update(docRef, accountData);
           } else {
-            const newDocRef = doc(socialMediaAccountsCollection);
-            batch.set(newDocRef, accountData);
+             setMessage('Creating new YouTube connection...');
+             // A real app would make another API call to get the channel name.
+             const newAccountData: SocialMediaAccount = {
+                id: '', // Firestore will generate this
+                userId: user.uid,
+                platform: 'YouTube',
+                username: 'YouTube Account', // Placeholder
+                apiKey: accessToken,
+                refreshToken: refreshToken,
+                connected: true,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+             };
+             const newDocRef = doc(socialMediaAccountsCollection);
+             batch.set(newDocRef, newAccountData);
           }
 
           await batch.commit();
@@ -98,22 +102,23 @@ function YouTubeCallback() {
             title: 'Connection Failed',
             description: 'Could not save your YouTube account connection. Please try again.',
           });
-          setTimeout(() => router.push('/api-keys'), 3000);
+          setTimeout(() => router.push('/api-keys'), 5000);
         }
       };
 
       handleTokenExchange();
     } else if (!user || !firestore) {
         // Wait for user and firestore to be available
+        setMessage("Waiting for user session...");
     }
-     else {
+     else if (!code) {
       setError('Invalid request. No authorization code found.');
       setTimeout(() => router.push('/api-keys'), 3000);
     }
   }, [searchParams, router, user, firestore, toast]);
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center">
+    <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center p-4">
       {error ? (
         <>
           <h1 className="text-xl font-semibold text-destructive">Connection Failed</h1>
@@ -124,7 +129,7 @@ function YouTubeCallback() {
         <>
           <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
           <h1 className="text-xl font-semibold">{message}</h1>
-          <p className="text-muted-foreground">Please wait while we finalize the connection.</p>
+          <p className="text-muted-foreground">Please wait while we finalize the connection. Do not close this tab.</p>
         </>
       )}
     </div>
@@ -139,5 +144,3 @@ export default function YouTubeCallbackPage() {
         </Suspense>
     )
 }
-
-    
