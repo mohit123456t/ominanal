@@ -12,7 +12,12 @@ import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { getFirestore } from 'firebase-admin/firestore';
 import { SocialMediaAccount } from '@/lib/types';
-import { getFirebaseAdminApp } from '@/firebase/admin';
+import { initializeApp, getApps } from 'firebase-admin/app';
+
+// Initialize Firebase Admin SDK if not already initialized
+if (getApps().length === 0) {
+  initializeApp();
+}
 
 
 const UploadVideoToYoutubeInputSchema = z.object({
@@ -37,7 +42,6 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     outputSchema: UploadVideoToYoutubeOutputSchema,
 }, async ({ userId, accountId, videoDataUri, title, description }) => {
     
-    getFirebaseAdminApp();
     const firestore = getFirestore();
     const accountDocRef = firestore.doc(`users/${userId}/socialMediaAccounts/${accountId}`);
     const accountDoc = await accountDocRef.get();
