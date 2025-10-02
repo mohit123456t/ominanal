@@ -9,7 +9,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
-import { URLSearchParams } from 'url';
 
 const PostToInstagramInputSchema = z.object({
   instagramUserId: z.string().describe('The Instagram User ID.'),
@@ -39,24 +38,23 @@ const postToInstagramFlow = ai.defineFlow(
     }
     
     // Step 1: Create a container for the media
-    const params = new URLSearchParams({
-        image_url: mediaUrl,
-        media_type: 'IMAGE', // Explicitly define the media type
-        access_token: accessToken,
-    });
-
+    
+    // Manually build the request body as a string
+    let requestBody = `image_url=${encodeURIComponent(mediaUrl)}&media_type=IMAGE&access_token=${encodeURIComponent(accessToken)}`;
     if (caption) {
-        params.append('caption', caption);
+        requestBody += `&caption=${encodeURIComponent(caption)}`;
     }
     
     const containerUrl = `${INSTAGRAM_GRAPH_API_URL}/${instagramUserId}/media`;
     
-    console.log("Instagram media payload:", params.toString());
-
+    console.log("Instagram media payload:", requestBody);
 
     const containerResponse = await fetch(containerUrl, {
       method: 'POST',
-      body: params,
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: requestBody,
     });
 
     if (!containerResponse.ok) {
