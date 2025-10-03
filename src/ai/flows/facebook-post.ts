@@ -37,24 +37,25 @@ const postToFacebookFlow = ai.defineFlow(
   async ({ facebookPageId, mediaUrl, caption, userAccessToken, appSecret }) => {
     
     // Step 1: Get the Page Access Token using the User Access Token.
-    // This requires an appsecret_proof to prove the call is from a trusted server.
     const appSecretProof = crypto.createHmac('sha256', appSecret).update(userAccessToken).digest('hex');
     
-    const pageTokenUrl = `${FACEBOOK_GRAPH_API_URL}/${facebookPageId}?fields=access_token&access_token=${userAccessToken}&appsecret_proof=${appSecretProof}`;
-    const pageTokenResponse = await fetch(pageTokenUrl);
+    const pagesUrl = `${FACEBOOK_GRAPH_API_URL}/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}&appsecret_proof=${appSecretProof}`;
+    const pagesResponse = await fetch(pagesUrl);
     
-    if (!pageTokenResponse.ok) {
-        const errorData: any = await pageTokenResponse.json();
-        console.error('Failed to get Page Access Token:', errorData);
-        throw new Error(`Failed to get Page Access Token: ${errorData.error?.message || 'Unknown error'}`);
+    if (!pagesResponse.ok) {
+        const errorData: any = await pagesResponse.json();
+        console.error('Failed to get list of Facebook Pages:', errorData);
+        throw new Error(`Failed to get Page Access Token: ${errorData.error?.message || 'Could not fetch pages.'}`);
     }
-    const pageTokenData: any = await pageTokenResponse.json();
-    const pageAccessToken = pageTokenData.access_token;
-    
-    if (!pageAccessToken) {
-        throw new Error('Page Access Token not found in response from Facebook.');
-    }
+    const pagesData: any = await pagesResponse.json();
 
+    const targetPage = pagesData.data?.find((page: any) => page.id === facebookPageId);
+
+    if (!targetPage || !targetPage.access_token) {
+        throw new Error(`Could not find a Page with ID ${facebookPageId} or it has no Page Access Token. Please ensure the page is connected.`);
+    }
+    const pageAccessToken = targetPage.access_token;
+    
     // Step 2: Use the newly acquired Page Access Token to post the photo.
     const postUrl = `${FACEBOOK_GRAPH_API_URL}/${facebookPageId}/photos`;
     
