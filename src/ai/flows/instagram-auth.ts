@@ -33,10 +33,10 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
     outputSchema: GetInstagramAuthUrlOutputSchema,
   },
   async ({ clientId }) => {
-    if (!process.env.NEXT_PUBLIC_URL) {
-        throw new Error('NEXT_PUBLIC_URL is not set in the .env file. The app owner needs to configure this.');
+    if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
+        throw new Error('NEXT_PUBLIC_URL or NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI is not set in the .env file. The app owner needs to configure this.');
     }
-    const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
+    const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}`;
 
     const params = new URLSearchParams({
         client_id: clientId,
@@ -75,10 +75,10 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
     inputSchema: GetInstagramAccessTokenInputSchema,
     outputSchema: GetInstagramAccessTokenOutputSchema,
 }, async ({ code, clientId, clientSecret }) => {
-    if (!process.env.NEXT_PUBLIC_URL) {
-        throw new Error('NEXT_PUBLIC_URL is not configured in the .env file. The app owner needs to configure this.');
+    if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
+        throw new Error('NEXT_PUBLIC_URL or NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI is not configured in the .env file. The app owner needs to configure this.');
     }
-    const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
+    const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}`;
     
     const url = `https://graph.facebook.com/v20.0/oauth/access_token`;
     const params = new URLSearchParams({
