@@ -9,8 +9,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
-import * as crypto from 'crypto';
-
 
 const PostToFacebookInputSchema = z.object({
   facebookPageId: z.string().describe('The ID of the Facebook Page.'),
@@ -34,18 +32,16 @@ const postToFacebookFlow = ai.defineFlow(
     inputSchema: PostToFacebookInputSchema,
     outputSchema: PostToFacebookOutputSchema,
   },
-  async ({ facebookPageId, mediaUrl, caption, userAccessToken, appSecret }) => {
+  async ({ facebookPageId, mediaUrl, caption, userAccessToken }) => {
     
     // Step 1: Get the Page Access Token using the User Access Token.
-    const appSecretProof = crypto.createHmac('sha256', appSecret).update(userAccessToken).digest('hex');
-    
-    const pagesUrl = `${FACEBOOK_GRAPH_API_URL}/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}&appsecret_proof=${appSecretProof}`;
+    const pagesUrl = `${FACEBOOK_GRAPH_API_URL}/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}`;
     const pagesResponse = await fetch(pagesUrl);
     
     if (!pagesResponse.ok) {
         const errorData: any = await pagesResponse.json();
         console.error('Failed to get list of Facebook Pages:', errorData);
-        throw new Error(`Failed to get Page Access Token: ${errorData.error?.message || 'Could not fetch pages.'}`);
+        throw new Error(`Failed to get Page Access Token: ${errorData.error?.message || 'An active access token must be used to query information about the current user.'}`);
     }
     const pagesData: any = await pagesResponse.json();
 
@@ -70,10 +66,7 @@ const postToFacebookFlow = ai.defineFlow(
     
     const response = await fetch(postUrl, {
         method: 'POST',
-        body: params.toString(),
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        body: params,
     });
 
 

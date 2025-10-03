@@ -6,7 +6,7 @@
  * - getInstagramAuthUrl - Generates a URL for the user to grant access.
  * - getInstagramAccessToken - Exchanges an auth code for a short-lived access token.
  * - exchangeForLongLivedToken - Exchanges a short-lived token for a long-lived one.
- * - getInstagramUserDetails - Fetches user profile details (id, username).
+ * - getInstagramUserDetails - Fetches user profile details (id, username) using a long-lived token.
  */
 
 import { ai } from '@/ai/genkit';
@@ -114,8 +114,8 @@ export async function getInstagramAccessToken(input: GetInstagramAccessTokenInpu
 // #################### Exchange for Long-Lived Token Flow ####################
 const ExchangeForLongLivedTokenInputSchema = z.object({
   shortLivedToken: z.string(),
-  clientId: z.string(),
   clientSecret: z.string(),
+  clientId: z.string(),
 });
 export type ExchangeForLongLivedTokenInput = z.infer<typeof ExchangeForLongLivedTokenInputSchema>;
 
