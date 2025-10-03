@@ -5,9 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getInstagramAccessToken, getInstagramUserDetails } from '@/ai/flows/instagram-auth';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { SocialMediaAccount } from '@/lib/types';
+import { type SocialMediaAccount } from '@/lib/types';
 
 function InstagramCallback() {
   const searchParams = useSearchParams();
@@ -16,34 +16,39 @@ function InstagramCallback() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState('Connecting to Instagram...');
+  const [message, setMessage] = useState('Connecting to Instagram & Facebook...');
   
-  // Use a ref to prevent the effect from running twice in strict mode
   const effectRan = useRef(false);
 
   useEffect(() => {
-    // Check if the effect has already run
-    if (effectRan.current === true) {
-      return;
-    }
-    // Mark the effect as run
+    if (effectRan.current) return;
     effectRan.current = true;
 
     const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
 
     if (errorParam) {
-      setError(`Failed to connect to Instagram: ${errorParam}`);
+      setError(`Connection failed: ${searchParams.get('error_description') || errorParam}`);
       toast({
         variant: 'destructive',
-        title: 'Instagram Connection Failed',
+        title: 'Connection Failed',
         description: 'The connection was denied or an error occurred.',
       });
       setTimeout(() => router.push('/api-keys'), 3000);
       return;
     }
 
-    if (code && user && firestore) {
+    if (!code) {
+        if (!user || !firestore) {
+            setMessage('Waiting for user session...');
+            return;
+        }
+        setError('Invalid request. No authorization code found.');
+        setTimeout(() => router.push('/api-keys'), 3000);
+        return;
+    }
+
+    if (user && firestore) {
       const handleTokenExchange = async () => {
         try {
           setMessage('Looking up your API credentials...');
@@ -54,7 +59,7 @@ function InstagramCallback() {
           const querySnapshot = await getDocs(q);
 
           if (querySnapshot.empty) {
-            throw new Error("Could not find Instagram account credentials. Please save your Client ID and Secret in the API Keys page first.");
+            throw new Error("Could not find Instagram credentials. Please save your App ID and Secret in the API Keys page first.");
           }
 
           const accountData = querySnapshot.docs[0].data() as SocialMediaAccount;
@@ -75,54 +80,46 @@ function InstagramCallback() {
             throw new Error('Failed to retrieve a valid access token.');
           }
 
-          setMessage('Fetching user details from Instagram & Facebook...');
+          setMessage('Fetching your account details...');
           const { username, instagramId, facebookPageId, facebookPageName } = await getInstagramUserDetails({ accessToken });
 
-          
           setMessage('Saving your connection...');
-          const updatedAccountData: Partial<SocialMediaAccount> = {
-            userId: user.uid,
-            platform: 'Instagram',
-            username: username,
-            apiKey: accessToken, // Store the access token in apiKey
+          const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
+          
+          const updatedData: Partial<SocialMediaAccount> = {
+            apiKey: accessToken, // This is the user access token
+            connected: true,
+            username: username, // Instagram username
             instagramId: instagramId,
             facebookPageId: facebookPageId,
             facebookPageName: facebookPageName,
-            connected: true,
             updatedAt: new Date().toISOString(),
           };
 
-          const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
-          await updateDoc(docRef, updatedAccountData);
+          await updateDoc(docRef, updatedData);
 
           toast({
-            title: 'Instagram Account Connected!',
-            description: `Successfully connected as @${username}.`,
+            title: 'Account Connected!',
+            description: `Successfully connected Instagram as @${username} and Facebook Page "${facebookPageName}".`,
           });
 
           router.push('/connected-accounts');
+
         } catch (err: any) {
           console.error('Failed to exchange token or save account:', err);
           setError(err.message || 'An error occurred while finalizing the connection.');
           toast({
             variant: 'destructive',
             title: 'Connection Failed',
-            description: err.message || 'Could not save your Instagram account connection. Please try again.',
+            description: err.message || 'Could not save your account connection. Please try again.',
           });
           setTimeout(() => router.push('/api-keys'), 5000);
         }
       };
 
       handleTokenExchange();
-    } else if (!code && !errorParam) {
-        if (!user || !firestore) {
-             setMessage('Waiting for user session...');
-             return;
-        }
-      setError('Invalid request. No authorization code found.');
-      setTimeout(() => router.push('/api-keys'), 3000);
     }
-  }, [searchParams, router, user, firestore, toast]);
+  }, [searchParams, router, user, firestore, toast, code]);
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center p-4">
@@ -136,7 +133,7 @@ function InstagramCallback() {
         <>
           <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
           <h1 className="text-xl font-semibold">{message}</h1>
-          <p className="text-muted-foreground">Please wait while we finalize the connection. Do not close this tab.</p>
+          <p className="text-muted-foreground">Please wait. Do not close this tab.</p>
         </>
       )}
     </div>
