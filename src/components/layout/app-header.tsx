@@ -6,6 +6,15 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 
 const getPageTitle = (pathname: string): string => {
+  if (pathname.startsWith('/settings')) {
+    const section = pathname.split('/')[2];
+    switch (section) {
+      case 'team':
+        return 'Team Settings';
+      default:
+        return 'Settings';
+    }
+  }
   switch (pathname) {
     case '/dashboard':
       return 'Dashboard';
@@ -14,7 +23,7 @@ const getPageTitle = (pathname: string): string => {
     case '/create-post':
       return 'Create Post';
     case '/posts':
-        return 'Recent Posts';
+      return 'Recent Posts';
     case '/campaign-ideas':
       return 'AI Campaign Ideas';
     case '/connected-accounts':

@@ -10,9 +10,9 @@ import {
   MessageSquarePlus,
   PanelLeft,
   Link2,
-  KeyRound,
   LogOut,
   FileText,
+  Settings,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -34,7 +34,6 @@ const navItems = [
   { href: '/posts', icon: FileText, label: 'Posts' },
   { href: '/campaign-ideas', icon: Lightbulb, label: 'Campaign Ideas' },
   { href: '/connected-accounts', icon: Link2, label: 'Connected Accounts' },
-  { href: '/api-keys', icon: KeyRound, label: 'API Keys' },
   { href: '/pricing', icon: DollarSign, label: 'Pricing' },
 ];
 
@@ -110,6 +109,16 @@ export function AppSidebar() {
             </SidebarMenuItem>
           ))}
           <Separator className="my-2" />
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/settings')}
+              icon={<Settings />}
+              tooltip={{ children: 'Settings' }}
+            >
+              <Link href="/settings">Settings</Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
            <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={handleLogout}
