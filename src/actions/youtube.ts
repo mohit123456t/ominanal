@@ -6,12 +6,15 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { PlatformCredentials } from '@/lib/types';
 import { z } from 'zod';
+import { firebaseConfig } from '@/firebase/config';
 
 // Helper function to initialize Firebase Admin SDK
 function initializeFirebaseAdmin() {
     if (admin.apps.length === 0) {
-        // This uses the default service account credentials in a Google Cloud environment.
-        admin.initializeApp();
+        // Explicitly initialize with the project ID from the config to avoid auto-detection issues.
+        admin.initializeApp({
+            projectId: firebaseConfig.projectId,
+        });
     }
 }
 
