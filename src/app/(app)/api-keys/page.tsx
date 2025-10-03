@@ -195,7 +195,7 @@ function OAuthForm({
                         </Button>
                     </form>
                     <Separator />
-                    <Button onClick={handleConnect} disabled={!account?.id}>
+                     <Button onClick={handleConnect} disabled={!account?.id}>
                         <Link className="mr-2 h-4 w-4" />
                         Connect {platformName} Account
                     </Button>
@@ -316,14 +316,6 @@ export default function ApiKeysPage() {
           Manage your credentials and connections to post to your social media accounts.
         </p>
       </div>
-
-       <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Action Required by App Owner</AlertTitle>
-          <AlertDescription>
-            For OAuth connections (YouTube, Instagram) to work, the app owner must set the `NEXT_PUBLIC_URL` variable in the `.env` file to this app's public URL.
-          </AlertDescription>
-        </Alert>
 
       <Card>
         <CardHeader>
