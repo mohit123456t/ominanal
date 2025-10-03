@@ -181,6 +181,7 @@ export default function CreatePostPage() {
 
     try {
       let somethingPublished = false;
+      const effectiveUrlForApi = mediaFile ? await fileToDataUri(mediaFile) : mediaUrl;
 
       // YouTube Upload Logic
       if (selectedPlatforms.includes('youtube')) {
@@ -199,8 +200,6 @@ export default function CreatePostPage() {
             const description = descriptionParts.join('\n');
             
             await uploadVideoToYoutube({
-                userId: user.uid,
-                accountId: youtubeAccount.id,
                 videoDataUri,
                 title: title || 'My OmniPost AI Video',
                 description: description || '',
@@ -289,11 +288,10 @@ export default function CreatePostPage() {
 
       // Save a record to Firestore for our own analytics, even if posted via API
       for (const platform of selectedPlatforms) {
-          const postData: Omit<Post, 'id'> = {
+          const postData: Omit<Post, 'id' | 'mediaUrl'> & { mediaUrl?: string } = {
             userId: user.uid,
             content: text,
             platform: platform,
-            mediaUrl: mediaUrl || undefined, // Only use URL for these
             status: date ? 'Scheduled' : 'Published',
             scheduledAt: date?.toISOString(),
             createdAt: new Date().toISOString(),
@@ -303,6 +301,11 @@ export default function CreatePostPage() {
             shares: 0,
             views: 0,
           };
+          
+          if (mediaUrl) {
+            postData.mediaUrl = mediaUrl;
+          }
+
           const postsCollection = collection(firestore, `users/${user.uid}/posts`);
           addDocumentNonBlocking(postsCollection, postData);
       }
@@ -627,5 +630,3 @@ export default function CreatePostPage() {
     </div>
   );
 }
-
-    
