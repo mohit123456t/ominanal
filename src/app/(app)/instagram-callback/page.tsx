@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
-import { getInstagramAccessToken, getInstagramUserDetails } from '@/ai/flows/instagram-auth';
+import { getInstagramAccessToken, getInstagramUserDetails, exchangeForLongLivedToken } from '@/ai/flows/instagram-auth';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, doc, addDoc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -61,21 +61,26 @@ function InstagramCallback() {
         }
         
         setMessage('Exchanging authorization code for access token...');
-        const { accessToken } = await getInstagramAccessToken({ 
+        const { accessToken: shortLivedToken } = await getInstagramAccessToken({ 
             code, 
             clientId: credentials.clientId, 
             clientSecret: credentials.clientSecret 
         });
+
+        setMessage('Exchanging for a long-lived token...');
+        const { longLivedToken } = await exchangeForLongLivedToken({
+            shortLivedToken,
+            clientId: credentials.clientId,
+            clientSecret: credentials.clientSecret
+        });
         
-        if (!accessToken) {
-          throw new Error('Failed to retrieve a valid access token.');
+        if (!longLivedToken) {
+          throw new Error('Failed to retrieve a valid long-lived access token.');
         }
 
         setMessage('Fetching your account details...');
         const { username, instagramId, facebookPageId, facebookPageName, pageAccessToken } = await getInstagramUserDetails({ 
-            accessToken: accessToken, 
-            clientId: credentials.clientId, 
-            clientSecret: credentials.clientSecret 
+            accessToken: longLivedToken
         });
 
         setMessage('Saving your connection...');
@@ -83,15 +88,14 @@ function InstagramCallback() {
         
         const newAccountData: Omit<SocialMediaAccount, 'id'> = {
           userId: user.uid,
-          credentialsId: 'Instagram',
           platform: 'Instagram',
-          accessToken: accessToken,
+          accessToken: longLivedToken, // Save the long-lived token
           pageAccessToken: pageAccessToken,
-          connected: true,
           username: username,
           instagramId: instagramId,
           facebookPageId: facebookPageId,
           facebookPageName: facebookPageName,
+          connected: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -147,3 +151,5 @@ export default function InstagramCallbackPage() {
         </Suspense>
     )
 }
+
+    

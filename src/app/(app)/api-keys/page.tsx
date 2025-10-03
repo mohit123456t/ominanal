@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { KeyRound, LoaderCircle, Youtube, Instagram, Save, Twitter, Info, Facebook, Unlink, Link2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useMemoFirebase, useCollection, useDoc } from '@/firebase';
+import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
 import { Label } from '@/components/ui/label';
@@ -154,12 +154,12 @@ export default function ApiKeysPage() {
 
   const { toast } = useToast();
 
-  const credsRef = useMemoFirebase(() => {
+  const credsCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return doc(firestore, 'platformCredentials', user.uid);
+    return collection(firestore, 'users', user.uid, 'platformCredentials');
   }, [user, firestore]);
   
-  const { data: credentials, isLoading: isLoadingCreds } = useDoc<{[key: string]: PlatformCredentials}>(credsRef);
+  const { data: credentialsList, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credsCollectionRef);
   
   const accountsCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -167,6 +167,14 @@ export default function ApiKeysPage() {
   }, [user, firestore]);
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
+
+  const credentials = useMemo(() => {
+    if (!credentialsList) return {};
+    return credentialsList.reduce((acc, cred) => {
+        acc[cred.platform] = cred;
+        return acc;
+    }, {} as {[key: string]: PlatformCredentials});
+  }, [credentialsList]);
 
 
   const youtubeCreds = useMemo(() => credentials?.['YouTube'] || null, [credentials]);
@@ -186,9 +194,10 @@ export default function ApiKeysPage() {
   }, [isLoadingCreds, instagramCreds, youtubeCreds, twitterCreds]);
 
   const handleSaveCredentials = async (platform: PlatformCredentials['platform'], data: Partial<PlatformCredentials>) => {
-    if (!user || !credsRef) return;
+    if (!user || !credsCollectionRef) return;
     
     try {
+      const docRef = doc(credsCollectionRef, platform);
       const platformData = {
         id: platform,
         platform,
@@ -196,7 +205,7 @@ export default function ApiKeysPage() {
         ...data,
       };
 
-      await setDoc(credsRef, { [platform]: platformData }, { merge: true });
+      await setDoc(docRef, platformData, { merge: true });
       
       toast({ title: `${platform} Credentials Saved!` });
 
@@ -346,3 +355,5 @@ export default function ApiKeysPage() {
     </div>
   );
 }
+
+    

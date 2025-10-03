@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { SocialMediaAccount, PlatformCredentials } from '@/lib/types';
 import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
@@ -50,13 +50,21 @@ export default function ConnectedAccountsPage() {
     return collection(firestore, `users/${user.uid}/socialMediaAccounts`);
   }, [user, firestore]);
 
-  const credsRef = useMemoFirebase(() => {
+  const credsCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return doc(firestore, 'platformCredentials', user.uid);
+    return collection(firestore, 'users', user.uid, 'platformCredentials');
   }, [user, firestore]);
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
-  const { data: credentials, isLoading: isLoadingCreds } = useDoc<{[key: string]: PlatformCredentials}>(credsRef);
+  const { data: credentialsList, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credsCollectionRef);
+
+  const credentials = useMemo(() => {
+    if (!credentialsList) return {};
+    return credentialsList.reduce((acc, cred) => {
+        acc[cred.platform] = cred;
+        return acc;
+    }, {} as {[key: string]: PlatformCredentials});
+  }, [credentialsList]);
 
   const handleDisconnect = async (accountId: string) => {
     if (!accountsCollectionRef) return;
@@ -175,3 +183,5 @@ export default function ConnectedAccountsPage() {
     </div>
   );
 }
+
+    

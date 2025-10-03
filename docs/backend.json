@@ -322,6 +322,20 @@
         }
       },
       {
+        "path": "/users/{userId}/platformCredentials/{platform}",
+        "definition": {
+          "entityName": "PlatformCredentials",
+          "schema": {
+            "$ref": "#/backend/entities/PlatformCredentials"
+          },
+          "description": "Stores app-level API credentials for a user and a specific platform.",
+          "params": [
+            { "name": "userId", "description": "The unique identifier of the user."},
+            { "name": "platform", "description": "The name of the platform (e.g., YouTube, Instagram)."}
+          ]
+        }
+      },
+      {
         "path": "/users/{userId}/socialMediaAccounts/{socialMediaAccountId}",
         "definition": {
           "entityName": "SocialMediaAccount",
@@ -405,3 +419,5 @@
     "reasoning": "The Firestore structure is designed to support the OmniPost AI platform's core features, emphasizing authorization independence, scalability, and security. It leverages path-based ownership for user-specific data and a membership map model for collaborative data. Denormalization is employed to avoid `get()` calls in security rules and to ensure atomic operations.\n\n1.  **User Data:** User profiles are stored under `/users/{userId}`, providing straightforward ownership-based access control.\n2. **Team Data:** Teams are stored in a top-level `/teams` collection. Each team has a `members` sub-collection that maps user IDs to roles, establishing clear ownership and role-based access for collaborative features, which is essential for an agency model.\n3.  **Social Media Accounts:** Social media accounts owned by users are stored in `/users/{userId}/socialMediaAccounts/{accountId}`, ensuring that only the user can manage their connected accounts. For agency use, these could be moved under a team structure in the future.\n4.  **Posts:** Posts created by users are stored in `/users/{userId}/posts/{postId}`. This structure maintains clear ownership. For agency use, posts would be associated with a team, allowing team members to collaborate.\n5.  **Platform Posts:** Platform-specific post instances are located in `/users/{userId}/posts/{postId}/platformPosts/{platformPostId}`, inheriting authorization from the parent post.\n6.  **Subscriptions:** Subscription plans are stored in `/subscriptions/{subscriptionId}`. User's `subscriptionId` is stored on `/users/{userId}`. For an agency model, subscriptions would likely be tied to a team rather than an individual user."
   }
 }
+
+    

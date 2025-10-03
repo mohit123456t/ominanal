@@ -43,8 +43,6 @@ export type PlatformCredentials = {
     clientSecret?: string;
     apiKey?: string;
     apiSecret?: string;
-    accessToken?: string; // For Twitter App-only
-    accessTokenSecret?: string; // For Twitter App-only
     createdAt: string;
     updatedAt: string;
 }
@@ -54,15 +52,19 @@ export type SocialMediaAccount = {
     id: string;
     userId: string;
     platform: 'Instagram' | 'Facebook' | 'YouTube' | 'Twitter';
-    credentialsId: string; // Link to the PlatformCredentials document
     username: string;
-    accessToken: string; // The user/page-specific access token for making API calls
-    refreshToken?: string;
-    pageAccessToken?: string;
+    accessToken: string; // The user-specific access token (long-lived for Insta/FB)
+    refreshToken?: string; // For YouTube
+    pageAccessToken?: string; // For Instagram/Facebook Page
     instagramId?: string;
     facebookPageId?: string;
     facebookPageName?: string;
+    apiKey?: string; // For Twitter
+    apiSecret?: string; // For Twitter
+    accessTokenSecret?: string; // For Twitter
     connected: boolean;
     createdAt: string;
     updatedAt: string;
 };
+
+    
