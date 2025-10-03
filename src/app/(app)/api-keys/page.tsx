@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,28 +23,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { SocialMediaAccount } from '@/lib/types';
 import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
 import { getInstagramAuthUrl } from '@/ai/flows/instagram-auth';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-
-const platformIcons = {
-  Instagram: <Instagram className="h-8 w-8 text-pink-600" />,
-  Facebook: <Facebook className="h-8 w-8 text-blue-700" />,
-  YouTube: <Youtube className="h-8 w-8 text-red-600" />,
-};
 
 
 export default function ApiKeysPage() {
@@ -183,19 +168,9 @@ export default function ApiKeysPage() {
                                     To post automatically, Instagram requires a <b>Business</b> or <b>Creator</b> account linked to a Facebook Page. This single connection enables posting to both platforms.
                                 </AlertDescription>
                             </Alert>
-                            <div className="space-y-2">
-                                <Label htmlFor="instagram-redirect-uri">1. Add Redirect URI to Facebook Developer App</Label>
-                                 <p className="text-xs text-muted-foreground">Copy this URI and paste it into your Facebook App's "Valid OAuth Redirect URIs" list under Facebook Login settings.</p>
-                                <div className="flex items-center gap-2">
-                                    <Input id="instagram-redirect-uri" type="text" readOnly value={instagramRedirectUri} className="bg-background" />
-                                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(instagramRedirectUri)}>
-                                        <Copy className="h-4 w-4"/>
-                                        <span className="sr-only">Copy URI</span>
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className='space-y-2'>
-                                <Label>2. Connect Your Account</Label>
+                             <div className="space-y-2">
+                                <Label>Connect to Instagram & Facebook</Label>
+                                 <p className="text-xs text-muted-foreground">You will be redirected to Facebook to authorize the application. Make sure your developer app has the correct Redirect URIs configured.</p>
                                 <Button onClick={handleConnectInstagram} disabled={isConnectingInstagram} className='w-full sm:w-auto'>
                                 {isConnectingInstagram ? (
                                     <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>
@@ -245,18 +220,9 @@ export default function ApiKeysPage() {
                     ) : (
                         <div className="p-4 border rounded-lg space-y-4 bg-muted/20">
                             <div className="space-y-2">
-                                <Label htmlFor="youtube-redirect-uri">1. Add Redirect URI to Google Cloud Console</Label>
-                                 <p className="text-xs text-muted-foreground">Copy this URI and paste it into your Google Cloud Console's OAuth 2.0 Client ID "Authorized redirect URIs" list.</p>
-                                <div className="flex items-center gap-2">
-                                    <Input id="youtube-redirect-uri" type="text" readOnly value={youtubeRedirectUri} className="bg-background" />
-                                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(youtubeRedirectUri)}>
-                                        <Copy className="h-4 w-4"/>
-                                        <span className="sr-only">Copy URI</span>
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className='space-y-2'>
-                                <Label>2. Connect Your Account</Label>
+                                <Label>Connect to YouTube</Label>
+                                <p className="text-xs text-muted-foreground">You will be redirected to Google to authorize the application. Make sure your Google Cloud project has the correct Redirect URIs configured.</p>
+
                                 <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube} className='w-full sm:w-auto'>
                                 {isConnectingYouTube ? (
                                     <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</>

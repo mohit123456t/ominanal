@@ -13,10 +13,6 @@ import { z } from 'zod';
 import fetch from 'node-fetch';
 import { URLSearchParams } from 'url';
 
-const INSTAGRAM_APP_ID = process.env.FACEBOOK_CLIENT_ID;
-const INSTAGRAM_APP_SECRET = process.env.FACEBOOK_CLIENT_SECRET;
-const REDIRECT_URI = process.env.NEXT_PUBLIC_URL ? `${process.env.NEXT_PUBLIC_URL}/instagram-callback` : 'http://localhost:9002/instagram-callback';
-
 
 // #################### Get Auth URL Flow ####################
 
@@ -31,15 +27,17 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
     outputSchema: GetInstagramAuthUrlOutputSchema,
   },
   async () => {
-    if (!INSTAGRAM_APP_ID) {
-        throw new Error('FACEBOOK_CLIENT_ID is not set in .env file.');
+    if (!process.env.FACEBOOK_CLIENT_ID || !process.env.NEXT_PUBLIC_URL) {
+        throw new Error('FACEBOOK_CLIENT_ID or NEXT_PUBLIC_URL is not set in .env file.');
     }
+    const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
+
     const params = new URLSearchParams({
-        client_id: INSTAGRAM_APP_ID,
-        redirect_uri: REDIRECT_URI,
+        client_id: process.env.FACEBOOK_CLIENT_ID,
+        redirect_uri: redirectUri,
         scope: 'instagram_basic,pages_show_list,instagram_content_publish,pages_manage_posts,pages_read_engagement',
         response_type: 'code',
-        state: 'XOgiVQIYbuN4CHeFLE9BYhj7Snw1' // Using a static state for now. Should be dynamic in a real app.
+        state: 'XOgiVQIYbuN4CHeFLE9BYhj7Snw1' 
     });
     const url = `https://www.facebook.com/v20.0/dialog/oauth?${params.toString()}`;
     return { url };
@@ -69,15 +67,16 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
     inputSchema: GetInstagramAccessTokenInputSchema,
     outputSchema: GetInstagramAccessTokenOutputSchema,
 }, async ({ code }) => {
-    if (!INSTAGRAM_APP_ID || !INSTAGRAM_APP_SECRET) {
-        throw new Error('Instagram App ID or Secret is not configured in .env file.');
+    if (!process.env.FACEBOOK_CLIENT_ID || !process.env.FACEBOOK_CLIENT_SECRET || !process.env.NEXT_PUBLIC_URL) {
+        throw new Error('Facebook App ID, Secret, or NEXT_PUBLIC_URL is not configured in .env file.');
     }
+    const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
     
     const url = `https://graph.facebook.com/v20.0/oauth/access_token`;
     const params = new URLSearchParams({
-        client_id: INSTAGRAM_APP_ID,
-        client_secret: INSTAGRAM_APP_SECRET,
-        redirect_uri: REDIRECT_URI,
+        client_id: process.env.FACEBOOK_CLIENT_ID,
+        client_secret: process.env.FACEBOOK_CLIENT_SECRET,
+        redirect_uri: redirectUri,
         code: code,
         grant_type: 'authorization_code',
     });
@@ -91,9 +90,6 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
     }
 
     const data: any = await response.json();
-    
-    // For instagram graph api, we need to exchange the short-lived token for a long-lived one
-    // but for now, we will use the short-lived one. A real app would do this.
     
     return { accessToken: data.access_token };
 });
@@ -123,10 +119,7 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     inputSchema: GetInstagramUserDetailsInputSchema,
     outputSchema: GetInstagramUserDetailsOutputSchema,
 }, async ({ accessToken }) => {
-    // This part is complex because you first need to get the Facebook Page linked to the Instagram account.
-    // Then use the page's access token and ID to get the Instagram Business Account ID.
-
-    // 1. Get user's pages, explicitly asking for the instagram_business_account field.
+    
     const pagesUrl = `https://graph.facebook.com/me/accounts?fields=instagram_business_account,name&access_token=${accessToken}`;
     const pagesResponse = await fetch(pagesUrl);
     if (!pagesResponse.ok) throw new Error('Failed to fetch Facebook pages.');
@@ -136,7 +129,6 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
         throw new Error('No Facebook Page linked to this account. Please link a Page with an Instagram Business account.');
     }
     
-    // 2. Find a page with an Instagram account linked
     const pageWithIg = pagesData.data.find((page: any) => page.instagram_business_account);
 
     if (!pageWithIg) {
@@ -147,7 +139,6 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     const facebookPageId = pageWithIg.id;
     const facebookPageName = pageWithIg.name;
 
-    // 3. Get Instagram account details (username)
     const igUrl = `https://graph.facebook.com/${instagramBusinessAccountId}?fields=username&access_token=${accessToken}`;
     const igResponse = await fetch(igUrl);
 

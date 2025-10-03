@@ -16,67 +16,56 @@ const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
 ];
 
-// IMPORTANT: These are placeholders now. In a real multi-tenant app, 
-// these would be fetched per-user or per-team from a secure location.
-const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID;
-const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
-const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI;
-
-
-const GetYoutubeAuthUrlOutputSchema = z.object({
-  url: z.string().url().describe('The URL to redirect the user to for authentication.'),
-});
-export type GetYoutubeAuthUrlOutput = z.infer<typeof GetYoutubeAuthUrlOutputSchema>;
-
 const getYoutubeAuthUrlFlow = ai.defineFlow(
   {
     name: 'getYoutubeAuthUrlFlow',
-    outputSchema: GetYoutubeAuthUrlOutputSchema,
+    outputSchema: z.object({
+      url: z.string().url().describe('The URL to redirect the user to for authentication.'),
+    }),
   },
   async () => {
+    if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube API credentials are not configured in the .env file.');
+    }
+
     const oauth2Client = new google.auth.OAuth2(
-      YOUTUBE_CLIENT_ID,
-      YOUTUBE_CLIENT_SECRET,
-      redirectUri
+      process.env.YOUTUBE_CLIENT_ID,
+      process.env.YOUTUBE_CLIENT_SECRET,
+      process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
     );
 
     const url = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: YOUTUBE_SCOPES,
-      // A refresh token is only returned on the first authorization.
       prompt: 'consent',
     });
     return { url };
   }
 );
 
-export async function getYoutubeAuthUrl(): Promise<GetYoutubeAuthUrlOutput> {
+export async function getYoutubeAuthUrl(): Promise<z.infer<typeof getYoutubeAuthUrlFlow.outputSchema>> {
   return getYoutubeAuthUrlFlow();
 }
 
 
-const GetYoutubeTokensInputSchema = z.object({
-  code: z.string().describe('The authorization code from the redirect.'),
-});
-export type GetYoutubeTokensInput = z.infer<typeof GetYoutubeTokensInputSchema>;
-
-const GetYoutubeTokensOutputSchema = z.object({
-  accessToken: z.string(),
-  refreshToken: z.string().optional(),
-  expiryDate: z.number(),
-});
-export type GetYoutubeTokensOutput = z.infer<typeof GetYoutubeTokensOutputSchema>;
-
-
 const getYoutubeTokensFlow = ai.defineFlow({
     name: 'getYoutubeTokensFlow',
-    inputSchema: GetYoutubeTokensInputSchema,
-    outputSchema: GetYoutubeTokensOutputSchema,
+    inputSchema: z.object({
+      code: z.string().describe('The authorization code from the redirect.'),
+    }),
+    outputSchema: z.object({
+      accessToken: z.string(),
+      refreshToken: z.string().optional(),
+      expiryDate: z.number(),
+    }),
 }, async ({ code }) => {
+    if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube API credentials are not configured in the .env file.');
+    }
     const oauth2Client = new google.auth.OAuth2(
-      YOUTUBE_CLIENT_ID,
-      YOUTUBE_CLIENT_SECRET,
-      redirectUri
+      process.env.YOUTUBE_CLIENT_ID,
+      process.env.YOUTUBE_CLIENT_SECRET,
+      process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
     );
 
     const { tokens } = await oauth2Client.getToken(code);
@@ -90,6 +79,6 @@ const getYoutubeTokensFlow = ai.defineFlow({
     };
 });
 
-export async function getYoutubeTokens(input: GetYoutubeTokensInput): Promise<GetYoutubeTokensOutput> {
+export async function getYoutubeTokens(input: z.infer<typeof getYoutubeTokensFlow.inputSchema>): Promise<z.infer<typeof getYoutubeTokensFlow.outputSchema>> {
     return getYoutubeTokensFlow(input);
 }
