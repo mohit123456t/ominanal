@@ -6,7 +6,6 @@ import { KeyRound, Users } from 'lucide-react';
 
 const settingsNav = [
   { name: 'Team', href: '/settings/team', icon: Users },
-  { name: 'API Keys', href: '/api-keys', icon: KeyRound },
 ];
 
 export default function SettingsLayout({
