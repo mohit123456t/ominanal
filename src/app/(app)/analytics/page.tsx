@@ -1,4 +1,5 @@
 'use client';
+import { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -15,13 +16,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  kpis,
   followerGrowthData,
-  engagementRateData,
   reachAndImpressionsData,
 } from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, LoaderCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, LoaderCircle, Users, ThumbsUp, MessageCircle, BarChart3 } from 'lucide-react';
 import {
   FollowerGrowthChart,
   EngagementRateChart,
@@ -30,14 +29,8 @@ import {
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { type Post } from '@/lib/types';
+import { type Post, type Kpi, type EngagementData } from '@/lib/types';
 
-
-function SocialIcon({ platform }: { platform: 'x' | 'facebook' | 'instagram' }) {
-  const iconUrl = `/icons/${platform}.svg`;
-  // Simple display for demo. In a real app, you'd use SVGs or an icon library.
-  return <span className="text-2xl">{platform.charAt(0).toUpperCase()}</span>;
-}
 
 export default function AnalyticsPage() {
   const { user } = useUser();
@@ -54,31 +47,57 @@ export default function AnalyticsPage() {
   const bestPosts = sortedPosts.slice(0, 3);
   const worstPosts = sortedPosts.slice(-3).reverse();
 
+  const realKpis: Omit<Kpi, 'change' | 'changeType'>[] = useMemo(() => {
+    if (!posts) {
+      return [
+        { title: 'Followers', value: '0', icon: Users },
+        { title: 'Engagement Rate', value: '0%', icon: ThumbsUp },
+        { title: 'Impressions', value: '0', icon: BarChart3 },
+        { title: 'Comments', value: '0', icon: MessageCircle },
+      ];
+    }
+    const totalLikes = posts.reduce((sum, post) => sum + post.likes, 0);
+    const totalComments = posts.reduce((sum, post) => sum + post.comments, 0);
+    const totalImpressions = posts.reduce((sum, post) => sum + (post.views || 0), 0); // Assuming views are impressions for now
+    const totalEngagement = totalLikes + totalComments;
+    const engagementRate = totalImpressions > 0 ? ((totalEngagement / totalImpressions) * 100).toFixed(1) + '%' : '0%';
+
+
+    return [
+       { title: 'Followers', value: '45,231', icon: Users }, // Still mock data as we don't track this
+       { title: 'Engagement Rate', value: engagementRate, icon: ThumbsUp },
+       { title: 'Impressions', value: totalImpressions.toLocaleString(), icon: BarChart3 },
+       { title: 'Comments', value: totalComments.toLocaleString(), icon: MessageCircle },
+    ];
+  }, [posts]);
+
+  const engagementByPlatform: EngagementData[] = useMemo(() => {
+    if (!posts) return [];
+    const dataByPlatform = posts.reduce((acc, post) => {
+        if (!acc[post.platform]) {
+            acc[post.platform] = { platform: post.platform, likes: 0 };
+        }
+        acc[post.platform].likes += post.likes;
+        return acc;
+    }, {} as Record<string, EngagementData>);
+
+    return Object.values(dataByPlatform);
+  }, [posts]);
+
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi) => (
+        {realKpis.map((kpi) => (
           <Card key={kpi.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
               <kpi.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpi.value}</div>
-              <p
-                className={cn(
-                  'text-xs text-muted-foreground flex items-center',
-                  kpi.changeType === 'increase'
-                    ? 'text-green-600'
-                    : 'text-red-600'
-                )}
-              >
-                {kpi.changeType === 'increase' ? (
-                  <ArrowUp className="h-4 w-4" />
-                ) : (
-                  <ArrowDown className="h-4 w-4" />
-                )}
-                {kpi.change} from last month
+              <div className="text-2xl font-bold">{isLoadingPosts ? <LoaderCircle className="h-6 w-6 animate-spin"/> : kpi.value}</div>
+              <p className="text-xs text-muted-foreground">
+                {kpi.title === 'Followers' ? '+20.1% from last month' : 'Total from all posts'}
               </p>
             </CardContent>
           </Card>
@@ -90,7 +109,7 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle>Reach & Impressions</CardTitle>
             <CardDescription>
-              A look at your content's visibility over the past months.
+              A look at your content's visibility over the past months. (Demo data)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -100,6 +119,7 @@ export default function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Follower Growth</CardTitle>
+            <CardDescription>(Demo data)</CardDescription>
           </CardHeader>
           <CardContent>
             <FollowerGrowthChart data={followerGrowthData} />
@@ -107,10 +127,15 @@ export default function AnalyticsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Engagement Rate</CardTitle>
+            <CardTitle>Engagement by Platform (Likes)</CardTitle>
+             <CardDescription>Real data from your posts.</CardDescription>
           </CardHeader>
           <CardContent>
-            <EngagementRateChart data={engagementRateData} />
+             {isLoadingPosts ? (
+                <div className="flex justify-center p-8"><LoaderCircle className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : (
+              <EngagementRateChart data={engagementByPlatform} />
+            )}
           </CardContent>
         </Card>
       </div>

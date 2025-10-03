@@ -2,36 +2,8 @@ import { BarChart3, Users, ThumbsUp, MessageCircle } from 'lucide-react';
 import type { Kpi, Post } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
-export const kpis: Kpi[] = [
-  {
-    title: 'Followers',
-    value: '45,231',
-    change: '+20.1%',
-    changeType: 'increase',
-    icon: Users,
-  },
-  {
-    title: 'Engagement Rate',
-    value: '2.3%',
-    change: '+5.2%',
-    changeType: 'increase',
-    icon: ThumbsUp,
-  },
-  {
-    title: 'Impressions',
-    value: '1.2M',
-    change: '+12.5%',
-    changeType: 'increase',
-    icon: BarChart3,
-  },
-  {
-    title: 'Comments',
-    value: '1,200',
-    change: '-2.1%',
-    changeType: 'decrease',
-    icon: MessageCircle,
-  },
-];
+// This file now only contains mock data for charts that don't have a real-time equivalent yet.
+// KPIs are now calculated directly in the components.
 
 export const followerGrowthData = [
   { date: 'Jan 22', followers: 2890 },
