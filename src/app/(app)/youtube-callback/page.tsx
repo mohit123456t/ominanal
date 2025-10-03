@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
-import { useFirestore, useUser, useCollection } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { type SocialMediaAccount, type PlatformCredentials } from '@/lib/types';
@@ -159,5 +159,3 @@ export default function YouTubeCallbackPage() {
         </Suspense>
     )
 }
-
-    
