@@ -187,7 +187,7 @@ export default function CreatePostPage() {
                 videoDataUri,
                 title: title || 'My OmniPost AI Video',
                 description: description || '',
-                accessToken: youtubeAccount.accessToken || '',
+                accessToken: youtubeAccount.apiKey || '',
                 refreshToken: youtubeAccount.refreshToken,
             });
             toast({ title: 'Video sent to YouTube!', description: 'Your video is being processed by YouTube.' });
@@ -212,7 +212,7 @@ export default function CreatePostPage() {
                   instagramUserId: instagramAccount.instagramId,
                   mediaUrl: mediaUrl,
                   caption: text,
-                  accessToken: instagramAccount.accessToken || '',
+                  accessToken: instagramAccount.pageAccessToken || '', // Use PAGE access token
               });
 
               toast({
@@ -226,8 +226,8 @@ export default function CreatePostPage() {
       // Facebook Post Logic
       if (selectedPlatforms.includes('facebook')) {
         const facebookAccount = accounts?.find(acc => acc.platform === 'Instagram'); // Instagram connection holds FB data
-        if (!facebookAccount || !facebookAccount.facebookPageId || !facebookAccount.clientSecret) {
-            toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID and App Secret is required.' });
+        if (!facebookAccount || !facebookAccount.facebookPageId || !facebookAccount.pageAccessToken) {
+            toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID and Page Access Token is required.' });
         } else if (!facebookAccount.connected) {
             toast({ variant: 'destructive', title: 'Facebook Error', description: "Your Facebook account is disconnected. Please reconnect it in the 'API Keys' page." });
         } else if (!mediaUrl) {
@@ -237,8 +237,7 @@ export default function CreatePostPage() {
                 facebookPageId: facebookAccount.facebookPageId,
                 mediaUrl: mediaUrl,
                 caption: text,
-                userAccessToken: facebookAccount.accessToken || '',
-                appSecret: facebookAccount.clientSecret,
+                pageAccessToken: facebookAccount.pageAccessToken,
             });
             toast({ title: 'Posted to Facebook!', description: 'Your post should be live on your Facebook Page.' });
             somethingPublished = true;

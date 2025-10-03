@@ -43,6 +43,7 @@ export type SocialMediaAccount = {
     apiSecret?: string; // For platforms like Twitter
     accessToken?: string; // For OAuth platforms (user's access token)
     accessTokenSecret?: string; // For platforms like Twitter
+    pageAccessToken?: string; // For Facebook/Instagram Page API calls
     refreshToken?: string; // For OAuth2 platforms like YouTube/Google
     instagramId?: string; // Specific ID for Instagram Graph API
     facebookPageId?: string; // Specific ID for Facebook Graph API

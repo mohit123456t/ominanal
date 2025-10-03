@@ -162,7 +162,7 @@ export async function exchangeForLongLivedToken(input: ExchangeForLongLivedToken
 // #################### Get User Details Flow ####################
 
 const GetInstagramUserDetailsInputSchema = z.object({
-    accessToken: z.string(),
+    accessToken: z.string(), // This should be the long-lived user token
 });
 export type GetInstagramUserDetailsInput = z.infer<typeof GetInstagramUserDetailsInputSchema>;
 
@@ -171,6 +171,7 @@ const GetInstagramUserDetailsOutputSchema = z.object({
     instagramId: z.string(),
     facebookPageId: z.string(),
     facebookPageName: z.string(),
+    pageAccessToken: z.string(),
 });
 export type GetInstagramUserDetailsOutput = z.infer<typeof GetInstagramUserDetailsOutputSchema>;
 
@@ -181,11 +182,11 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
 }, async ({ accessToken }) => {
     
     // Step 1: Get the user's Facebook Pages that they have granted permission for.
-    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=instagram_business_account,name&access_token=${accessToken}`;
+    const pagesUrl = `https://graph.facebook.com/me/accounts?fields=instagram_business_account,name,access_token&access_token=${accessToken}`;
     const pagesResponse = await fetch(pagesUrl);
     if (!pagesResponse.ok) {
         const errorData : any = await pagesResponse.json();
-        throw new Error(`Failed to fetch Facebook pages: ${errorData.error?.message}`);
+        throw new Error(`Failed to fetch Facebook pages: ${errorData.error?.message || 'An active access token must be used.'}`);
     }
     const pagesData: any = await pagesResponse.json();
     
@@ -203,6 +204,11 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     const instagramBusinessAccountId = pageWithIg.instagram_business_account.id;
     const facebookPageId = pageWithIg.id;
     const facebookPageName = pageWithIg.name;
+    const pageAccessToken = pageWithIg.access_token; // This is the Page Access Token we need
+
+    if (!pageAccessToken) {
+        throw new Error('Could not retrieve Page Access Token for the linked page.');
+    }
 
     // Step 3: Use the Instagram Business Account ID to get the username.
     const igUrl = `https://graph.facebook.com/${instagramBusinessAccountId}?fields=username&access_token=${accessToken}`;
@@ -220,7 +226,8 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
         username: data.username, 
         instagramId: instagramBusinessAccountId, 
         facebookPageId: facebookPageId, 
-        facebookPageName: facebookPageName 
+        facebookPageName: facebookPageName,
+        pageAccessToken: pageAccessToken, // Return the page access token
     };
 });
 

@@ -83,13 +83,14 @@ function InstagramCallback() {
         });
 
         setMessage('Fetching your account details...');
-        const { username, instagramId, facebookPageId, facebookPageName } = await getInstagramUserDetails({ accessToken: longLivedToken });
+        const { username, instagramId, facebookPageId, facebookPageName, pageAccessToken } = await getInstagramUserDetails({ accessToken: longLivedToken });
 
         setMessage('Saving your connection...');
         const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
         
         const updatedData: Partial<SocialMediaAccount> = {
           accessToken: longLivedToken, // This is the long-lived user access token
+          pageAccessToken: pageAccessToken, // This is the page access token for posting
           connected: true,
           username: username, // Instagram username
           instagramId: instagramId,
