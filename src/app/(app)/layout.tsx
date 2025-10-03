@@ -8,7 +8,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
 
-const unauthenticatedRoutes = ['/youtube-callback'];
+const unauthenticatedRoutes = ['/instagram-callback'];
 
 export default function AppLayout({
   children,
@@ -25,12 +25,12 @@ export default function AppLayout({
     }
   }, [user, isUserLoading, router, pathname]);
   
-  if (unauthenticatedRoutes.includes(pathname)) {
+  if (unauthenticatedRoutes.includes(pathname) && pathname !== '/youtube-callback') {
     return <>{children}</>;
   }
 
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || (!user && !unauthenticatedRoutes.includes(pathname))) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <LoaderCircle className="h-10 w-10 animate-spin text-primary" />

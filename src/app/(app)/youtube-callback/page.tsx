@@ -21,7 +21,13 @@ function YouTubeCallback() {
 
 
   useEffect(() => {
-    if (effectRan.current) return;
+    // We want this effect to run only once when the component mounts and `user` is available.
+    if (effectRan.current || !user || !firestore) {
+      if (!user) {
+        setMessage("Waiting for user session...");
+      }
+      return;
+    }
     effectRan.current = true;
 
     const code = searchParams.get('code');
@@ -38,87 +44,84 @@ function YouTubeCallback() {
       return;
     }
 
-    if (code && user && firestore) {
-      const handleTokenExchange = async () => {
-        try {
-          setMessage('Looking up your API credentials...');
-          const credsRef = doc(firestore, 'users', user.uid, 'platformCredentials', 'YouTube');
-          const credsSnap = await getDoc(credsRef);
-          
-          if (!credsSnap.exists()) {
-            throw new Error("Could not find YouTube credentials. Please save your Client ID and Secret in the API Credentials page first.");
-          }
-          const credentials = credsSnap.data() as PlatformCredentials;
-          
-          if (!credentials.clientId || !credentials.clientSecret) {
-            throw new Error("Client ID or Client Secret is missing from your saved credentials.");
-          }
-          
-          setMessage('Exchanging authorization code for tokens...');
-          const { accessToken, refreshToken } = await getYoutubeTokensAction({ 
-              code, 
-              clientId: credentials.clientId, 
-              clientSecret: credentials.clientSecret 
-          });
-
-           setMessage('Fetching channel details...');
-           const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&access_token=${accessToken}`;
-           const channelResponse = await fetch(youtubeApiUrl);
-           const channelData = await channelResponse.json();
-
-            if (!channelResponse.ok || !channelData.items || channelData.items.length === 0) {
-                console.error("YouTube API Error:", channelData);
-                throw new Error("Could not fetch YouTube channel details.");
-            }
-            const channelName = channelData.items[0]?.snippet?.title || 'YouTube Account';
-
-
-          setMessage('Saving your connection...');
-          const socialMediaAccountsCollection = collection(firestore, 'users', user.uid, 'socialMediaAccounts');
-          
-          const newAccountData: Omit<SocialMediaAccount, 'id'> = {
-              userId: user.uid,
-              platform: 'YouTube',
-              accessToken: accessToken,
-              refreshToken: refreshToken,
-              connected: true,
-              username: channelName,
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-          };
-          await addDoc(socialMediaAccountsCollection, newAccountData);
-
-          toast({
-            title: 'YouTube Account Connected!',
-            description: `Successfully connected "${channelName}".`,
-          });
-
-          router.push('/connected-accounts');
-        } catch (err: any) {
-          console.error('Failed to exchange token or save account:', err);
-          let errorMessage = err.message || 'An error occurred while finalizing the connection.';
-          if (err.response?.data?.error_description) {
-            errorMessage = err.response.data.error_description;
-          }
-          setError(errorMessage);
-          toast({
-            variant: 'destructive',
-            title: 'Connection Failed',
-            description: errorMessage,
-          });
-          setTimeout(() => router.push('/api-keys'), 5000);
-        }
-      };
-
-      handleTokenExchange();
-    } else if (!user || !firestore) {
-        // Wait for user and firestore to be available
-        setMessage("Waiting for user session...");
-    }
-     else if (!code) {
+    if (!code) {
       setError('Invalid request. No authorization code found.');
       setTimeout(() => router.push('/api-keys'), 3000);
+      return;
     }
+
+    const handleTokenExchange = async () => {
+      try {
+        setMessage('Looking up your API credentials...');
+        const credsRef = doc(firestore, 'users', user.uid, 'platformCredentials', 'YouTube');
+        const credsSnap = await getDoc(credsRef);
+        
+        if (!credsSnap.exists()) {
+          throw new Error("Could not find YouTube credentials. Please save your Client ID and Secret in the API Credentials page first.");
+        }
+        const credentials = credsSnap.data() as PlatformCredentials;
+        
+        if (!credentials.clientId || !credentials.clientSecret) {
+          throw new Error("Client ID or Client Secret is missing from your saved credentials.");
+        }
+        
+        setMessage('Exchanging authorization code for tokens...');
+        const { accessToken, refreshToken } = await getYoutubeTokensAction({ 
+            code, 
+            clientId: credentials.clientId, 
+            clientSecret: credentials.clientSecret 
+        });
+
+         setMessage('Fetching channel details...');
+         const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&access_token=${accessToken}`;
+         const channelResponse = await fetch(youtubeApiUrl);
+         const channelData = await channelResponse.json();
+
+          if (!channelResponse.ok || !channelData.items || channelData.items.length === 0) {
+              console.error("YouTube API Error:", channelData);
+              throw new Error("Could not fetch YouTube channel details.");
+          }
+          const channelName = channelData.items[0]?.snippet?.title || 'YouTube Account';
+
+
+        setMessage('Saving your connection...');
+        const socialMediaAccountsCollection = collection(firestore, 'users', user.uid, 'socialMediaAccounts');
+        
+        const newAccountData: Omit<SocialMediaAccount, 'id'> = {
+            userId: user.uid,
+            platform: 'YouTube',
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            connected: true,
+            username: channelName,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+        await addDoc(socialMediaAccountsCollection, newAccountData);
+
+        toast({
+          title: 'YouTube Account Connected!',
+          description: `Successfully connected "${channelName}".`,
+        });
+
+        router.push('/connected-accounts');
+      } catch (err: any) {
+        console.error('Failed to exchange token or save account:', err);
+        let errorMessage = err.message || 'An error occurred while finalizing the connection.';
+        if (err.response?.data?.error_description) {
+          errorMessage = err.response.data.error_description;
+        }
+        setError(errorMessage);
+        toast({
+          variant: 'destructive',
+          title: 'Connection Failed',
+          description: errorMessage,
+        });
+        setTimeout(() => router.push('/api-keys'), 5000);
+      }
+    };
+
+    handleTokenExchange();
   }, [searchParams, router, user, firestore, toast]);
 
   return (
