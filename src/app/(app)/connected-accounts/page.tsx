@@ -10,7 +10,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Instagram, Facebook, Link2, Plus, Youtube, LoaderCircle } from 'lucide-react';
+import { Instagram, Facebook, Link2, Plus, Youtube, LoaderCircle, Twitter } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
@@ -24,6 +24,7 @@ const platformIcons = {
   Instagram,
   Facebook,
   YouTube: Youtube,
+  Twitter,
 };
 
 export default function ConnectedAccountsPage() {

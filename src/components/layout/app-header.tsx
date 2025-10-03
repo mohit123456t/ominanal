@@ -31,7 +31,7 @@ const getPageTitle = (pathname: string): string => {
     case '/pricing':
       return 'Subscription Plans';
     case '/api-keys':
-      return 'API Keys';
+      return 'API Keys & Connections';
     default:
       return 'OmniPost AI';
   }

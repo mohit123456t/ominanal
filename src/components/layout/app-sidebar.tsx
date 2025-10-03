@@ -13,6 +13,7 @@ import {
   LogOut,
   FileText,
   Settings,
+  KeyRound,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -112,7 +113,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname.startsWith('/settings')}
+              isActive={pathname.startsWith('/settings') || pathname === '/api-keys'}
               icon={<Settings />}
               tooltip={{ children: 'Settings' }}
             >
