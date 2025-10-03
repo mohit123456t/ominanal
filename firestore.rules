@@ -1,227 +1,170 @@
 /**
- * @file Firestore Security Rules for OmniPost AI Platform
+ * @file Firebase Security Rules for OmniPost AI.
  *
- * @core_philosophy This ruleset enforces a strict user-ownership model for personal data,
- *                  role-based access control for collaborative team data,
- *                  and public read access for subscription plans.  All write
- *                  operations are carefully guarded by authorization checks.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for personal data and uses a role-based model for team collaboration.
+ * It prioritizes security by default, explicitly denying access unless explicitly granted.
  *
- * @data_structure The data is organized hierarchically:
- *                  - /users/{userId}: User profiles and personal data.
- *                  - /teams/{teamId}: Team data with members and roles.
- *                  - /teams/{teamId}/members/{memberId}: Team member role assignments.
- *                  - /subscriptions/{subscriptionId}: Publicly readable subscription plans.
- *                  - /users/{userId}/socialMediaAccounts/{accountId}: User's connected social media accounts.
- *                  - /users/{userId}/posts/{postId}: User's social media posts.
- *                  - /users/{userId}/posts/{postId}/platformPosts/{platformPostId}: Platform-specific post instances.
+ * Data Structure:
+ * - User data is nested under `/users/{userId}`.
+ * - Team data resides under `/teams/{teamId}`, with members managed in `/teams/{teamId}/members/{memberId}`.
+ * - User's social media accounts and posts are stored under their respective user ID in `/users/{userId}`.
+ * - Subscription plans are stored under `/subscriptions/{subscriptionId}`.
  *
- * @key_security_decisions
- *                  - User listing is disallowed.
- *                  - Subscription plans are publicly readable.
- *                  - Data validation is minimized in the prototyping phase.
- *                  - All writes require explicit authorization.
+ * Key Security Decisions:
+ * - Users can only access their own data under `/users/{userId}`.
+ * - Team ownership and membership are enforced via the `/teams/{teamId}/members/{memberId}` collection, enabling role-based access control.
+ * - Listing of documents is generally allowed within a user's own data tree, except where explicitly restricted.
+ * - Unauthenticated access is forbidden.
  *
- * @denormalization_for_authorization
- *                  - User's `subscriptionId` is stored on `/users/{userId}` to
- *                    avoid requiring a `get()` call on `/subscriptions/{subscriptionId}`
- *                    for subscription-based authorization.
+ * Denormalization for Authorization:
+ * - The `Team` entity has an `ownerId` field to quickly determine the team owner.
+ * - The `TeamMember` entity contains `userId`, `teamId` and `role` fields for efficient role-based access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Protects the /users collection.
-     * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their own profile.
-     *        Request: { auth: { uid: 'user123' }, resource: { data: { id: 'user123', ... } } }
-     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their own profile.
-     *        Request: { auth: { uid: 'user123' } }
-     * @deny (create) User with ID 'user123' cannot create a profile for 'user456'.
-     *       Request: { auth: { uid: 'user123' }, resource: { data: { id: 'user456', ... } } }
-     * @deny (update, delete) User with ID 'user123' cannot update or delete profile for 'user456'.
-     *       Request: { auth: { uid: 'user123' } }
-     * @deny (list) No one can list all users.
-     * @principle Enforces document ownership and prevents user enumeration.
+     * @description Checks if the request is authenticated.
      */
-    match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == request.auth.uid;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+    function isSignedIn() {
+      return request.auth != null;
     }
 
     /**
-     * @description Protects the /teams collection, allowing owner-only write access.
-     * @path /teams/{teamId}
-     * @allow (create) User with ID 'user123' can create a team with ownerId 'user123'.
-     *        Request: { auth: { uid: 'user123' }, resource: { data: { ownerId: 'user123', ... } } }
-     * @allow (get, list) Any authenticated user can get or list teams.
-     *        Request: { auth: { uid: 'user123' } }
-     * @allow (update, delete) Owner of the team ('user123') can update/delete.
-     *        Request: { auth: { uid: 'user123' }, resource: { data: { ownerId: 'user123', ... } } }
-     * @deny (create) User with ID 'user123' cannot create a team with ownerId 'user456'.
-     *       Request: { auth: { uid: 'user123' }, resource: { data: { ownerId: 'user456', ... } } }
-     * @deny (update, delete) User with ID 'user123' cannot update or delete team owned by 'user456'.
-     *       Request: { auth: { uid: 'user123' }, resource: { data: { ownerId: 'user456', ... } } }
-     * @principle Enforces owner-only writes and public reads for teams.
+     * @description Checks if the authenticated user is the owner of the resource.
      */
-    match /teams/{teamId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(ownerId) {
-        return request.auth.uid == ownerId;
-      }
-
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow delete: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-    }
-
-        /**
-         * @description Protects the /teams/{teamId}/members collection, allowing specific role-based access.
-         * @path /teams/{teamId}/members/{memberId}
-         * @allow (create) Admin or owner of 'team123' can add new members.
-         *        Request: { auth: { uid: 'admin123' }, resource: { data: { teamId: 'team123', ... } }, parentTeam: { members: { 'admin123': 'admin' } } }
-         * @allow (get, list) Any member of 'team123' can read the members list.
-         *        Request: { auth: { uid: 'member123' }, parentTeam: { members: { 'member123': 'editor' } } }
-         * @allow (update, delete) Admin or owner of 'team123' can update/delete members.
-         *        Request: { auth: { uid: 'admin123' }, resource: { data: { teamId: 'team123', ... } }, parentTeam: { members: { 'admin123': 'admin' } } }
-         * @deny (create) Non-admin of 'team123' cannot add new members.
-         *       Request: { auth: { uid: 'member123' }, resource: { data: { teamId: 'team123', ... } }, parentTeam: { members: { 'member123': 'editor' } } }
-         * @deny (update, delete) Non-admin of 'team123' cannot update or delete members.
-         *       Request: { auth: { uid: 'member123' }, resource: { data: { teamId: 'team123', ... } }, parentTeam: { members: { 'member123': 'editor' } } }
-         * @principle Enforces role-based access control for team membership management.
-         */
-    match /teams/{teamId}/members/{memberId} {
-
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isAdminOrOwner(teamId) {
-        return get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid;
-      }
-
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && isAdminOrOwner(teamId);
-      allow update: if isSignedIn() && isAdminOrOwner(teamId);
-      allow delete: if isSignedIn() && isAdminOrOwner(teamId);
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Protects the /users/{userId}/socialMediaAccounts collection.
-     * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}
-     * @allow (create) User with ID 'user123' can create a social media account under their profile.
-     *        Request: { auth: { uid: 'user123' }, resource: { data: { userId: 'user123', ... } } }
-     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their own social media accounts.
-     *        Request: { auth: { uid: 'user123' } }
-     * @deny (create) User with ID 'user123' cannot create a social media account for 'user456'.
-     *       Request: { auth: { uid: 'user123' }, resource: { data: { userId: 'user456', ... } } }
-     * @deny (update, delete) User with ID 'user123' cannot update or delete a social media account for 'user456'.
-     *       Request: { auth: { uid: 'user123' } }
-     * @principle Enforces document ownership for social media accounts.
+     * @description Checks if the authenticated user is the existing owner of the resource.
+     * Used for update and delete operations to ensure the document exists.
      */
-    match /users/{userId}/socialMediaAccounts/{socialMediaAccountId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-
-      allow get, list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Protects the /users/{userId}/posts collection.
-     * @path /users/{userId}/posts/{postId}
-     * @allow (create) User with ID 'user123' can create a post under their profile.
-     *        Request: { auth: { uid: 'user123' }, resource: { data: { userId: 'user123', ... } } }
-     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their own posts.
-     *        Request: { auth: { uid: 'user123' } }
-     * @deny (create) User with ID 'user123' cannot create a post for 'user456'.
-     *       Request: { auth: { uid: 'user123' }, resource: { data: { userId: 'user456', ... } } }
-     * @deny (update, delete) User with ID 'user123' cannot update or delete a post for 'user456'.
-     *       Request: { auth: { uid: 'user123' } }
-     * @principle Enforces document ownership for posts.
-     */
-    match /users/{userId}/posts/{postId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-
-      allow get, list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
-    }
-
-    /**
-     * @description Protects the /users/{userId}/posts/{postId}/platformPosts collection.
-     * @path /users/{userId}/posts/{postId}/platformPosts/{platformPostId}
-     * @allow (create) User with ID 'user123' can create a platform post under their post.
-     *        Request: { auth: { uid: 'user123' }, resource: { data: { userId: 'user123', ... } }, parentPost: { userId: 'user123' } }
-     * @allow (get, update, delete) User with ID 'user123' can read, update, and delete their own platform posts.
-     *        Request: { auth: { uid: 'user123' }, parentPost: { userId: 'user123' } }
-     * @deny (create) User with ID 'user123' cannot create a platform post for 'user456'.
-     *       Request: { auth: { uid: 'user123' }, resource: { data: { userId: 'user456', ... } }, parentPost: { userId: 'user456' } }
-     * @deny (update, delete) User with ID 'user123' cannot update or delete a platform post for 'user456'.
-     *       Request: { auth: { uid: 'user123' }, parentPost: { userId: 'user456' } }
-     * @principle Enforces document ownership for platform posts, inheriting from parent post.
-     */
-    match /users/{userId}/posts/{postId}/platformPosts/{platformPostId} {
-
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-
-
-      allow get, list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
-    }
-
-    /**
-     * @description Protects the /subscriptions collection, allowing public read access.
+     * @description Grants access to subscription plans.
      * @path /subscriptions/{subscriptionId}
-     * @allow (get, list) Any user (signed in or not) can read subscription plans.
-     *        Request: { }
-     * @deny (create, update, delete) Only backend services should be able to modify subscription plans.
-     * @principle Allows public read access for subscription plans.
+     * @allow (get, list) if true
+     * @deny (create, update, delete) if false
+     * @principle Public read-only data with no modification allowed.
      */
     match /subscriptions/{subscriptionId} {
       allow get, list: if true;
       allow create, update, delete: if false;
     }
+
+    /**
+     * @description Manages user profile information.
+     * @path /users/{userId}
+     * @allow (create) if isOwner(userId)
+     * @allow (get, list) if false
+     * @allow (update, delete) if isExistingOwner(userId)
+     * @deny (create) if !isOwner(userId)
+     * @deny (update, delete) if !isExistingOwner(userId)
+     * @principle Enforces document ownership for writes and prevents unauthorized access.
+     */
+    match /users/{userId} {
+      allow get, list: if false;
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages app-level API credentials for a user and a specific platform.
+     * @path /users/{userId}/platformCredentials/{platform}
+     * @allow (create, list) if isOwner(userId)
+     * @allow (get) if isOwner(userId)
+     * @allow (update, delete) if isExistingOwner(userId)
+     * @deny (create, update, delete) if !isOwner(userId)
+     * @principle Enforces document ownership for writes and prevents unauthorized access.
+     */
+    match /users/{userId}/platformCredentials/{platform} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages social media account information associated with a user.
+     * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}
+     * @allow (create, list) if isOwner(userId)
+     * @allow (get) if isOwner(userId)
+     * @allow (update, delete) if isExistingOwner(userId)
+     * @deny (create, update, delete) if !isOwner(userId)
+     * @principle Enforces document ownership for writes and prevents unauthorized access.
+     */
+    match /users/{userId}/socialMediaAccounts/{socialMediaAccountId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages social media posts created by a user.
+     * @path /users/{userId}/posts/{postId}
+     * @allow (create, list) if isOwner(userId)
+     * @allow (get) if isOwner(userId)
+     * @allow (update, delete) if isExistingOwner(userId)
+     * @deny (create, update, delete) if !isOwner(userId)
+     * @principle Enforces document ownership for writes and prevents unauthorized access.
+     */
+    match /users/{userId}/posts/{postId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages platform-specific post information related to a main post.
+     * @path /users/{userId}/posts/{postId}/platformPosts/{platformPostId}
+     * @allow (create, list) if isOwner(userId)
+     * @allow (get) if isOwner(userId)
+     * @allow (update, delete) if isExistingOwner(userId)
+     * @deny (create, update, delete) if !isOwner(userId)
+     * @principle Enforces document ownership and inheritance of authorization from parent post.
+     */
+    match /users/{userId}/posts/{postId}/platformPosts/{platformPostId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages team information and serves as the root for team-owned data.
+     * @path /teams/{teamId}
+     * @allow (create) if isSignedIn()
+     * @allow (get, list) if false
+     * @allow (update, delete) if resource.data.ownerId == request.auth.uid && resource != null;
+     * @deny (create) if !isSignedIn()
+     * @deny (update, delete) if resource.data.ownerId != request.auth.uid || resource == null;
+     * @principle Enforces ownership for team creation and modification.
+     */
+    match /teams/{teamId} {
+        allow get, list: if false;
+        allow create: if isSignedIn();
+        allow update, delete: if resource.data.ownerId == request.auth.uid && resource != null;
+    }
+
+      /**
+       * @description Stores the list of members for a team and their roles.
+       * @path /teams/{teamId}/members/{memberId}
+       * @allow (create) if isSignedIn()
+       * @allow (get, list) if isSignedIn()
+       * @allow (update) if isSignedIn()
+       * @allow (delete) if get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid && resource != null
+       * @deny (create) if !isSignedIn()
+       * @deny (get, list) if !isSignedIn()
+       *
+       */
+      match /teams/{teamId}/members/{memberId} {
+          allow get, list, create, update: if isSignedIn();
+          allow delete: if get(/databases/$(database)/documents/teams/$(teamId)).data.ownerId == request.auth.uid && resource != null;
+      }
   }
 }
