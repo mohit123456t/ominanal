@@ -36,7 +36,7 @@ export type Post = {
 export type SocialMediaAccount = {
     id: string;
     userId: string;
-    platform: 'Instagram' | 'Facebook' | 'YouTube';
+    platform: 'Instagram' | 'Facebook' | 'YouTube' | 'Twitter';
     username: string;
     apiKey: string;
     apiSecret?: string;

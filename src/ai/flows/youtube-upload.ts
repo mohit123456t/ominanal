@@ -55,12 +55,15 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
         }
     });
 
-    const youtube = google.youtube({ version: 'v3' });
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     try {
-      await oauth2Client.getAccessToken();
+      // Check if the access token is expired and refresh it if necessary.
+      // The googleapis library handles this automatically if a refresh token is available.
+      // We make a simple, low-quota call to trigger the refresh mechanism if needed.
+      await youtube.channels.list({ part: ['id'], mine: true });
     } catch (err) {
-      console.error("Token refresh failed. The refresh token might be invalid.", err);
+      console.error("Token refresh or validation failed. The credentials might be invalid.", err);
       throw new Error("Invalid YouTube credentials. Please try disconnecting and reconnecting your YouTube account from the API Keys page.");
     }
 
@@ -72,7 +75,6 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     const videoStream = Readable.from(videoBuffer);
 
     const response = await youtube.videos.insert({
-        auth: oauth2Client,
         part: ['snippet', 'status'],
         requestBody: {
             snippet: {
