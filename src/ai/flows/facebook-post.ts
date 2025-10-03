@@ -9,14 +9,13 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
-import crypto from 'crypto';
 
 const PostToFacebookInputSchema = z.object({
   facebookPageId: z.string().describe('The ID of the Facebook Page.'),
   mediaUrl: z.string().url().describe('The public URL of the image to post.'),
   caption: z.string().optional().describe('The caption for the post.'),
   userAccessToken: z.string().describe('The user access token with pages_manage_posts permission.'),
-  appSecret: z.string().describe('The Facebook App Secret for generating appsecret_proof.')
+  appSecret: z.string().describe('The Facebook App Secret (not directly used for proof, but good practice to have).')
 });
 export type PostToFacebookInput = z.infer<typeof PostToFacebookInputSchema>;
 
@@ -27,54 +26,31 @@ export type PostToFacebookOutput = z.infer<typeof PostToFacebookOutputSchema>;
 
 const FACEBOOK_GRAPH_API_URL = 'https://graph.facebook.com/v20.0';
 
-// Helper flow to get a long-lived page access token
-const getPageAccessToken = ai.defineFlow(
-  {
-    name: 'getPageAccessToken',
-    inputSchema: z.object({
-      pageId: z.string(),
-      userAccessToken: z.string(),
-      appSecret: z.string(),
-    }),
-    outputSchema: z.object({ pageAccessToken: z.string() }),
-  },
-  async ({ pageId, userAccessToken, appSecret }) => {
-    
-    const appSecretProof = crypto.createHmac('sha256', appSecret).update(userAccessToken).digest('hex');
-
-    const url = `${FACEBOOK_GRAPH_API_URL}/${pageId}?fields=access_token&access_token=${userAccessToken}&appsecret_proof=${appSecretProof}`;
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      const errorData: any = await response.json();
-      console.error('Failed to get Page Access Token:', errorData);
-      throw new Error(`Failed to get Page Access Token: ${errorData.error?.message || 'Unknown error'}`);
-    }
-    const data: any = await response.json();
-    if (!data.access_token) {
-      throw new Error('Page Access Token not found in response.');
-    }
-    return { pageAccessToken: data.access_token };
-  }
-);
-
-
 const postToFacebookFlow = ai.defineFlow(
   {
     name: 'postToFacebookFlow',
     inputSchema: PostToFacebookInputSchema,
     outputSchema: PostToFacebookOutputSchema,
   },
-  async ({ facebookPageId, mediaUrl, caption, userAccessToken, appSecret }) => {
+  async ({ facebookPageId, mediaUrl, caption, userAccessToken }) => {
     
-    // Step 1: Get the Page Access Token. This is crucial.
-    const { pageAccessToken } = await getPageAccessToken({
-        pageId: facebookPageId,
-        userAccessToken: userAccessToken,
-        appSecret: appSecret,
-    });
+    // Step 1: Get the Page Access Token using the User Access Token.
+    const pageTokenUrl = `${FACEBOOK_GRAPH_API_URL}/${facebookPageId}?fields=access_token&access_token=${userAccessToken}`;
+    const pageTokenResponse = await fetch(pageTokenUrl);
+    
+    if (!pageTokenResponse.ok) {
+        const errorData: any = await pageTokenResponse.json();
+        console.error('Failed to get Page Access Token:', errorData);
+        throw new Error(`Failed to get Page Access Token: ${errorData.error?.message || 'Unknown error'}`);
+    }
+    const pageTokenData: any = await pageTokenResponse.json();
+    const pageAccessToken = pageTokenData.access_token;
+    
+    if (!pageAccessToken) {
+        throw new Error('Page Access Token not found in response from Facebook.');
+    }
 
-    // Step 2: Use the Page Access Token to post the photo.
+    // Step 2: Use the newly acquired Page Access Token to post the photo.
     const postUrl = `${FACEBOOK_GRAPH_API_URL}/${facebookPageId}/photos`;
     
     const params = new URLSearchParams({
@@ -98,15 +74,12 @@ const postToFacebookFlow = ai.defineFlow(
     if (!response.ok) {
         const errorData: any = await response.json();
         console.error('Failed to post to Facebook:', errorData);
-        // The error message from Facebook is more descriptive.
         const fbErrorMessage = errorData.error?.message || 'Unknown error';
         throw new Error(`Failed to post to Facebook: ${fbErrorMessage}`);
     }
 
     const responseData: any = await response.json();
     
-    // The photo post returns a 'post_id' which is the ID of the post container, and an 'id' which is the photo ID.
-    // We want the post ID to construct a URL.
     const postId = responseData.post_id || responseData.id;
     if (!postId) {
         throw new Error('Failed to get post ID from Facebook after publishing.');
