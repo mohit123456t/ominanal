@@ -119,7 +119,7 @@ function InstagramCallback() {
 
       handleTokenExchange();
     }
-  }, [searchParams, router, user, firestore, toast, code]);
+  }, [searchParams, router, user, firestore, toast]);
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center p-4">
