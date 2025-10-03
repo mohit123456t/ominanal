@@ -31,14 +31,16 @@ const getYoutubeAuthUrlFlow = ai.defineFlow(
     }),
   },
   async ({ clientId, clientSecret }) => {
-    if (!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube redirect URI is not configured in the .env file.');
+    if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube redirect URI or public URL is not configured in the .env file. The app owner needs to set these.');
     }
+
+    const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI}`;
 
     const oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,
-      process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
+      redirectUri
     );
 
     const url = oauth2Client.generateAuthUrl({
@@ -71,13 +73,14 @@ const getYoutubeTokensFlow = ai.defineFlow({
       expiryDate: z.number(),
     }),
 }, async ({ code, clientId, clientSecret }) => {
-    if (!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube redirect URI is not configured in the .env file.');
+    if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube redirect URI or public URL is not configured in the .env file. The app owner needs to set these.');
     }
+    const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI}`;
     const oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,
-      process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
+      redirectUri
     );
 
     const { tokens } = await oauth2Client.getToken(code);

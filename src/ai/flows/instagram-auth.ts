@@ -34,7 +34,7 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
   },
   async ({ clientId }) => {
     if (!process.env.NEXT_PUBLIC_URL) {
-        throw new Error('NEXT_PUBLIC_URL is not set in .env file.');
+        throw new Error('NEXT_PUBLIC_URL is not set in the .env file. The app owner needs to configure this.');
     }
     const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
 
@@ -76,7 +76,7 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
     outputSchema: GetInstagramAccessTokenOutputSchema,
 }, async ({ code, clientId, clientSecret }) => {
     if (!process.env.NEXT_PUBLIC_URL) {
-        throw new Error('NEXT_PUBLIC_URL is not configured in .env file.');
+        throw new Error('NEXT_PUBLIC_URL is not configured in the .env file. The app owner needs to configure this.');
     }
     const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
     
