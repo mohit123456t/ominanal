@@ -10,7 +10,8 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
-import { updateYouTubeAccessToken } from '@/actions/youtube';
+// This import is no longer needed as we will handle token updates differently or not at all in this flow.
+// import { updateYouTubeAccessToken } from '@/actions/youtube';
 
 
 const uploadVideoToYoutubeFlow = ai.defineFlow({
@@ -32,8 +33,8 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     }),
 }, async ({ userId, accountId, videoDataUri, title, description, accessToken, refreshToken, clientId, clientSecret }) => {
     
-    if (!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube redirect URI is not configured by the app owner in the .env file.');
+    if (!process.env.NEXT_PUBLIC_URL ||!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube redirect URI or Public URL is not configured by the app owner in the .env file.');
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -44,32 +45,18 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
 
-    // Listen for token refresh events
-    oauth2Client.on('tokens', (tokens) => {
-        if (tokens.access_token) {
-          console.log("Refreshed YouTube access token. Updating in Firestore.");
-          // This is a fire-and-forget operation, we don't want to block the upload flow
-          updateYouTubeAccessToken({
-            userId,
-            accountId,
-            newAccessToken: tokens.access_token,
-          }).catch(err => {
-            // Log the error but don't fail the upload. The new token is already in memory for this request.
-            console.error("Background task to update access token in DB failed:", err);
-          });
-        }
-    });
-
+    // Note: The googleapis library should handle token refreshing automatically if a refresh token is provided.
+    // The 'tokens' event listener can be complex to manage in a serverless flow.
+    // For simplicity, we'll rely on the auto-refresh. The client should re-authenticate if the refresh token expires.
+    
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     try {
-      // The googleapis library should automatically use the refresh token if the access token is expired.
-      // We can make a simple, low-quota call to ensure the credentials are valid before the upload.
+      // Test the credentials with a low-quota call before proceeding with the upload
       await youtube.channels.list({ part: ['id'], mine: true });
     } catch (err: any) {
-      console.error("Token validation or refresh failed. The credentials might be invalid.", err);
-      // Provide a more user-friendly error message
-      throw new Error("Invalid YouTube credentials. Please try disconnecting and reconnecting your YouTube account from the API Keys page.");
+      console.error("Token validation or refresh failed.", err.response?.data || err.message);
+      throw new Error("Invalid YouTube credentials or expired refresh token. Please try disconnecting and reconnecting your YouTube account from the API Keys page.");
     }
 
     const match = videoDataUri.match(/^data:(.*);base64,(.*)$/);
@@ -111,3 +98,5 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 export async function uploadVideoToYoutube(input: z.infer<typeof uploadVideoToYoutubeFlow.inputSchema>): Promise<z.infer<typeof uploadVideoToYoutubeFlow.outputSchema>> {
     return uploadVideoToYoutubeFlow(input);
 }
+
+    

@@ -3,11 +3,11 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
-import { getYoutubeTokensAction } from '@/actions/youtube';
-import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, addDoc } from 'firebase/firestore';
+import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
+import { useFirestore, useUser, useCollection } from '@/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { type SocialMediaAccount } from '@/lib/types';
+import { type SocialMediaAccount, type PlatformCredentials } from '@/lib/types';
 
 function YouTubeCallback() {
   const searchParams = useSearchParams();
@@ -19,15 +19,27 @@ function YouTubeCallback() {
   const [message, setMessage] = useState('Connecting to YouTube...');
   const effectRan = useRef(false);
 
+  const credsCollectionRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'platformCredentials');
+  }, [user, firestore]);
+  
+  const { data: credentialsList, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credsCollectionRef);
 
   useEffect(() => {
-    // We want this effect to run only once when the component mounts and `user` is available.
-    if (effectRan.current || !user || !firestore) {
-      if (!user) {
-        setMessage("Waiting for user session...");
-      }
+    if (effectRan.current || !user || !firestore || isLoadingCreds) {
+      if (!user) setMessage("Waiting for user session...");
+      if (isLoadingCreds) setMessage("Loading credentials...");
       return;
     }
+
+    if (!credentialsList || credentialsList.length === 0) {
+      setError("YouTube credentials not found. Please save them on the API Keys page.");
+      toast({ variant: 'destructive', title: 'Connection Failed', description: "YouTube credentials not found." });
+      setTimeout(() => router.push('/api-keys'), 3000);
+      return;
+    }
+    
     effectRan.current = true;
 
     const code = searchParams.get('code');
@@ -49,13 +61,23 @@ function YouTubeCallback() {
       setTimeout(() => router.push('/api-keys'), 3000);
       return;
     }
+    
+    const youtubeCreds = credentialsList.find(c => c.platform === 'YouTube');
+    if (!youtubeCreds?.clientId || !youtubeCreds?.clientSecret) {
+        setError("YouTube credentials are not configured correctly.");
+        toast({ variant: 'destructive', title: 'Connection Failed', description: "Incomplete YouTube credentials." });
+        setTimeout(() => router.push('/api-keys'), 3000);
+        return;
+    }
+
 
     const handleTokenExchange = async () => {
       try {
         setMessage('Exchanging authorization code for tokens...');
-        const { accessToken, refreshToken } = await getYoutubeTokensAction({ 
+        const { accessToken, refreshToken } = await getYoutubeTokens({ 
             code,
-            userId: user.uid,
+            clientId: youtubeCreds.clientId!,
+            clientSecret: youtubeCreds.clientSecret!,
         });
 
          setMessage('Fetching channel details...');
@@ -108,7 +130,7 @@ function YouTubeCallback() {
     };
 
     handleTokenExchange();
-  }, [searchParams, router, user, firestore, toast]);
+  }, [searchParams, router, user, firestore, toast, credentialsList, isLoadingCreds]);
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4 text-center p-4">
@@ -137,3 +159,5 @@ export default function YouTubeCallbackPage() {
         </Suspense>
     )
 }
+
+    

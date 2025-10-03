@@ -52,10 +52,10 @@ import {
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { type Post, SocialMediaAccount } from '@/lib/types';
-import { uploadVideoToYoutubeAction } from '@/actions/youtube';
+import { type Post, SocialMediaAccount, PlatformCredentials } from '@/lib/types';
+import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
 import { postToInstagram } from '@/ai/flows/instagram-post';
 import { postToFacebook } from '@/ai/flows/facebook-post';
 import { postToTwitter } from '@/ai/flows/twitter-post';
@@ -95,6 +95,21 @@ export default function CreatePostPage() {
   }, [user, firestore]);
 
   const { data: accounts } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
+  
+  const credsCollectionRef = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return collection(firestore, 'users', user.uid, 'platformCredentials');
+  }, [user, firestore]);
+  
+  const { data: credentialsList } = useCollection<PlatformCredentials>(credsCollectionRef);
+
+  const credentials = useMemo(() => {
+    if (!credentialsList) return {};
+    return credentialsList.reduce((acc, cred) => {
+        acc[cred.platform] = cred;
+        return acc;
+    }, {} as {[key: string]: PlatformCredentials});
+  }, [credentialsList]);
 
   const userAvatar = useMemo(
     () => PlaceHolderImages.find((img) => img.id === 'user-avatar-1'),
@@ -170,8 +185,10 @@ export default function CreatePostPage() {
       // YouTube Upload Logic
       if (selectedPlatforms.includes('youtube')) {
         const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
-        if (!youtubeAccount) {
-            toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must connect your YouTube account first.' });
+        const youtubeCreds = credentials['YouTube'];
+
+        if (!youtubeAccount || !youtubeCreds?.clientId || !youtubeCreds?.clientSecret) {
+            toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must connect your YouTube account and save credentials first.' });
         } else if (!youtubeAccount.connected) {
             toast({ variant: 'destructive', title: 'YouTube Error', description: "Your YouTube account is disconnected. Please connect it in the 'Connected Accounts' page." });
         } else if (!mediaFile) {
@@ -181,7 +198,7 @@ export default function CreatePostPage() {
             const [title, ...descriptionParts] = text.split('\n');
             const description = descriptionParts.join('\n');
             
-            await uploadVideoToYoutubeAction({
+            await uploadVideoToYoutube({
                 userId: user.uid,
                 accountId: youtubeAccount.id,
                 videoDataUri,
@@ -189,6 +206,8 @@ export default function CreatePostPage() {
                 description: description || '',
                 accessToken: youtubeAccount.accessToken || '',
                 refreshToken: youtubeAccount.refreshToken,
+                clientId: youtubeCreds.clientId,
+                clientSecret: youtubeCreds.clientSecret,
             });
             toast({ title: 'Video sent to YouTube!', description: 'Your video is being processed by YouTube.' });
             somethingPublished = true;
@@ -608,3 +627,5 @@ export default function CreatePostPage() {
     </div>
   );
 }
+
+    
