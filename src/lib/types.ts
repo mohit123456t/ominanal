@@ -14,6 +14,7 @@ export type PerformanceData = {
 export type EngagementData = {
   platform: string;
   likes: number;
+  comments: number;
 };
 
 export type Post = {

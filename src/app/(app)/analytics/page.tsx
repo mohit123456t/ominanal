@@ -15,16 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  followerGrowthData,
-  reachAndImpressionsData,
-} from '@/lib/data';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, LoaderCircle, Users, ThumbsUp, MessageCircle, BarChart3 } from 'lucide-react';
+import { LoaderCircle, Users, ThumbsUp, MessageCircle, BarChart3 } from 'lucide-react';
 import {
-  FollowerGrowthChart,
   EngagementRateChart,
-  ReachAndImpressionsChart,
 } from '@/components/charts';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -43,31 +37,26 @@ export default function AnalyticsPage() {
 
   const { data: posts, isLoading: isLoadingPosts } = useCollection<Post>(postsCollection);
   
-  const sortedPosts = posts ? [...posts].sort((a, b) => (b.likes + b.comments + b.shares) - (a.likes + a.comments + a.shares)) : [];
+  const sortedPosts = posts ? [...posts].sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments)) : [];
   const bestPosts = sortedPosts.slice(0, 3);
   const worstPosts = sortedPosts.slice(-3).reverse();
 
   const realKpis: Omit<Kpi, 'change' | 'changeType'>[] = useMemo(() => {
     if (!posts) {
       return [
-        { title: 'Followers', value: '0', icon: Users },
-        { title: 'Engagement Rate', value: '0%', icon: ThumbsUp },
-        { title: 'Impressions', value: '0', icon: BarChart3 },
-        { title: 'Comments', value: '0', icon: MessageCircle },
+        { title: 'Total Likes', value: '0', icon: ThumbsUp },
+        { title: 'Total Comments', value: '0', icon: MessageCircle },
+        { title: 'Total Impressions', value: '0', icon: BarChart3 },
       ];
     }
     const totalLikes = posts.reduce((sum, post) => sum + post.likes, 0);
     const totalComments = posts.reduce((sum, post) => sum + post.comments, 0);
     const totalImpressions = posts.reduce((sum, post) => sum + (post.views || 0), 0); // Assuming views are impressions for now
-    const totalEngagement = totalLikes + totalComments;
-    const engagementRate = totalImpressions > 0 ? ((totalEngagement / totalImpressions) * 100).toFixed(1) + '%' : '0%';
-
-
+    
     return [
-       { title: 'Followers', value: '45,231', icon: Users }, // Still mock data as we don't track this
-       { title: 'Engagement Rate', value: engagementRate, icon: ThumbsUp },
-       { title: 'Impressions', value: totalImpressions.toLocaleString(), icon: BarChart3 },
-       { title: 'Comments', value: totalComments.toLocaleString(), icon: MessageCircle },
+       { title: 'Total Likes', value: totalLikes.toLocaleString(), icon: ThumbsUp },
+       { title: 'Total Impressions', value: totalImpressions.toLocaleString(), icon: BarChart3 },
+       { title: 'Total Comments', value: totalComments.toLocaleString(), icon: MessageCircle },
     ];
   }, [posts]);
 
@@ -75,9 +64,10 @@ export default function AnalyticsPage() {
     if (!posts) return [];
     const dataByPlatform = posts.reduce((acc, post) => {
         if (!acc[post.platform]) {
-            acc[post.platform] = { platform: post.platform, likes: 0 };
+            acc[post.platform] = { platform: post.platform, likes: 0, comments: 0 };
         }
         acc[post.platform].likes += post.likes;
+        acc[post.platform].comments += post.comments;
         return acc;
     }, {} as Record<string, EngagementData>);
 
@@ -87,7 +77,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {realKpis.map((kpi) => (
           <Card key={kpi.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -97,37 +87,17 @@ export default function AnalyticsPage() {
             <CardContent>
               <div className="text-2xl font-bold">{isLoadingPosts ? <LoaderCircle className="h-6 w-6 animate-spin"/> : kpi.value}</div>
               <p className="text-xs text-muted-foreground">
-                {kpi.title === 'Followers' ? '+20.1% from last month' : 'Total from all posts'}
+                Total from all posts
               </p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Reach & Impressions</CardTitle>
-            <CardDescription>
-              A look at your content's visibility over the past months. (Demo data)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ReachAndImpressionsChart data={reachAndImpressionsData} />
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 lg:grid-cols-1">
         <Card>
           <CardHeader>
-            <CardTitle>Follower Growth</CardTitle>
-            <CardDescription>(Demo data)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FollowerGrowthChart data={followerGrowthData} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Engagement by Platform (Likes)</CardTitle>
+            <CardTitle>Engagement by Platform</CardTitle>
              <CardDescription>Real data from your posts.</CardDescription>
           </CardHeader>
           <CardContent>

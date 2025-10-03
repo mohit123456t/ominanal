@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, Dot, LoaderCircle, Users, ThumbsUp, MessageCircle, Eye } from 'lucide-react';
+import { Dot, LoaderCircle, Users, ThumbsUp, MessageCircle, Eye } from 'lucide-react';
 import { EngagementRateChart } from '@/components/charts';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -53,7 +53,6 @@ export default function DashboardPage() {
   const realKpis: Omit<Kpi, 'change' | 'changeType'>[] = useMemo(() => {
     if (!posts) {
       return [
-        { title: 'Followers', value: '45,231', icon: Users }, // Mock follower data
         { title: 'Likes', value: '0', icon: ThumbsUp },
         { title: 'Comments', value: '0', icon: MessageCircle },
         { title: 'Views', value: '0', icon: Eye },
@@ -64,7 +63,6 @@ export default function DashboardPage() {
     const totalViews = posts.reduce((sum, post) => sum + (post.views || 0), 0);
 
     return [
-      { title: 'Followers', value: '45,231', icon: Users }, // Mock follower data, with mock change
       { title: 'Likes', value: totalLikes.toLocaleString(), icon: ThumbsUp },
       { title: 'Comments', value: totalComments.toLocaleString(), icon: MessageCircle },
       { title: 'Views', value: totalViews.toLocaleString(), icon: Eye },
@@ -75,9 +73,10 @@ export default function DashboardPage() {
     if (!posts) return [];
     const engagementByPlatform = posts.reduce((acc, post) => {
         if (!acc[post.platform]) {
-            acc[post.platform] = { platform: post.platform, likes: 0 };
+            acc[post.platform] = { platform: post.platform, likes: 0, comments: 0 };
         }
         acc[post.platform].likes += post.likes;
+        acc[post.platform].comments += post.comments;
         return acc;
     }, {} as Record<string, EngagementData>);
 
@@ -87,7 +86,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {realKpis.map((kpi) => (
           <Card key={kpi.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -95,15 +94,8 @@ export default function DashboardPage() {
               <kpi.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{isLoadingPosts && kpi.title !== 'Followers' ? <LoaderCircle className="h-6 w-6 animate-spin" /> : kpi.value}</div>
-              {kpi.title === 'Followers' ? (
-                <p className='text-xs text-muted-foreground flex items-center text-green-600'>
-                  <ArrowUp className="h-4 w-4" />
-                  +20.1% from last month
-                </p>
-              ) : (
+              <div className="text-2xl font-bold">{isLoadingPosts ? <LoaderCircle className="h-6 w-6 animate-spin" /> : kpi.value}</div>
                 <p className="text-xs text-muted-foreground">Total from all posts</p>
-              )}
             </CardContent>
           </Card>
         ))}
@@ -112,7 +104,7 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
          <Card>
           <CardHeader>
-            <CardTitle>Engagement by Platform (Likes)</CardTitle>
+            <CardTitle>Engagement by Platform</CardTitle>
           </CardHeader>
           <CardContent>
              {isLoadingPosts ? (
