@@ -279,10 +279,10 @@ export default function CreatePostPage() {
             scheduledAt: date?.toISOString(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
-            likes: Math.floor(Math.random() * 1000),
-            comments: Math.floor(Math.random() * 200),
-            shares: Math.floor(Math.random() * 100),
-            views: Math.floor(Math.random() * 10000),
+            likes: 0,
+            comments: 0,
+            shares: 0,
+            views: 0,
           };
           const postsCollection = collection(firestore, `users/${user.uid}/posts`);
           addDocumentNonBlocking(postsCollection, postData);
