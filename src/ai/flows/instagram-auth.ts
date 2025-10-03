@@ -5,6 +5,7 @@
  * This file contains Genkit flows for handling Instagram Basic Display API OAuth2 authentication.
  * - getInstagramAuthUrl - Generates a URL for the user to grant access.
  * - getInstagramAccessToken - Exchanges an auth code for a short-lived access token.
+ * - exchangeForLongLivedToken - Exchanges a short-lived token for a long-lived one.
  * - getInstagramUserDetails - Fetches user profile details (id, username).
  */
 
@@ -107,6 +108,54 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
 
 export async function getInstagramAccessToken(input: GetInstagramAccessTokenInput): Promise<GetInstagramAccessTokenOutput> {
     return getInstagramAccessTokenFlow(input);
+}
+
+
+// #################### Exchange for Long-Lived Token Flow ####################
+const ExchangeForLongLivedTokenInputSchema = z.object({
+  shortLivedToken: z.string(),
+  clientId: z.string(),
+  clientSecret: z.string(),
+});
+export type ExchangeForLongLivedTokenInput = z.infer<typeof ExchangeForLongLivedTokenInputSchema>;
+
+const ExchangeForLongLivedTokenOutputSchema = z.object({
+  longLivedToken: z.string(),
+});
+export type ExchangeForLongLivedTokenOutput = z.infer<typeof ExchangeForLongLivedTokenOutputSchema>;
+
+
+const exchangeForLongLivedTokenFlow = ai.defineFlow({
+  name: 'exchangeForLongLivedTokenFlow',
+  inputSchema: ExchangeForLongLivedTokenInputSchema,
+  outputSchema: ExchangeForLongLivedTokenOutputSchema,
+}, async ({ shortLivedToken, clientId, clientSecret }) => {
+    const url = `https://graph.facebook.com/v20.0/oauth/access_token`;
+    const params = new URLSearchParams({
+        grant_type: 'fb_exchange_token',
+        client_id: clientId,
+        client_secret: clientSecret,
+        fb_exchange_token: shortLivedToken,
+    });
+
+    const response = await fetch(`${url}?${params.toString()}`);
+
+    if (!response.ok) {
+        const errorData: any = await response.json();
+        console.error('Failed to exchange for long-lived token:', errorData);
+        throw new Error(`Failed to get long-lived token: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data: any = await response.json();
+    if (!data.access_token) {
+        throw new Error('Long-Lived Access Token not found in the response from Facebook.');
+    }
+    
+    return { longLivedToken: data.access_token };
+});
+
+export async function exchangeForLongLivedToken(input: ExchangeForLongLivedTokenInput): Promise<ExchangeForLongLivedTokenOutput> {
+    return exchangeForLongLivedTokenFlow(input);
 }
 
 

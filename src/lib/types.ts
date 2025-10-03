@@ -39,9 +39,9 @@ export type SocialMediaAccount = {
     userId: string;
     platform: 'Instagram' | 'Facebook' | 'YouTube' | 'Twitter';
     username: string;
-    apiKey: string; // User's access token for OAuth, or API Key for Twitter
-    apiSecret?: string; // For platforms like Twitter or for holding Client Secret for OAuth
-    accessToken?: string; // For platforms like Twitter (user's access token)
+    apiKey?: string; // For platforms like Twitter
+    apiSecret?: string; // For platforms like Twitter
+    accessToken?: string; // For OAuth platforms (user's access token)
     accessTokenSecret?: string; // For platforms like Twitter
     refreshToken?: string; // For OAuth2 platforms like YouTube/Google
     instagramId?: string; // Specific ID for Instagram Graph API
