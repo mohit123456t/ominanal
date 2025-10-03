@@ -16,13 +16,12 @@ const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
 ];
 
+// IMPORTANT: These are placeholders now. In a real multi-tenant app, 
+// these would be fetched per-user or per-team from a secure location.
+const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID;
+const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
 const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI;
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.YOUTUBE_CLIENT_ID,
-  process.env.YOUTUBE_CLIENT_SECRET,
-  redirectUri
-);
 
 const GetYoutubeAuthUrlOutputSchema = z.object({
   url: z.string().url().describe('The URL to redirect the user to for authentication.'),
@@ -35,6 +34,12 @@ const getYoutubeAuthUrlFlow = ai.defineFlow(
     outputSchema: GetYoutubeAuthUrlOutputSchema,
   },
   async () => {
+    const oauth2Client = new google.auth.OAuth2(
+      YOUTUBE_CLIENT_ID,
+      YOUTUBE_CLIENT_SECRET,
+      redirectUri
+    );
+
     const url = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: YOUTUBE_SCOPES,
@@ -68,6 +73,12 @@ const getYoutubeTokensFlow = ai.defineFlow({
     inputSchema: GetYoutubeTokensInputSchema,
     outputSchema: GetYoutubeTokensOutputSchema,
 }, async ({ code }) => {
+    const oauth2Client = new google.auth.OAuth2(
+      YOUTUBE_CLIENT_ID,
+      YOUTUBE_CLIENT_SECRET,
+      redirectUri
+    );
+
     const { tokens } = await oauth2Client.getToken(code);
     if (!tokens.access_token || !tokens.expiry_date) {
         throw new Error('Failed to retrieve access token.');

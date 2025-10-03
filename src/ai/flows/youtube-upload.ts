@@ -12,6 +12,13 @@ import { google } from 'googleapis';
 import { Readable } from 'stream';
 import { updateYouTubeAccessToken } from '@/actions/youtube';
 
+
+// IMPORTANT: These are placeholders now. In a real multi-tenant app, 
+// these would be fetched per-user or per-team from a secure location.
+const YOUTUBE_CLIENT_ID = process.env.YOUTUBE_CLIENT_ID;
+const YOUTUBE_CLIENT_SECRET = process.env.YOUTUBE_CLIENT_SECRET;
+const redirectUri = process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI;
+
 const UploadVideoToYoutubeInputSchema = z.object({
   userId: z.string().describe('The ID of the user uploading the video.'),
   accountId: z.string().describe('The ID of the social media account for YouTube.'),
@@ -37,9 +44,9 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 }, async ({ userId, accountId, videoDataUri, title, description, accessToken, refreshToken }) => {
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.YOUTUBE_CLIENT_ID,
-      process.env.YOUTUBE_CLIENT_SECRET,
-      process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
+      YOUTUBE_CLIENT_ID,
+      YOUTUBE_CLIENT_SECRET,
+      redirectUri
     );
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
