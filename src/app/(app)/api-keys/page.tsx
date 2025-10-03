@@ -110,8 +110,13 @@ function OAuthForm({
     const [isSaving, setIsSaving] = useState(false);
 
     const platformName = platform === 'Instagram' ? 'Facebook' : platform;
-    const Icon = platform === 'Instagram' ? Instagram : Youtube;
-    const colorClass = platform === 'Instagram' ? 'text-pink-600' : 'text-red-600';
+    
+    useEffect(() => {
+        if (account) {
+            setClientId(account.clientId || '');
+            setClientSecret(account.clientSecret || '');
+        }
+    }, [account]);
 
 
     const handleSave = async (e: React.FormEvent) => {
@@ -131,6 +136,18 @@ function OAuthForm({
         }
         onConnect(platform);
     }
+    
+    const handleDisconnect = async () => {
+        await onSave(platform, {
+            connected: false,
+            apiKey: '',
+            refreshToken: '',
+            username: '',
+            instagramId: '',
+            facebookPageId: '',
+            facebookPageName: ''
+        });
+    }
 
     return (
         <div className='space-y-4'>
@@ -146,10 +163,10 @@ function OAuthForm({
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle></AlertDialogHeader>
-                        <AlertDialogDescription>This will remove your {platformName} connection.</AlertDialogDescription>
+                        <AlertDialogDescription>This will remove your {platformName} connection and you will need to re-authenticate.</AlertDialogDescription>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onSave(platform, { connected: false, apiKey: '', refreshToken: '' })}>Continue</AlertDialogAction>
+                            <AlertDialogAction onClick={handleDisconnect}>Continue</AlertDialogAction>
                         </AlertDialogFooter>
                         </AlertDialogContent>
                     </AlertDialog>
@@ -178,7 +195,7 @@ function OAuthForm({
                         </Button>
                     </form>
                     <Separator />
-                    <Button onClick={handleConnect} disabled={!account?.id || !account.clientId || !account.clientSecret}>
+                    <Button onClick={handleConnect} disabled={!account?.id}>
                         <Link className="mr-2 h-4 w-4" />
                         Connect {platformName} Account
                     </Button>
@@ -241,7 +258,7 @@ export default function ApiKeysPage() {
         toast({ title: `${platform} Credentials Updated!` });
       } else {
         // Create new document
-        await addDoc(socialMediaAccountsCollection, { ...accountData, createdAt: new Date().toISOString() });
+        await addDoc(socialMediaAccountsCollection, { ...accountData, createdAt: new Date().toISOString(), username: `${platform} Account` });
         toast({ title: `${platform} Credentials Saved!` });
         if(platform !== 'Twitter') setActiveAccordionItem(undefined); 
       }
