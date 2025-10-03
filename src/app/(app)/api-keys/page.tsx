@@ -9,28 +9,14 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { KeyRound, LoaderCircle, Youtube, Link, Unlink, Instagram, AlertCircle, Trash2, Save, Twitter, Info, Facebook, AlertTriangle } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { KeyRound, LoaderCircle, Youtube, Instagram, Save, Twitter, Info, Facebook } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
-import { collection, doc, addDoc, updateDoc } from 'firebase/firestore';
-import { SocialMediaAccount } from '@/lib/types';
-import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
-import { getInstagramAuthUrl } from '@/ai/flows/instagram-auth';
+import { collection, doc, setDoc } from 'firebase/firestore';
+import { PlatformCredentials } from '@/lib/types';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import {
   Accordion,
   AccordionContent,
@@ -39,169 +25,64 @@ import {
 } from "@/components/ui/accordion"
 
 
-function TwitterForm({ account, onSave }: { account: Partial<SocialMediaAccount> | null, onSave: (data: Partial<SocialMediaAccount>) => Promise<void> }) {
-  const [apiKey, setApiKey] = useState(account?.apiKey || '');
-  const [apiSecret, setApiSecret] = useState(account?.apiSecret || '');
-  const [accessToken, setAccessToken] = useState(account?.accessToken || '');
-  const [accessTokenSecret, setAccessTokenSecret] = useState(account?.accessTokenSecret || '');
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    await onSave({
-      platform: 'Twitter',
-      username: account?.username || 'Twitter Account',
-      apiKey,
-      apiSecret,
-      accessToken,
-      accessTokenSecret,
-      connected: !!(apiKey && apiSecret && accessToken && accessTokenSecret),
-    });
-    setIsSaving(false);
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-       <Alert variant="default" className="bg-blue-50 border-blue-200">
-          <Info className="h-4 w-4 !text-blue-600" />
-          <AlertTitle className="text-blue-800">Developer Account Required</AlertTitle>
-          <AlertDescription className="text-blue-700">
-           To post to X (formerly Twitter), you need a developer account with v2 API access. You can get your credentials from the <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener noreferrer" className="underline font-semibold">Twitter Developer Portal</a>.
-          </AlertDescription>
-      </Alert>
-      <div className="space-y-2">
-        <Label htmlFor="twitter-api-key">API Key</Label>
-        <Input id="twitter-api-key" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Enter your API Key" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="twitter-api-secret">API Key Secret</Label>
-        <Input id="twitter-api-secret" value={apiSecret} onChange={e => setApiSecret(e.target.value)} placeholder="Enter your API Key Secret" />
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="twitter-access-token">Access Token</Label>
-        <Input id="twitter-access-token" value={accessToken} onChange={e => setAccessToken(e.target.value)} placeholder="Enter your Access Token" />
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="twitter-access-token-secret">Access Token Secret</Label>
-        <Input id="twitter-access-token-secret" value={accessTokenSecret} onChange={e => setAccessTokenSecret(e.target.value)} placeholder="Enter your Access Token Secret" />
-      </div>
-      <Button type="submit" disabled={isSaving}>
-        {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-        {account?.id ? 'Update Credentials' : 'Save Credentials'}
-      </Button>
-    </form>
-  )
-}
-
-function OAuthForm({ 
+function CredentialForm({ 
     platform, 
-    account, 
-    onSave, 
-    onConnect 
+    credentials, 
+    onSave,
+    fields,
+    helpText
 }: { 
-    platform: 'YouTube' | 'Instagram';
-    account: Partial<SocialMediaAccount> | null;
-    onSave: (platform: 'YouTube' | 'Instagram', data: Partial<SocialMediaAccount>) => Promise<void>;
-    onConnect: (platform: 'YouTube' | 'Instagram') => Promise<void>;
+    platform: PlatformCredentials['platform'];
+    credentials: Partial<PlatformCredentials> | null;
+    onSave: (platform: PlatformCredentials['platform'], data: Partial<PlatformCredentials>) => Promise<void>;
+    fields: {id: keyof PlatformCredentials, label: string, placeholder: string}[];
+    helpText: {title: string, link: string, description: string};
 }) {
-    const [clientId, setClientId] = useState(account?.clientId || '');
-    const [clientSecret, setClientSecret] = useState(account?.clientSecret || '');
+    const [formData, setFormData] = useState<Partial<PlatformCredentials>>({});
     const [isSaving, setIsSaving] = useState(false);
-
-    const platformName = platform === 'Instagram' ? 'Facebook' : platform;
     
     useEffect(() => {
-        if (account) {
-            setClientId(account.clientId || '');
-            setClientSecret(account.clientSecret || '');
-        }
-    }, [account]);
+        setFormData(credentials || {});
+    }, [credentials]);
 
+    const handleInputChange = (fieldId: keyof PlatformCredentials, value: string) => {
+        setFormData(prev => ({...prev, [fieldId]: value}));
+    }
 
-    const handleSave = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSaving(true);
-        await onSave(platform, {
-            clientId,
-            clientSecret,
-        });
+        await onSave(platform, formData);
         setIsSaving(false);
     }
-    
-    const handleConnect = () => {
-        if (!account?.clientId || !account?.clientSecret) {
-            alert(`Please save your ${platformName} Client ID and Secret first.`);
-            return;
-        }
-        onConnect(platform);
-    }
-    
-    const handleDisconnect = async () => {
-        await onSave(platform, {
-            connected: false,
-            apiKey: '',
-            refreshToken: '',
-            username: '',
-            instagramId: '',
-            facebookPageId: '',
-            facebookPageName: ''
-        });
-    }
+
+    const platformName = platform === 'Instagram' ? 'Facebook/Instagram' : platform;
 
     return (
-        <div className='space-y-4'>
-            {account?.connected ? (
-                 <div className='flex items-center justify-between'>
-                    <p className='text-sm text-muted-foreground'>Connected as <span className="font-semibold text-foreground">{account.username}</span>.</p>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                        <Button variant="destructive">
-                            <Unlink className="mr-2 h-4 w-4" />
-                            Disconnect
-                        </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle></AlertDialogHeader>
-                        <AlertDialogDescription>This will remove your {platformName} connection and you will need to re-authenticate.</AlertDialogDescription>
-                        <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDisconnect}>Continue</AlertDialogAction>
-                        </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                </div>
-            ) : (
-                <div className='space-y-6'>
-                    <form onSubmit={handleSave} className="space-y-4">
-                         <Alert variant="default" className="bg-blue-50 border-blue-200">
-                              <Info className="h-4 w-4 !text-blue-600" />
-                              <AlertTitle className="text-blue-800">OAuth Credentials Required</AlertTitle>
-                              <AlertDescription className="text-blue-700">
-                                You need to create an App in the <a href={platform === 'YouTube' ? 'https://console.cloud.google.com/': 'https://developers.facebook.com/apps/'} target="_blank" rel="noopener noreferrer" className="underline font-semibold">{platformName} Developer Console</a> to get these credentials.
-                              </AlertDescription>
-                          </Alert>
-                        <div className="space-y-2">
-                            <Label htmlFor={`${platform}-client-id`}>{platformName} App/Client ID</Label>
-                            <Input id={`${platform}-client-id`} value={clientId} onChange={e => setClientId(e.target.value)} placeholder={`Enter your ${platformName} App/Client ID`} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor={`${platform}-client-secret`}>{platformName} App/Client Secret</Label>
-                            <Input id={`${platform}-client-secret`} value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder={`Enter your ${platformName} App/Client Secret`} />
-                        </div>
-                        <Button type="submit" disabled={isSaving}>
-                            {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                             {account?.id ? 'Update' : 'Save'} Credentials
-                        </Button>
-                    </form>
-                    <Separator />
-                     <Button onClick={handleConnect} disabled={!account?.id}>
-                        <Link className="mr-2 h-4 w-4" />
-                        Connect {platformName} Account
-                    </Button>
-                </div>
-            )}
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+           <Alert variant="default" className="bg-blue-50 border-blue-200">
+              <Info className="h-4 w-4 !text-blue-600" />
+              <AlertTitle className="text-blue-800">{helpText.title}</AlertTitle>
+              <AlertDescription className="text-blue-700">
+               {helpText.description} <a href={helpText.link} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Developer Console</a>.
+              </AlertDescription>
+          </Alert>
+          {fields.map(field => (
+             <div className="space-y-2" key={field.id}>
+                <Label htmlFor={`${platform}-${field.id}`}>{field.label}</Label>
+                <Input 
+                    id={`${platform}-${field.id}`} 
+                    value={formData[field.id] || ''} 
+                    onChange={e => handleInputChange(field.id, e.target.value)} 
+                    placeholder={field.placeholder} 
+                />
+            </div>
+          ))}
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            {credentials?.id ? `Update ${platformName} Credentials` : `Save ${platformName} Credentials`}
+          </Button>
+        </form>
     )
 }
 
@@ -209,93 +90,54 @@ function OAuthForm({
 export default function ApiKeysPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [isConnecting, setIsConnecting] = useState<null | 'YouTube' | 'Instagram'>(null);
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>();
-
 
   const { toast } = useToast();
 
-  const socialMediaAccountsCollection = useMemoFirebase(() => {
+  const credentialsCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
+    return collection(firestore, 'users', user.uid, 'platformCredentials');
   }, [user, firestore]);
 
-  const { data: keys, isLoading } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
+  const { data: credentials, isLoading } = useCollection<PlatformCredentials>(credentialsCollectionRef);
 
-  const youtubeAccount = useMemo(() => keys?.find(k => k.platform === 'YouTube'), [keys]);
-  const instagramAccount = useMemo(() => keys?.find(k => k.platform === 'Instagram'), [keys]);
-  const twitterAccount = useMemo(() => keys?.find(k => k.platform === 'Twitter'), [keys]);
+  const youtubeCreds = useMemo(() => credentials?.find(c => c.platform === 'YouTube'), [credentials]);
+  const instagramCreds = useMemo(() => credentials?.find(c => c.platform === 'Instagram'), [credentials]);
+  const twitterCreds = useMemo(() => credentials?.find(c => c.platform === 'Twitter'), [credentials]);
 
   useEffect(() => {
     if (!isLoading) {
-      if (!instagramAccount) setActiveAccordionItem('instagram');
-      else if (!youtubeAccount) setActiveAccordionItem('youtube');
-      else if (!twitterAccount) setActiveAccordionItem('twitter');
+      if (!instagramCreds) setActiveAccordionItem('instagram');
+      else if (!youtubeCreds) setActiveAccordionItem('youtube');
+      else if (!twitterCreds) setActiveAccordionItem('twitter');
     }
-  }, [isLoading, instagramAccount, youtubeAccount, twitterAccount]);
+  }, [isLoading, instagramCreds, youtubeCreds, twitterCreds]);
 
-
-  const handleSaveAccount = async (platform: 'Twitter' | 'YouTube' | 'Instagram', data: Partial<SocialMediaAccount>) => {
-    if (!user || !firestore || !socialMediaAccountsCollection) return;
+  const handleSaveCredentials = async (platform: PlatformCredentials['platform'], data: Partial<PlatformCredentials>) => {
+    if (!user || !firestore) return;
     
-    let targetAccount;
-    if (platform === 'Twitter') targetAccount = twitterAccount;
-    if (platform === 'YouTube') targetAccount = youtubeAccount;
-    if (platform === 'Instagram') targetAccount = instagramAccount;
-
     try {
-      const accountData = {
+      // We use the platform name as the document ID for simplicity, ensuring one doc per platform.
+      const docRef = doc(firestore, `users/${user.uid}/platformCredentials`, platform);
+      
+      const credentialData = {
         ...data,
+        id: platform,
         platform,
         userId: user.uid,
         updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(), // This will be set on first save
       };
 
-      if (targetAccount) {
-        // Update existing document
-        const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, targetAccount.id);
-        await updateDoc(docRef, accountData);
-        toast({ title: `${platform} Credentials Updated!` });
-      } else {
-        // Create new document
-        await addDoc(socialMediaAccountsCollection, { ...accountData, createdAt: new Date().toISOString(), username: `${platform} Account` });
-        toast({ title: `${platform} Credentials Saved!` });
-        if(platform !== 'Twitter') setActiveAccordionItem(undefined); 
-      }
+      await setDoc(docRef, credentialData, { merge: true });
+      
+      toast({ title: `${platform} Credentials Saved!` });
+      setActiveAccordionItem(undefined); 
+
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
     }
   };
-
-
-  const handleConnect = async (platform: 'YouTube' | 'Instagram') => {
-    setIsConnecting(platform);
-    
-    const account = platform === 'YouTube' ? youtubeAccount : instagramAccount;
-    if (!account?.clientId || !account?.clientSecret) {
-        toast({ variant: 'destructive', title: 'Connection Error', description: 'Client ID and Secret must be saved first.' });
-        setIsConnecting(null);
-        return;
-    }
-
-    try {
-        let authUrlResult;
-        if (platform === 'YouTube') {
-            authUrlResult = await getYoutubeAuthUrl({clientId: account.clientId, clientSecret: account.clientSecret});
-        } else {
-            authUrlResult = await getInstagramAuthUrl({clientId: account.clientId, clientSecret: account.clientSecret});
-        }
-        window.location.href = authUrlResult.url;
-    } catch (error: any) {
-        console.error(`Failed to get ${platform} auth URL`, error);
-        toast({
-            variant: "destructive",
-            title: `${platform} Connection Failed`,
-            description: error.message || `Could not initiate connection. Please try again.`,
-        });
-        setIsConnecting(null);
-    }
-  }
   
   if (isLoading) {
     return (
@@ -310,24 +152,23 @@ export default function ApiKeysPage() {
       <div className="text-center">
         <KeyRound className="mx-auto h-12 w-12 text-primary" />
         <h1 className="mt-4 text-3xl font-headline font-bold tracking-tight text-foreground sm:text-4xl">
-          API Keys & Connections
+          API Credentials
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Manage your credentials and connections to post to your social media accounts.
+          Manage your app-level credentials for each platform. You only need to do this once per platform.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Manage Your Connections</CardTitle>
+          <CardTitle>Platform Credentials</CardTitle>
           <CardDescription>
-           Enter your API credentials for each platform you want to connect.
+           Enter your API credentials for each platform to enable connecting accounts.
           </CardDescription>
         </CardHeader>
         <CardContent>
            <Accordion type="single" collapsible value={activeAccordionItem} onValueChange={setActiveAccordionItem} className="w-full">
             
-            {/* Instagram / Facebook */}
             <AccordionItem value="instagram">
                 <AccordionTrigger>
                     <div className='flex items-center gap-2'>
@@ -337,16 +178,23 @@ export default function ApiKeysPage() {
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 bg-muted/30 rounded-b-lg">
-                    <OAuthForm 
+                    <CredentialForm 
                         platform='Instagram'
-                        account={instagramAccount}
-                        onSave={handleSaveAccount}
-                        onConnect={handleConnect}
+                        credentials={instagramCreds || null}
+                        onSave={handleSaveCredentials}
+                        fields={[
+                            {id: 'clientId', label: 'Facebook App ID', placeholder: 'Enter your Facebook App ID'},
+                            {id: 'clientSecret', label: 'Facebook App Secret', placeholder: 'Enter your Facebook App Secret'},
+                        ]}
+                        helpText={{
+                            title: 'Facebook Developer App Required',
+                            description: 'Get these from your app settings in the',
+                            link: 'https://developers.facebook.com/apps/'
+                        }}
                     />
                 </AccordionContent>
             </AccordionItem>
 
-            {/* YouTube */}
             <AccordionItem value="youtube">
                 <AccordionTrigger>
                     <div className='flex items-center gap-2'>
@@ -355,16 +203,23 @@ export default function ApiKeysPage() {
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 bg-muted/30 rounded-b-lg">
-                    <OAuthForm 
+                     <CredentialForm 
                         platform='YouTube'
-                        account={youtubeAccount}
-                        onSave={handleSaveAccount}
-                        onConnect={handleConnect}
+                        credentials={youtubeCreds || null}
+                        onSave={handleSaveCredentials}
+                        fields={[
+                            {id: 'clientId', label: 'Google Client ID', placeholder: 'Enter your Google Client ID'},
+                            {id: 'clientSecret', label: 'Google Client Secret', placeholder: 'Enter your Google Client Secret'},
+                        ]}
+                        helpText={{
+                            title: 'Google Cloud Project Required',
+                            description: 'Get these from your project credentials in the',
+                            link: 'https://console.cloud.google.com/'
+                        }}
                     />
                 </AccordionContent>
             </AccordionItem>
 
-             {/* Twitter */}
             <AccordionItem value="twitter">
                 <AccordionTrigger>
                     <div className='flex items-center gap-2'>
@@ -373,7 +228,22 @@ export default function ApiKeysPage() {
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 bg-muted/30 rounded-b-lg">
-                    <TwitterForm account={twitterAccount} onSave={(data) => handleSaveAccount('Twitter', data)} />
+                    <CredentialForm 
+                        platform='Twitter'
+                        credentials={twitterCreds || null}
+                        onSave={handleSaveCredentials}
+                        fields={[
+                            {id: 'apiKey', label: 'API Key', placeholder: 'Enter your API Key'},
+                            {id: 'apiSecret', label: 'API Key Secret', placeholder: 'Enter your API Key Secret'},
+                            {id: 'accessToken', label: 'Access Token', placeholder: 'Enter your Access Token'},
+                            {id: 'accessTokenSecret', label: 'Access Token Secret', placeholder: 'Enter your Access Token Secret'},
+                        ]}
+                        helpText={{
+                            title: 'X Developer App Required',
+                            description: 'Get these from your app in the',
+                            link: 'https://developer.twitter.com/en/portal/dashboard'
+                        }}
+                    />
                 </AccordionContent>
             </AccordionItem>
 

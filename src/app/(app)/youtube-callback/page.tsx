@@ -5,9 +5,10 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { type SocialMediaAccount } from '@/lib/types';
+import { type SocialMediaAccount, type PlatformCredentials } from '@/lib/types';
+import { google } from 'googleapis';
 
 function YouTubeCallback() {
   const searchParams = useSearchParams();
@@ -34,7 +35,7 @@ function YouTubeCallback() {
         title: 'YouTube Connection Failed',
         description: 'The connection was denied or an error occurred.',
       });
-      setTimeout(() => router.push('/api-keys'), 3000);
+      setTimeout(() => router.push('/connected-accounts'), 3000);
       return;
     }
 
@@ -42,52 +43,66 @@ function YouTubeCallback() {
       const handleTokenExchange = async () => {
         try {
           setMessage('Looking up your API credentials...');
-          const socialMediaAccountsCollection = collection(firestore, 'users', user.uid, 'socialMediaAccounts');
-          const q = query(socialMediaAccountsCollection, where("platform", "==", "YouTube"));
-          const querySnapshot = await getDocs(q);
-
-          if (querySnapshot.empty) {
-            throw new Error("Could not find YouTube account credentials. Please save your Client ID and Secret in the API Keys page first.");
-          }
-          const accountData = querySnapshot.docs[0].data() as SocialMediaAccount;
-          const accountIdToUpdate = querySnapshot.docs[0].id;
+          const credsRef = doc(firestore, 'users', user.uid, 'platformCredentials', 'YouTube');
+          const credsSnap = await getDoc(credsRef);
           
-          if (!accountData.clientId || !accountData.clientSecret) {
+          if (!credsSnap.exists()) {
+            throw new Error("Could not find YouTube credentials. Please save your Client ID and Secret in the API Credentials page first.");
+          }
+          const credentials = credsSnap.data() as PlatformCredentials;
+          
+          if (!credentials.clientId || !credentials.clientSecret) {
             throw new Error("Client ID or Client Secret is missing from your saved credentials.");
           }
           
           setMessage('Exchanging authorization code for tokens...');
           const { accessToken, refreshToken } = await getYoutubeTokens({ 
               code, 
-              clientId: accountData.clientId, 
-              clientSecret: accountData.clientSecret 
+              clientId: credentials.clientId, 
+              clientSecret: credentials.clientSecret 
           });
 
+           setMessage('Fetching channel details...');
+            const oauth2Client = new google.auth.OAuth2();
+            oauth2Client.setCredentials({ access_token: accessToken });
+            const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+            const channelResponse = await youtube.channels.list({ part: ['snippet'], mine: true });
+            const channelName = channelResponse.data.items?.[0]?.snippet?.title || 'YouTube Account';
+
+
           setMessage('Saving your connection...');
+          const socialMediaAccountsCollection = collection(firestore, 'users', user.uid, 'socialMediaAccounts');
           
-          const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
-          const updatedData: Partial<SocialMediaAccount> = {
-              apiKey: accessToken,
+          const newAccountData: Omit<SocialMediaAccount, 'id'> = {
+              userId: user.uid,
+              credentialsId: 'YouTube',
+              platform: 'YouTube',
+              accessToken: accessToken,
               refreshToken: refreshToken,
               connected: true,
-              username: 'YouTube Account', // Placeholder - a real app would get channel name
+              username: channelName,
+              createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
           };
-          await updateDoc(docRef, updatedData);
+          await addDoc(socialMediaAccountsCollection, newAccountData);
 
           toast({
             title: 'YouTube Account Connected!',
-            description: 'You can now manage this account.',
+            description: `Successfully connected "${channelName}".`,
           });
 
           router.push('/connected-accounts');
         } catch (err: any) {
           console.error('Failed to exchange token or save account:', err);
-          setError(err.message || 'An error occurred while finalizing the connection.');
+          let errorMessage = err.message || 'An error occurred while finalizing the connection.';
+          if (err.response?.data?.error_description) {
+            errorMessage = err.response.data.error_description;
+          }
+          setError(errorMessage);
           toast({
             variant: 'destructive',
             title: 'Connection Failed',
-            description: 'Could not save your YouTube account connection. Please try again.',
+            description: errorMessage,
           });
           setTimeout(() => router.push('/api-keys'), 5000);
         }

@@ -34,23 +34,35 @@ export type Post = {
   scheduledAt?: string;
 };
 
+// Represents the credentials for a platform's API
+export type PlatformCredentials = {
+    id: string;
+    userId: string;
+    platform: 'Instagram' | 'YouTube' | 'Twitter';
+    clientId?: string;
+    clientSecret?: string;
+    apiKey?: string;
+    apiSecret?: string;
+    accessToken?: string; // For Twitter App-only
+    accessTokenSecret?: string; // For Twitter App-only
+    createdAt: string;
+    updatedAt: string;
+}
+
+// Represents a single connected social media account
 export type SocialMediaAccount = {
     id: string;
     userId: string;
     platform: 'Instagram' | 'Facebook' | 'YouTube' | 'Twitter';
+    credentialsId: string; // Link to the PlatformCredentials document
     username: string;
-    apiKey?: string; // For platforms like Twitter
-    apiSecret?: string; // For platforms like Twitter
-    accessToken?: string; // For OAuth platforms (user's access token)
-    accessTokenSecret?: string; // For platforms like Twitter
-    pageAccessToken?: string; // For Facebook/Instagram Page API calls
-    refreshToken?: string; // For OAuth2 platforms like YouTube/Google
-    instagramId?: string; // Specific ID for Instagram Graph API
-    facebookPageId?: string; // Specific ID for Facebook Graph API
-    facebookPageName?: string; // Display name of the linked Facebook Page
-    connected?: boolean;
+    accessToken: string; // The user/page-specific access token for making API calls
+    refreshToken?: string;
+    pageAccessToken?: string;
+    instagramId?: string;
+    facebookPageId?: string;
+    facebookPageName?: string;
+    connected: boolean;
     createdAt: string;
     updatedAt: string;
-    clientId?: string; // User-provided Client ID for OAuth
-    clientSecret?: string; // User-provided Client Secret for OAuth
 };

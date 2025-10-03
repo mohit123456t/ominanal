@@ -3,11 +3,11 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
-import { getInstagramAccessToken, getInstagramUserDetails, exchangeForLongLivedToken } from '@/ai/flows/instagram-auth';
+import { getInstagramAccessToken, getInstagramUserDetails } from '@/ai/flows/instagram-auth';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, doc, addDoc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { type SocialMediaAccount } from '@/lib/types';
+import { type SocialMediaAccount, type PlatformCredentials } from '@/lib/types';
 
 function InstagramCallback() {
   const searchParams = useSearchParams();
@@ -34,72 +34,69 @@ function InstagramCallback() {
         title: 'Connection Failed',
         description: 'The connection was denied or an error occurred.',
       });
-      setTimeout(() => router.push('/api-keys'), 3000);
+      setTimeout(() => router.push('/connected-accounts'), 3000);
       return;
     }
 
     if (!code) {
         setError('Invalid request. No authorization code found.');
-        setTimeout(() => router.push('/api-keys'), 3000);
+        setTimeout(() => router.push('/connected-accounts'), 3000);
         return;
     }
 
     const handleTokenExchange = async () => {
       try {
         setMessage('Looking up your API credentials...');
-        const socialMediaAccountsCollection = collection(
-          firestore, 'users', user.uid, 'socialMediaAccounts'
-        );
-        const q = query(socialMediaAccountsCollection, where("platform", "==", "Instagram"));
-        const querySnapshot = await getDocs(q);
+        const credsRef = doc(firestore, 'users', user.uid, 'platformCredentials', 'Instagram');
+        const credsSnap = await getDoc(credsRef);
 
-        if (querySnapshot.empty) {
-          throw new Error("Could not find Instagram credentials. Please save your App ID and Secret in the API Keys page first.");
+        if (!credsSnap.exists()) {
+          throw new Error("Could not find Instagram credentials. Please save your App ID and Secret in the API Credentials page first.");
         }
 
-        const accountData = querySnapshot.docs[0].data() as SocialMediaAccount;
-        const accountIdToUpdate = querySnapshot.docs[0].id;
+        const credentials = credsSnap.data() as PlatformCredentials;
         
-        if (!accountData.clientId || !accountData.clientSecret) {
+        if (!credentials.clientId || !credentials.clientSecret) {
           throw new Error("Client ID or Client Secret is missing from your saved credentials.");
         }
         
         setMessage('Exchanging authorization code for access token...');
-        const { accessToken: shortLivedToken } = await getInstagramAccessToken({ 
+        const { accessToken } = await getInstagramAccessToken({ 
             code, 
-            clientId: accountData.clientId, 
-            clientSecret: accountData.clientSecret 
+            clientId: credentials.clientId, 
+            clientSecret: credentials.clientSecret 
         });
         
-        if (!shortLivedToken) {
+        if (!accessToken) {
           throw new Error('Failed to retrieve a valid access token.');
         }
 
-        setMessage('Exchanging for a long-lived access token...');
-        const { longLivedToken } = await exchangeForLongLivedToken({
-          shortLivedToken,
-          clientId: accountData.clientId,
-          clientSecret: accountData.clientSecret,
+        setMessage('Fetching your account details...');
+        const { username, instagramId, facebookPageId, facebookPageName, pageAccessToken } = await getInstagramUserDetails({ 
+            accessToken: accessToken, 
+            clientId: credentials.clientId, 
+            clientSecret: credentials.clientSecret 
         });
 
-        setMessage('Fetching your account details...');
-        const { username, instagramId, facebookPageId, facebookPageName, pageAccessToken } = await getInstagramUserDetails({ accessToken: longLivedToken });
-
         setMessage('Saving your connection...');
-        const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
+        const socialMediaAccountsCollection = collection(firestore, `users/${user.uid}/socialMediaAccounts`);
         
-        const updatedData: Partial<SocialMediaAccount> = {
-          accessToken: longLivedToken, // This is the long-lived user access token
-          pageAccessToken: pageAccessToken, // This is the page access token for posting
+        const newAccountData: Omit<SocialMediaAccount, 'id'> = {
+          userId: user.uid,
+          credentialsId: 'Instagram',
+          platform: 'Instagram',
+          accessToken: accessToken,
+          pageAccessToken: pageAccessToken,
           connected: true,
-          username: username, // Instagram username
+          username: username,
           instagramId: instagramId,
           facebookPageId: facebookPageId,
           facebookPageName: facebookPageName,
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
 
-        await updateDoc(docRef, updatedData);
+        await addDoc(socialMediaAccountsCollection, newAccountData);
 
         toast({
           title: 'Account Connected!',

@@ -113,11 +113,21 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname.startsWith('/settings') || pathname === '/api-keys'}
+              isActive={pathname.startsWith('/settings')}
               icon={<Settings />}
               tooltip={{ children: 'Settings' }}
             >
-              <Link href="/settings">Settings</Link>
+              <Link href="/settings">Team Settings</Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/api-keys'}
+              icon={<KeyRound />}
+              tooltip={{ children: 'API Credentials' }}
+            >
+              <Link href="/api-keys">API Credentials</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
