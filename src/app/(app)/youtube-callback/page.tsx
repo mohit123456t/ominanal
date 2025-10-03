@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { type SocialMediaAccount } from '@/lib/types';
 
@@ -41,52 +41,39 @@ function YouTubeCallback() {
     if (code && user && firestore) {
       const handleTokenExchange = async () => {
         try {
-          setMessage('Exchanging authorization code for tokens...');
-          const { accessToken, refreshToken } = await getYoutubeTokens({ code });
-
-          const socialMediaAccountsCollection = collection(
-            firestore,
-            'users',
-            user.uid,
-            'socialMediaAccounts'
-          );
-
-          // Check if a YouTube account already exists
+          setMessage('Looking up your API credentials...');
+          const socialMediaAccountsCollection = collection(firestore, 'users', user.uid, 'socialMediaAccounts');
           const q = query(socialMediaAccountsCollection, where("platform", "==", "YouTube"));
           const querySnapshot = await getDocs(q);
-          
-          const batch = writeBatch(firestore);
-          
-          if (!querySnapshot.empty) {
-            const accountIdToUpdate = querySnapshot.docs[0].id;
-            setMessage('Found existing YouTube connection. Updating...');
-            const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
-            const accountData: Partial<SocialMediaAccount> = {
-                apiKey: accessToken,
-                refreshToken: refreshToken,
-                connected: true,
-                updatedAt: new Date().toISOString(),
-            };
-            batch.update(docRef, accountData);
-          } else {
-             setMessage('Creating new YouTube connection...');
-             // A real app would make another API call to get the channel name.
-             const newAccountData: SocialMediaAccount = {
-                id: '', // Firestore will generate this
-                userId: user.uid,
-                platform: 'YouTube',
-                username: 'YouTube Account', // Placeholder
-                apiKey: accessToken,
-                refreshToken: refreshToken,
-                connected: true,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-             };
-             const newDocRef = doc(socialMediaAccountsCollection);
-             batch.set(newDocRef, newAccountData);
-          }
 
-          await batch.commit();
+          if (querySnapshot.empty) {
+            throw new Error("Could not find YouTube account credentials. Please save your Client ID and Secret in the API Keys page first.");
+          }
+          const accountData = querySnapshot.docs[0].data() as SocialMediaAccount;
+          const accountIdToUpdate = querySnapshot.docs[0].id;
+          
+          if (!accountData.clientId || !accountData.clientSecret) {
+            throw new Error("Client ID or Client Secret is missing from your saved credentials.");
+          }
+          
+          setMessage('Exchanging authorization code for tokens...');
+          const { accessToken, refreshToken } = await getYoutubeTokens({ 
+              code, 
+              clientId: accountData.clientId, 
+              clientSecret: accountData.clientSecret 
+          });
+
+          setMessage('Saving your connection...');
+          
+          const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
+          const updatedData: Partial<SocialMediaAccount> = {
+              apiKey: accessToken,
+              refreshToken: refreshToken,
+              connected: true,
+              username: 'YouTube Account', // Placeholder - a real app would get channel name
+              updatedAt: new Date().toISOString(),
+          };
+          await updateDoc(docRef, updatedData);
 
           toast({
             title: 'YouTube Account Connected!',

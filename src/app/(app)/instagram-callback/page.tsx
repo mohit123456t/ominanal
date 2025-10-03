@@ -46,8 +46,30 @@ function InstagramCallback() {
     if (code && user && firestore) {
       const handleTokenExchange = async () => {
         try {
+          setMessage('Looking up your API credentials...');
+          const socialMediaAccountsCollection = collection(
+            firestore, 'users', user.uid, 'socialMediaAccounts'
+          );
+          const q = query(socialMediaAccountsCollection, where("platform", "==", "Instagram"));
+          const querySnapshot = await getDocs(q);
+
+          if (querySnapshot.empty) {
+            throw new Error("Could not find Instagram account credentials. Please save your Client ID and Secret in the API Keys page first.");
+          }
+
+          const accountData = querySnapshot.docs[0].data() as SocialMediaAccount;
+          const accountIdToUpdate = querySnapshot.docs[0].id;
+          
+          if (!accountData.clientId || !accountData.clientSecret) {
+            throw new Error("Client ID or Client Secret is missing from your saved credentials.");
+          }
+          
           setMessage('Exchanging authorization code for access token...');
-          const { accessToken } = await getInstagramAccessToken({ code });
+          const { accessToken } = await getInstagramAccessToken({ 
+              code, 
+              clientId: accountData.clientId, 
+              clientSecret: accountData.clientSecret 
+          });
           
           if (!accessToken) {
             throw new Error('Failed to retrieve a valid access token.');
@@ -56,51 +78,22 @@ function InstagramCallback() {
           setMessage('Fetching user details from Instagram & Facebook...');
           const { username, instagramId, facebookPageId, facebookPageName } = await getInstagramUserDetails({ accessToken });
 
-          const socialMediaAccountsCollection = collection(
-            firestore,
-            'users',
-            user.uid,
-            'socialMediaAccounts'
-          );
-
-          const q = query(socialMediaAccountsCollection, where("platform", "==", "Instagram"));
-          const querySnapshot = await getDocs(q);
           
-          let accountIdToUpdate: string | null = null;
-          if (!querySnapshot.empty) {
-            accountIdToUpdate = querySnapshot.docs[0].id;
-            setMessage('Found existing Instagram connection. Updating...');
-          } else {
-             setMessage('Creating new Instagram connection...');
-          }
-
-          const accountData: Partial<SocialMediaAccount> = {
+          setMessage('Saving your connection...');
+          const updatedAccountData: Partial<SocialMediaAccount> = {
             userId: user.uid,
             platform: 'Instagram',
             username: username,
-            apiKey: accessToken,
+            apiKey: accessToken, // Store the access token in apiKey
             instagramId: instagramId,
             facebookPageId: facebookPageId,
             facebookPageName: facebookPageName,
             connected: true,
             updatedAt: new Date().toISOString(),
           };
-          
-          if (!accountIdToUpdate) {
-            accountData.createdAt = new Date().toISOString();
-          }
 
-
-          const batch = writeBatch(firestore);
-          if (accountIdToUpdate) {
-            const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
-            batch.update(docRef, accountData);
-          } else {
-            const newDocRef = doc(socialMediaAccountsCollection);
-            batch.set(newDocRef, accountData as SocialMediaAccount);
-          }
-
-          await batch.commit();
+          const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, accountIdToUpdate);
+          await updateDoc(docRef, updatedAccountData);
 
           toast({
             title: 'Instagram Account Connected!',
@@ -123,8 +116,6 @@ function InstagramCallback() {
       handleTokenExchange();
     } else if (!code && !errorParam) {
         if (!user || !firestore) {
-            // This can happen if the page loads before Firebase is ready.
-            // We'll wait for user/firestore to become available.
              setMessage('Waiting for user session...');
              return;
         }

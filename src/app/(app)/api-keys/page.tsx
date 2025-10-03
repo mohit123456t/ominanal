@@ -24,7 +24,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, doc, addDoc, updateDoc } from 'firebase/firestore';
-import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { SocialMediaAccount } from '@/lib/types';
 import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
 import { getInstagramAuthUrl } from '@/ai/flows/instagram-auth';
@@ -104,7 +103,7 @@ function OAuthForm({
     platform: 'YouTube' | 'Instagram';
     account: Partial<SocialMediaAccount> | null;
     onSave: (platform: 'YouTube' | 'Instagram', data: Partial<SocialMediaAccount>) => Promise<void>;
-    onConnect: (platform: 'YouTube' | 'Instagram', clientId: string, clientSecret: string) => Promise<void>;
+    onConnect: (platform: 'YouTube' | 'Instagram') => Promise<void>;
 }) {
     const [clientId, setClientId] = useState(account?.clientId || '');
     const [clientSecret, setClientSecret] = useState(account?.clientSecret || '');
@@ -126,11 +125,11 @@ function OAuthForm({
     }
     
     const handleConnect = () => {
-        if (!clientId || !clientSecret) {
+        if (!account?.clientId || !account?.clientSecret) {
             alert(`Please save your ${platformName} Client ID and Secret first.`);
             return;
         }
-        onConnect(platform, clientId, clientSecret);
+        onConnect(platform);
     }
 
     return (
@@ -179,7 +178,7 @@ function OAuthForm({
                         </Button>
                     </form>
                     <Separator />
-                    <Button onClick={handleConnect} disabled={!account?.id || !clientId || !clientSecret}>
+                    <Button onClick={handleConnect} disabled={!account?.id || !account.clientId || !account.clientSecret}>
                         <Link className="mr-2 h-4 w-4" />
                         Connect {platformName} Account
                     </Button>
@@ -252,14 +251,22 @@ export default function ApiKeysPage() {
   };
 
 
-  const handleConnect = async (platform: 'YouTube' | 'Instagram', clientId: string, clientSecret: string) => {
+  const handleConnect = async (platform: 'YouTube' | 'Instagram') => {
     setIsConnecting(platform);
+    
+    const account = platform === 'YouTube' ? youtubeAccount : instagramAccount;
+    if (!account?.clientId || !account?.clientSecret) {
+        toast({ variant: 'destructive', title: 'Connection Error', description: 'Client ID and Secret must be saved first.' });
+        setIsConnecting(null);
+        return;
+    }
+
     try {
         let authUrlResult;
         if (platform === 'YouTube') {
-            authUrlResult = await getYoutubeAuthUrl({clientId, clientSecret});
+            authUrlResult = await getYoutubeAuthUrl({clientId: account.clientId, clientSecret: account.clientSecret});
         } else {
-            authUrlResult = await getInstagramAuthUrl({clientId, clientSecret});
+            authUrlResult = await getInstagramAuthUrl({clientId: account.clientId, clientSecret: account.clientSecret});
         }
         window.location.href = authUrlResult.url;
     } catch (error: any) {
