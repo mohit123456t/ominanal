@@ -19,7 +19,7 @@ export type EngagementData = {
 export type Post = {
   id: string;
   userId: string;
-  platform: 'facebook' | 'instagram' | 'youtube';
+  platform: 'facebook' | 'instagram' | 'youtube' | 'twitter';
   content: string;
   mediaUrl?: string;
   imageHint?: string;
@@ -39,8 +39,10 @@ export type SocialMediaAccount = {
     platform: 'Instagram' | 'Facebook' | 'YouTube' | 'Twitter';
     username: string;
     apiKey: string;
-    apiSecret?: string;
-    refreshToken?: string;
+    apiSecret?: string; // For platforms like Twitter
+    accessToken?: string; // For platforms like Twitter (user's access token)
+    accessTokenSecret?: string; // For platforms like Twitter
+    refreshToken?: string; // For OAuth2 platforms like YouTube
     instagramId?: string; // Specific ID for Instagram Graph API
     facebookPageId?: string; // Specific ID for Facebook Graph API
     facebookPageName?: string; // Display name of the linked Facebook Page
@@ -48,5 +50,3 @@ export type SocialMediaAccount = {
     createdAt: string;
     updatedAt: string;
 };
-
-    

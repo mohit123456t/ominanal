@@ -23,6 +23,7 @@ import {
   Youtube,
   Eye,
   Upload,
+  Twitter,
   AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ import { type Post, SocialMediaAccount } from '@/lib/types';
 import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
 import { postToInstagram } from '@/ai/flows/instagram-post';
 import { postToFacebook } from '@/ai/flows/facebook-post';
+import { postToTwitter } from '@/ai/flows/twitter-post';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -185,7 +187,7 @@ export default function CreatePostPage() {
                 videoDataUri,
                 title: title || 'My OmniPost AI Video',
                 description: description || '',
-                accessToken: youtubeAccount.apiKey,
+                accessToken: youtubeAccount.accessToken || '',
                 refreshToken: youtubeAccount.refreshToken,
             });
             toast({ title: 'Video sent to YouTube!', description: 'Your video is being processed by YouTube.' });
@@ -210,7 +212,7 @@ export default function CreatePostPage() {
                   instagramUserId: instagramAccount.instagramId,
                   mediaUrl: mediaUrl,
                   caption: text,
-                  accessToken: instagramAccount.apiKey,
+                  accessToken: instagramAccount.accessToken || '',
               });
 
               toast({
@@ -235,12 +237,36 @@ export default function CreatePostPage() {
                 facebookPageId: facebookAccount.facebookPageId,
                 mediaUrl: mediaUrl,
                 caption: text,
-                userAccessToken: facebookAccount.apiKey,
+                userAccessToken: facebookAccount.accessToken || '',
             });
             toast({ title: 'Posted to Facebook!', description: 'Your post should be live on your Facebook Page.' });
             somethingPublished = true;
         }
       }
+      
+      // Twitter Post Logic
+      if (selectedPlatforms.includes('twitter')) {
+        const twitterAccount = accounts?.find(acc => acc.platform === 'Twitter');
+        if (!twitterAccount) {
+            toast({ variant: 'destructive', title: 'Twitter Error', description: 'You must add your Twitter credentials in the API Keys page.' });
+        } else if (!twitterAccount.connected) {
+            toast({ variant: 'destructive', title: 'Twitter Error', description: "Your Twitter account is disconnected. Please connect it in the 'Connected Accounts' page." });
+        } else if (!twitterAccount.apiKey || !twitterAccount.apiSecret || !twitterAccount.accessToken || !twitterAccount.accessTokenSecret) {
+            toast({ variant: 'destructive', title: 'Twitter Error', description: 'Missing one or more required Twitter API credentials.' });
+        }
+        else {
+            await postToTwitter({
+                text,
+                apiKey: twitterAccount.apiKey,
+                apiSecret: twitterAccount.apiSecret,
+                accessToken: twitterAccount.accessToken,
+                accessTokenSecret: twitterAccount.accessTokenSecret,
+            });
+            toast({ title: 'Posted to Twitter!', description: 'Your tweet should be live on your profile.' });
+            somethingPublished = true;
+        }
+      }
+
 
       // Save a record to Firestore for our own analytics, even if posted via API
       for (const platform of selectedPlatforms) {
@@ -294,6 +320,7 @@ export default function CreatePostPage() {
     { id: 'facebook', label: 'Facebook' },
     { id: 'instagram', label: 'Instagram' },
     { id: 'youtube', label: 'YouTube' },
+    { id: 'twitter', label: 'Twitter' },
   ];
 
   const handlePlatformChange = (platformId: Post['platform']) => {
@@ -307,6 +334,7 @@ export default function CreatePostPage() {
   const isYouTubeSelected = selectedPlatforms.includes('youtube');
   const isInstagramSelected = selectedPlatforms.includes('instagram');
   const isFacebookSelected = selectedPlatforms.includes('facebook');
+  const isTwitterSelected = selectedPlatforms.includes('twitter');
 
 
   return (
@@ -447,10 +475,11 @@ export default function CreatePostPage() {
       <div className="lg:sticky top-24">
         <h2 className="font-headline text-lg font-semibold mb-4">Live Preview</h2>
         <Tabs defaultValue="instagram" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="instagram"><Instagram className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="facebook"><Facebook className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="youtube"><Youtube className="w-5 h-5"/></TabsTrigger>
+            <TabsTrigger value="twitter"><Twitter className="w-5 h-5"/></TabsTrigger>
           </TabsList>
           
           <TabsContent value="instagram">
@@ -540,6 +569,38 @@ export default function CreatePostPage() {
                       <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{text.split('\n').slice(1).join('\n') || "Your video description will appear here..."}</p>
                   </div>
               </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="twitter">
+             <Card className="bg-white text-black border-gray-200 max-w-[550px] mx-auto">
+                <CardContent className="p-4">
+                    <div className="flex space-x-3">
+                         {userAvatar && <Avatar>
+                            <AvatarImage src={userAvatar.imageUrl} />
+                            <AvatarFallback>JD</AvatarFallback>
+                        </Avatar>}
+                        <div className="flex-1 space-y-1">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h4 className="text-sm font-semibold">Jane Doe</h4>
+                                    <p className="text-xs text-gray-500">@janedoe</p>
+                                </div>
+                                <Twitter className="h-5 w-5 text-sky-500" />
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap">{text || "Your tweet will appear here..."}</p>
+                            {effectiveMediaUrl && !mediaFile && <div className="mt-3 rounded-lg border overflow-hidden"><Image src={effectiveMediaUrl} alt="preview" width={500} height={300} className="object-cover w-full"/></div>}
+                             <div className="flex justify-between items-center text-gray-600 text-xs pt-2">
+                                <span>1m ago</span>
+                                <div className="flex gap-4">
+                                    <span className="flex items-center gap-1"><MessageCircle size={14}/> 12</span>
+                                    <span className="flex items-center gap-1"><Repeat size={14}/> 34</span>
+                                    <span className="flex items-center gap-1"><Heart size={14}/> 56</span>
+                                    <span className="flex items-center gap-1"><Eye size={14}/> 1.2K</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
             </Card>
           </TabsContent>
         </Tabs>

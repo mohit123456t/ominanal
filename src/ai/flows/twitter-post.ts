@@ -34,8 +34,10 @@ const postToTwitterFlow = ai.defineFlow(
   },
   async ({ text, apiKey, apiSecret, accessToken, accessTokenSecret }) => {
 
-    // This implementation uses twitter-api-sdk with OAuth 1.0a authentication.
-    // It requires the user to provide their app's API key/secret and their own access token/secret.
+    if (!apiKey || !apiSecret || !accessToken || !accessTokenSecret) {
+        throw new Error('Missing one or more required Twitter API credentials. Please check your settings on the API Keys page.');
+    }
+    
     const authClient = new auth.OAuth1User({
       apiKey: apiKey,
       apiSecret: apiSecret,
@@ -66,6 +68,7 @@ const postToTwitterFlow = ai.defineFlow(
 
     } catch (error: any) {
         console.error("Failed to post tweet:", error);
+        // Extract a more specific error message if available from Twitter's response
         const errorMessage = error.body?.detail || error.message || 'An unknown error occurred while posting to Twitter.';
         throw new Error(errorMessage);
     }

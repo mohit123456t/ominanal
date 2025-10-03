@@ -31,7 +31,7 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 }, async ({ userId, accountId, videoDataUri, title, description, accessToken, refreshToken }) => {
     
     if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube API credentials are not configured in the .env file.');
+        throw new Error('YouTube API credentials are not configured by the app owner in the .env file.');
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -42,14 +42,17 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
 
+    // Listen for token refresh events
     oauth2Client.on('tokens', (tokens) => {
         if (tokens.access_token) {
           console.log("Refreshed YouTube access token. Updating in Firestore.");
+          // This is a fire-and-forget operation, we don't want to block the upload flow
           updateYouTubeAccessToken({
             userId,
             accountId,
             newAccessToken: tokens.access_token,
           }).catch(err => {
+            // Log the error but don't fail the upload. The new token is already in memory for this request.
             console.error("Background task to update access token in DB failed:", err);
           });
         }
@@ -58,12 +61,12 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     try {
-      // Check if the access token is expired and refresh it if necessary.
-      // The googleapis library handles this automatically if a refresh token is available.
-      // We make a simple, low-quota call to trigger the refresh mechanism if needed.
+      // The googleapis library should automatically use the refresh token if the access token is expired.
+      // We can make a simple, low-quota call to ensure the credentials are valid before the upload.
       await youtube.channels.list({ part: ['id'], mine: true });
-    } catch (err) {
-      console.error("Token refresh or validation failed. The credentials might be invalid.", err);
+    } catch (err: any) {
+      console.error("Token validation or refresh failed. The credentials might be invalid.", err);
+      // Provide a more user-friendly error message
       throw new Error("Invalid YouTube credentials. Please try disconnecting and reconnecting your YouTube account from the API Keys page.");
     }
 
@@ -81,10 +84,10 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
                 title,
                 description,
                 tags: ['OmniPostAI', 'AI', 'SocialMedia'],
-                categoryId: '28', 
+                categoryId: '28', // Category for "Science & Technology"
             },
             status: {
-                privacyStatus: 'private', 
+                privacyStatus: 'private', // Or 'public', 'unlisted'
             },
         },
         media: {
