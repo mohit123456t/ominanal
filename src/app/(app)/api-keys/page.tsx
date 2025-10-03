@@ -215,6 +215,7 @@ export default function ApiKeysPage() {
   };
 
   const handleConnect = async (platform: PlatformCredentials['platform']) => {
+    if (!user) return;
     setIsConnecting(platform);
     
     const creds = credentials?.[platform];
@@ -228,7 +229,7 @@ export default function ApiKeysPage() {
     try {
         let authUrlResult;
         if (platform === 'YouTube') {
-            authUrlResult = await getYoutubeAuthUrlAction({clientId: creds.clientId, clientSecret: creds.clientSecret});
+            authUrlResult = await getYoutubeAuthUrlAction({userId: user.uid});
         } else if (platform === 'Instagram') {
             authUrlResult = await getInstagramAuthUrl({clientId: creds.clientId, clientSecret: creds.clientSecret});
         } else {

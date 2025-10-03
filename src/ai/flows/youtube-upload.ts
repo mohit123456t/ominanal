@@ -23,21 +23,23 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
       description: z.string().describe('The description of the video.'),
       accessToken: z.string().describe('The current YouTube access token.'),
       refreshToken: z.string().optional().describe('The YouTube refresh token.'),
+      clientId: z.string(),
+      clientSecret: z.string(),
     }),
     outputSchema: z.object({
       videoId: z.string().describe('The ID of the uploaded video.'),
       videoUrl: z.string().url().describe('The URL of the uploaded video.'),
     }),
-}, async ({ userId, accountId, videoDataUri, title, description, accessToken, refreshToken }) => {
+}, async ({ userId, accountId, videoDataUri, title, description, accessToken, refreshToken, clientId, clientSecret }) => {
     
-    if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube API credentials are not configured by the app owner in the .env file.');
+    if (!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube redirect URI is not configured by the app owner in the .env file.');
     }
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.YOUTUBE_CLIENT_ID,
-      process.env.YOUTUBE_CLIENT_SECRET,
-      process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
+      clientId,
+      clientSecret,
+      `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI}`
     );
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });

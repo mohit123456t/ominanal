@@ -5,9 +5,9 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
 import { getYoutubeTokensAction } from '@/actions/youtube';
 import { useFirestore, useUser } from '@/firebase';
-import { collection, doc, addDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, addDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { type SocialMediaAccount, type PlatformCredentials } from '@/lib/types';
+import { type SocialMediaAccount } from '@/lib/types';
 
 function YouTubeCallback() {
   const searchParams = useSearchParams();
@@ -52,24 +52,10 @@ function YouTubeCallback() {
 
     const handleTokenExchange = async () => {
       try {
-        setMessage('Looking up your API credentials...');
-        const credsRef = doc(firestore, 'users', user.uid, 'platformCredentials', 'YouTube');
-        const credsSnap = await getDoc(credsRef);
-        
-        if (!credsSnap.exists()) {
-          throw new Error("Could not find YouTube credentials. Please save your Client ID and Secret in the API Credentials page first.");
-        }
-        const credentials = credsSnap.data() as PlatformCredentials;
-        
-        if (!credentials.clientId || !credentials.clientSecret) {
-          throw new Error("Client ID or Client Secret is missing from your saved credentials.");
-        }
-        
         setMessage('Exchanging authorization code for tokens...');
         const { accessToken, refreshToken } = await getYoutubeTokensAction({ 
-            code, 
-            clientId: credentials.clientId, 
-            clientSecret: credentials.clientSecret 
+            code,
+            userId: user.uid,
         });
 
          setMessage('Fetching channel details...');
