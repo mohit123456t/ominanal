@@ -9,12 +9,14 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
+import crypto from 'crypto';
 
 const PostToFacebookInputSchema = z.object({
   facebookPageId: z.string().describe('The ID of the Facebook Page.'),
   mediaUrl: z.string().url().describe('The public URL of the image to post.'),
   caption: z.string().optional().describe('The caption for the post.'),
   userAccessToken: z.string().describe('The user access token with pages_manage_posts permission.'),
+  appSecret: z.string().describe('The Facebook App Secret for generating appsecret_proof.')
 });
 export type PostToFacebookInput = z.infer<typeof PostToFacebookInputSchema>;
 
@@ -32,11 +34,16 @@ const getPageAccessToken = ai.defineFlow(
     inputSchema: z.object({
       pageId: z.string(),
       userAccessToken: z.string(),
+      appSecret: z.string(),
     }),
     outputSchema: z.object({ pageAccessToken: z.string() }),
   },
-  async ({ pageId, userAccessToken }) => {
-    const url = `${FACEBOOK_GRAPH_API_URL}/${pageId}?fields=access_token&access_token=${userAccessToken}`;
+  async ({ pageId, userAccessToken, appSecret }) => {
+    
+    const appSecretProof = crypto.createHmac('sha256', appSecret).update(userAccessToken).digest('hex');
+
+    const url = `${FACEBOOK_GRAPH_API_URL}/${pageId}?fields=access_token&access_token=${userAccessToken}&appsecret_proof=${appSecretProof}`;
+
     const response = await fetch(url);
     if (!response.ok) {
       const errorData: any = await response.json();
@@ -58,12 +65,13 @@ const postToFacebookFlow = ai.defineFlow(
     inputSchema: PostToFacebookInputSchema,
     outputSchema: PostToFacebookOutputSchema,
   },
-  async ({ facebookPageId, mediaUrl, caption, userAccessToken }) => {
+  async ({ facebookPageId, mediaUrl, caption, userAccessToken, appSecret }) => {
     
     // Step 1: Get the Page Access Token. This is crucial.
     const { pageAccessToken } = await getPageAccessToken({
         pageId: facebookPageId,
-        userAccessToken: userAccessToken
+        userAccessToken: userAccessToken,
+        appSecret: appSecret,
     });
 
     // Step 2: Use the Page Access Token to post the photo.

@@ -226,8 +226,8 @@ export default function CreatePostPage() {
       // Facebook Post Logic
       if (selectedPlatforms.includes('facebook')) {
         const facebookAccount = accounts?.find(acc => acc.platform === 'Instagram'); // Instagram connection holds FB data
-        if (!facebookAccount || !facebookAccount.facebookPageId) {
-            toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID is required.' });
+        if (!facebookAccount || !facebookAccount.facebookPageId || !facebookAccount.clientSecret) {
+            toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID and App Secret is required.' });
         } else if (!facebookAccount.connected) {
             toast({ variant: 'destructive', title: 'Facebook Error', description: "Your Facebook account is disconnected. Please reconnect it in the 'API Keys' page." });
         } else if (!mediaUrl) {
@@ -238,6 +238,7 @@ export default function CreatePostPage() {
                 mediaUrl: mediaUrl,
                 caption: text,
                 userAccessToken: facebookAccount.accessToken || '',
+                appSecret: facebookAccount.clientSecret,
             });
             toast({ title: 'Posted to Facebook!', description: 'Your post should be live on your Facebook Page.' });
             somethingPublished = true;
