@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, ChangeEvent, useEffect } from 'react';
@@ -74,6 +75,7 @@ const fileToDataUri = (file: File): Promise<string> =>
 
 export default function CreatePostPage() {
   const [text, setText] = useState('');
+  const [youtubeDescription, setYoutubeDescription] = useState('');
   const [mediaUrl, setMediaUrl] = useState(''); // For URL input
   const [mediaFile, setMediaFile] = useState<File | null>(null); // For file upload
   const [mediaPreview, setMediaPreview] = useState<string>(''); // For file upload preview
@@ -134,6 +136,7 @@ export default function CreatePostPage() {
 
   const effectiveMediaUrl = mediaUrl || mediaPreview;
 
+  const isYouTubeSelected = selectedPlatforms.includes('youtube');
 
   const handleGenerateCaption = async () => {
     setIsGenerating(true);
@@ -145,7 +148,13 @@ export default function CreatePostPage() {
       });
 
       if (result.caption) {
-        setText(result.caption);
+        if(isYouTubeSelected) {
+          const [title, ...descParts] = result.caption.split('\n');
+          setText(title);
+          setYoutubeDescription(descParts.join('\n'));
+        } else {
+          setText(result.caption);
+        }
         toast({
           title: 'Caption Generated!',
           description: 'The AI has crafted a new caption for you.',
@@ -184,7 +193,7 @@ export default function CreatePostPage() {
       const effectiveUrlForApi = mediaFile ? await fileToDataUri(mediaFile) : mediaUrl;
 
       // YouTube Upload Logic
-      if (selectedPlatforms.includes('youtube')) {
+      if (isYouTubeSelected) {
         const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
         const youtubeCreds = credentials['YouTube'];
 
@@ -196,13 +205,11 @@ export default function CreatePostPage() {
             toast({ variant: 'destructive', title: 'YouTube Error', description: 'YouTube requires a video file to be uploaded.' });
         } else {
             const videoDataUri = await fileToDataUri(mediaFile);
-            const [title, ...descriptionParts] = text.split('\n');
-            const description = descriptionParts.join('\n');
             
             await uploadVideoToYoutube({
                 videoDataUri,
-                title: title || 'My OmniPost AI Video',
-                description: description || '',
+                title: text || 'My OmniPost AI Video',
+                description: youtubeDescription,
                 accessToken: youtubeAccount.accessToken || '',
                 refreshToken: youtubeAccount.refreshToken,
                 clientId: youtubeCreds.clientId,
@@ -318,6 +325,7 @@ export default function CreatePostPage() {
 
           // Reset form
           setText('');
+          setYoutubeDescription('');
           setMediaUrl('');
           setMediaFile(null);
           setMediaPreview('');
@@ -353,7 +361,6 @@ export default function CreatePostPage() {
     );
   }
   
-  const isYouTubeSelected = selectedPlatforms.includes('youtube');
   const isInstagramSelected = selectedPlatforms.includes('instagram');
   const isFacebookSelected = selectedPlatforms.includes('facebook');
   const isTwitterSelected = selectedPlatforms.includes('twitter');
@@ -379,11 +386,25 @@ export default function CreatePostPage() {
             </div>
 
             <Textarea
-              placeholder="What's on your mind?"
+              placeholder={isYouTubeSelected ? "Video Title" : "What's on your mind?"}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="min-h-[150px] text-base"
+              className="min-h-[120px] text-base"
             />
+            
+            {isYouTubeSelected && (
+              <div className="space-y-2">
+                <Label htmlFor="youtube-description">YouTube Description</Label>
+                <Textarea
+                  id="youtube-description"
+                  placeholder="Tell viewers about your video..."
+                  value={youtubeDescription}
+                  onChange={(e) => setYoutubeDescription(e.target.value)}
+                  className="min-h-[150px] text-base"
+                />
+              </div>
+            )}
+
             
             <Tabs defaultValue="url" className="w-full">
                 <TabsList>
@@ -456,7 +477,7 @@ export default function CreatePostPage() {
                 ) : (
                   <Sparkles className="mr-2 h-4 w-4" />
                 )}
-                Generate Caption
+                Generate Content
               </Button>
               <Button variant="outline" disabled>
                 <Sparkles className="mr-2 h-4 w-4" />
@@ -573,7 +594,7 @@ export default function CreatePostPage() {
                   )}
 
                   <div className="p-4">
-                     <h3 className="text-lg font-bold">{text.split('\n')[0] || "Your Video Title Here"}</h3>
+                     <h3 className="text-lg font-bold">{text || "Your Video Title Here"}</h3>
                      <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
                         {userAvatar && <Avatar size="sm">
                             <AvatarImage src={userAvatar.imageUrl} />
@@ -588,7 +609,7 @@ export default function CreatePostPage() {
                             </div>
                         </div>
                      </div>
-                      <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{text.split('\n').slice(1).join('\n') || "Your video description will appear here..."}</p>
+                      <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{youtubeDescription || "Your video description will appear here..."}</p>
                   </div>
               </CardContent>
             </Card>
@@ -630,3 +651,6 @@ export default function CreatePostPage() {
     </div>
   );
 }
+
+
+    
