@@ -9,13 +9,15 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import fetch from 'node-fetch';
+import * as crypto from 'crypto';
+
 
 const PostToFacebookInputSchema = z.object({
   facebookPageId: z.string().describe('The ID of the Facebook Page.'),
   mediaUrl: z.string().url().describe('The public URL of the image to post.'),
   caption: z.string().optional().describe('The caption for the post.'),
   userAccessToken: z.string().describe('The user access token with pages_manage_posts permission.'),
-  appSecret: z.string().describe('The Facebook App Secret (not directly used for proof, but good practice to have).')
+  appSecret: z.string().describe('The Facebook App Secret used to generate appsecret_proof.')
 });
 export type PostToFacebookInput = z.infer<typeof PostToFacebookInputSchema>;
 
@@ -32,10 +34,13 @@ const postToFacebookFlow = ai.defineFlow(
     inputSchema: PostToFacebookInputSchema,
     outputSchema: PostToFacebookOutputSchema,
   },
-  async ({ facebookPageId, mediaUrl, caption, userAccessToken }) => {
+  async ({ facebookPageId, mediaUrl, caption, userAccessToken, appSecret }) => {
     
     // Step 1: Get the Page Access Token using the User Access Token.
-    const pageTokenUrl = `${FACEBOOK_GRAPH_API_URL}/${facebookPageId}?fields=access_token&access_token=${userAccessToken}`;
+    // This requires an appsecret_proof to prove the call is from a trusted server.
+    const appSecretProof = crypto.createHmac('sha256', appSecret).update(userAccessToken).digest('hex');
+    
+    const pageTokenUrl = `${FACEBOOK_GRAPH_API_URL}/${facebookPageId}?fields=access_token&access_token=${userAccessToken}&appsecret_proof=${appSecretProof}`;
     const pageTokenResponse = await fetch(pageTokenUrl);
     
     if (!pageTokenResponse.ok) {

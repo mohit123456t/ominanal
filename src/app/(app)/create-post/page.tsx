@@ -8,7 +8,7 @@ import {
   Link,
   List,
   Sparkles,
-  Image as ImageIcon,
+  ImageIcon,
   Calendar as CalendarIcon,
   Send,
   LoaderCircle,
