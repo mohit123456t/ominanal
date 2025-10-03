@@ -9,7 +9,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { KeyRound, LoaderCircle, Youtube, Link, Unlink, Instagram, AlertCircle, Trash2, Save, Twitter, Info } from 'lucide-react';
+import { KeyRound, LoaderCircle, Youtube, Link, Unlink, Instagram, AlertCircle, Trash2, Save, Twitter, Info, Facebook } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,12 +52,12 @@ function TwitterForm({ account, onSave }: { account: Partial<SocialMediaAccount>
     setIsSaving(true);
     await onSave({
       platform: 'Twitter',
-      username: 'Twitter Account', // A generic name, can be updated later
+      username: account?.username || 'Twitter Account',
       apiKey,
       apiSecret,
       accessToken,
       accessTokenSecret,
-      connected: true,
+      connected: !!(apiKey && apiSecret && accessToken && accessTokenSecret),
     });
     setIsSaving(false);
   }
@@ -89,18 +89,111 @@ function TwitterForm({ account, onSave }: { account: Partial<SocialMediaAccount>
       </div>
       <Button type="submit" disabled={isSaving}>
         {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-        {account ? 'Update Credentials' : 'Save & Connect'}
+        {account?.id ? 'Update Credentials' : 'Save Credentials'}
       </Button>
     </form>
   )
+}
+
+function OAuthForm({ 
+    platform, 
+    account, 
+    onSave, 
+    onConnect 
+}: { 
+    platform: 'YouTube' | 'Instagram';
+    account: Partial<SocialMediaAccount> | null;
+    onSave: (platform: 'YouTube' | 'Instagram', data: Partial<SocialMediaAccount>) => Promise<void>;
+    onConnect: (platform: 'YouTube' | 'Instagram', clientId: string, clientSecret: string) => Promise<void>;
+}) {
+    const [clientId, setClientId] = useState(account?.clientId || '');
+    const [clientSecret, setClientSecret] = useState(account?.clientSecret || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const platformName = platform === 'Instagram' ? 'Facebook' : platform;
+    const Icon = platform === 'Instagram' ? Instagram : Youtube;
+    const colorClass = platform === 'Instagram' ? 'text-pink-600' : 'text-red-600';
+
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        await onSave(platform, {
+            clientId,
+            clientSecret,
+        });
+        setIsSaving(false);
+    }
+    
+    const handleConnect = () => {
+        if (!clientId || !clientSecret) {
+            alert(`Please save your ${platformName} Client ID and Secret first.`);
+            return;
+        }
+        onConnect(platform, clientId, clientSecret);
+    }
+
+    return (
+        <div className='space-y-4'>
+            {account?.connected ? (
+                 <div className='flex items-center justify-between'>
+                    <p className='text-sm text-muted-foreground'>Connected as <span className="font-semibold text-foreground">{account.username}</span>.</p>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="destructive">
+                            <Unlink className="mr-2 h-4 w-4" />
+                            Disconnect
+                        </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle></AlertDialogHeader>
+                        <AlertDialogDescription>This will remove your {platformName} connection.</AlertDialogDescription>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onSave(platform, { connected: false, apiKey: '', refreshToken: '' })}>Continue</AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            ) : (
+                <div className='space-y-6'>
+                    <form onSubmit={handleSave} className="space-y-4">
+                         <Alert variant="default" className="bg-blue-50 border-blue-200">
+                              <Info className="h-4 w-4 !text-blue-600" />
+                              <AlertTitle className="text-blue-800">OAuth Credentials Required</AlertTitle>
+                              <AlertDescription className="text-blue-700">
+                                You need to create an App in the <a href={platform === 'YouTube' ? 'https://console.cloud.google.com/': 'https://developers.facebook.com/apps/'} target="_blank" rel="noopener noreferrer" className="underline font-semibold">{platformName} Developer Console</a> to get these credentials.
+                              </AlertDescription>
+                          </Alert>
+                        <div className="space-y-2">
+                            <Label htmlFor={`${platform}-client-id`}>{platformName} App/Client ID</Label>
+                            <Input id={`${platform}-client-id`} value={clientId} onChange={e => setClientId(e.target.value)} placeholder={`Enter your ${platformName} App/Client ID`} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor={`${platform}-client-secret`}>{platformName} App/Client Secret</Label>
+                            <Input id={`${platform}-client-secret`} value={clientSecret} onChange={e => setClientSecret(e.target.value)} placeholder={`Enter your ${platformName} App/Client Secret`} />
+                        </div>
+                        <Button type="submit" disabled={isSaving}>
+                            {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                             {account?.id ? 'Update' : 'Save'} Credentials
+                        </Button>
+                    </form>
+                    <Separator />
+                    <Button onClick={handleConnect} disabled={!account?.id || !clientId || !clientSecret}>
+                        <Link className="mr-2 h-4 w-4" />
+                        Connect {platformName} Account
+                    </Button>
+                </div>
+            )}
+        </div>
+    )
 }
 
 
 export default function ApiKeysPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const [isConnectingYouTube, setIsConnectingYouTube] = useState(false);
-  const [isConnectingInstagram, setIsConnectingInstagram] = useState(false);
+  const [isConnecting, setIsConnecting] = useState<null | 'YouTube' | 'Instagram'>(null);
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>();
 
 
@@ -126,36 +219,32 @@ export default function ApiKeysPage() {
   }, [isLoading, instagramAccount, youtubeAccount, twitterAccount]);
 
 
-  const handleDeleteKey = (accountId: string) => {
-    if (!socialMediaAccountsCollection) return;
-    const docRef = doc(socialMediaAccountsCollection, accountId);
-    deleteDocumentNonBlocking(docRef);
-    toast({
-        title: 'Connection Removed',
-        description: `The connection has been removed.`,
-      });
-  };
-  
-  const handleSaveTwitter = async (data: Partial<SocialMediaAccount>) => {
+  const handleSaveAccount = async (platform: 'Twitter' | 'YouTube' | 'Instagram', data: Partial<SocialMediaAccount>) => {
     if (!user || !firestore || !socialMediaAccountsCollection) return;
+    
+    let targetAccount;
+    if (platform === 'Twitter') targetAccount = twitterAccount;
+    if (platform === 'YouTube') targetAccount = youtubeAccount;
+    if (platform === 'Instagram') targetAccount = instagramAccount;
 
     try {
       const accountData = {
         ...data,
+        platform,
         userId: user.uid,
         updatedAt: new Date().toISOString(),
       };
 
-      if (twitterAccount) {
+      if (targetAccount) {
         // Update existing document
-        const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, twitterAccount.id);
+        const docRef = doc(firestore, `users/${user.uid}/socialMediaAccounts`, targetAccount.id);
         await updateDoc(docRef, accountData);
-         toast({ title: 'Twitter Credentials Updated!' });
+        toast({ title: `${platform} Credentials Updated!` });
       } else {
         // Create new document
         await addDoc(socialMediaAccountsCollection, { ...accountData, createdAt: new Date().toISOString() });
-        toast({ title: 'Twitter Account Connected!' });
-        setActiveAccordionItem(undefined); // Close accordion on success
+        toast({ title: `${platform} Credentials Saved!` });
+        if(platform !== 'Twitter') setActiveAccordionItem(undefined); 
       }
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Save Failed', description: error.message });
@@ -163,35 +252,24 @@ export default function ApiKeysPage() {
   };
 
 
-  const handleConnectYouTube = async () => {
-    setIsConnectingYouTube(true);
+  const handleConnect = async (platform: 'YouTube' | 'Instagram', clientId: string, clientSecret: string) => {
+    setIsConnecting(platform);
     try {
-        const { url } = await getYoutubeAuthUrl();
-        window.location.href = url;
+        let authUrlResult;
+        if (platform === 'YouTube') {
+            authUrlResult = await getYoutubeAuthUrl({clientId, clientSecret});
+        } else {
+            authUrlResult = await getInstagramAuthUrl({clientId, clientSecret});
+        }
+        window.location.href = authUrlResult.url;
     } catch (error: any) {
-        console.error("Failed to get YouTube auth URL", error);
+        console.error(`Failed to get ${platform} auth URL`, error);
         toast({
             variant: "destructive",
-            title: "YouTube Connection Failed",
-            description: error.message || "Could not initiate connection with YouTube. Please try again.",
+            title: `${platform} Connection Failed`,
+            description: error.message || `Could not initiate connection. Please try again.`,
         });
-        setIsConnectingYouTube(false);
-    }
-  }
-
-  const handleConnectInstagram = async () => {
-    setIsConnectingInstagram(true);
-    try {
-        const { url } = await getInstagramAuthUrl();
-        window.location.href = url;
-    } catch (error: any) {
-        console.error("Failed to get Instagram auth URL", error);
-        toast({
-            variant: "destructive",
-            title: "Instagram Connection Failed",
-            description: error.message || "Could not initiate connection with Instagram. Please try again.",
-        });
-        setIsConnectingInstagram(false);
+        setIsConnecting(null);
     }
   }
   
@@ -211,7 +289,7 @@ export default function ApiKeysPage() {
           API Keys & Connections
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Manage your connections to enable posting to your social media accounts.
+          Manage your credentials and connections to post to your social media accounts.
         </p>
       </div>
 
@@ -219,7 +297,7 @@ export default function ApiKeysPage() {
         <CardHeader>
           <CardTitle>Manage Your Connections</CardTitle>
           <CardDescription>
-           Connect to OAuth-based platforms or enter your credentials for key-based platforms.
+           Enter your API credentials for each platform you want to connect.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -230,45 +308,17 @@ export default function ApiKeysPage() {
                 <AccordionTrigger>
                     <div className='flex items-center gap-2'>
                         <Instagram className="h-5 w-5 text-pink-600" />
+                        <Facebook className="h-5 w-5 text-blue-600" />
                         <span className="font-medium">Instagram & Facebook</span>
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 bg-muted/30 rounded-b-lg">
-                    {instagramAccount ? (
-                        <div className='flex items-center justify-between'>
-                            <p className='text-sm text-muted-foreground'>Connected as <span className="font-semibold text-foreground">{instagramAccount.username}</span>.</p>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
-                                    <Unlink className="mr-2 h-4 w-4" />
-                                    Disconnect
-                                </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle></AlertDialogHeader>
-                                <AlertDialogDescription>This will remove your Instagram & Facebook connection.</AlertDialogDescription>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteKey(instagramAccount.id)}>Continue</AlertDialogAction>
-                                </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                             <Alert>
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Platform Requirement</AlertTitle>
-                                <AlertDescription>
-                                    To post automatically, Instagram requires a <b>Business</b> or <b>Creator</b> account linked to a Facebook Page.
-                                </AlertDescription>
-                            </Alert>
-                             <p className="text-xs text-muted-foreground">You will be redirected to Facebook to authorize the application.</p>
-                            <Button onClick={handleConnectInstagram} disabled={isConnectingInstagram}>
-                            {isConnectingInstagram ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</> : <><Link className="mr-2 h-4 w-4" /> Connect Instagram & Facebook</>}
-                            </Button>
-                        </div>
-                    )}
+                    <OAuthForm 
+                        platform='Instagram'
+                        account={instagramAccount}
+                        onSave={handleSaveAccount}
+                        onConnect={handleConnect}
+                    />
                 </AccordionContent>
             </AccordionItem>
 
@@ -281,34 +331,12 @@ export default function ApiKeysPage() {
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 bg-muted/30 rounded-b-lg">
-                     {youtubeAccount ? (
-                        <div className='flex items-center justify-between'>
-                            <p className='text-sm text-muted-foreground'>Connected as <span className="font-semibold text-foreground">{youtubeAccount.username}</span>.</p>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                <Button variant="destructive">
-                                    <Unlink className="mr-2 h-4 w-4" />
-                                    Disconnect
-                                </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle></AlertDialogHeader>
-                                <AlertDialogDescription>This will remove your YouTube connection.</AlertDialogDescription>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteKey(youtubeAccount.id)}>Continue</AlertDialogAction>
-                                </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
-                    ) : (
-                         <div className="space-y-4">
-                            <p className="text-xs text-muted-foreground">You will be redirected to Google to authorize the application.</p>
-                            <Button onClick={handleConnectYouTube} disabled={isConnectingYouTube}>
-                            {isConnectingYouTube ? <><LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> Redirecting...</> : <><Link className="mr-2 h-4 w-4" /> Connect YouTube</>}
-                            </Button>
-                        </div>
-                    )}
+                    <OAuthForm 
+                        platform='YouTube'
+                        account={youtubeAccount}
+                        onSave={handleSaveAccount}
+                        onConnect={handleConnect}
+                    />
                 </AccordionContent>
             </AccordionItem>
 
@@ -321,7 +349,7 @@ export default function ApiKeysPage() {
                     </div>
                 </AccordionTrigger>
                 <AccordionContent className="p-4 bg-muted/30 rounded-b-lg">
-                    <TwitterForm account={twitterAccount} onSave={handleSaveTwitter} />
+                    <TwitterForm account={twitterAccount} onSave={(data) => handleSaveAccount('Twitter', data)} />
                 </AccordionContent>
             </AccordionItem>
 

@@ -16,21 +16,28 @@ const YOUTUBE_SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
 ];
 
+const GetYoutubeAuthUrlInputSchema = z.object({
+  clientId: z.string(),
+  clientSecret: z.string(),
+});
+export type GetYoutubeAuthUrlInput = z.infer<typeof GetYoutubeAuthUrlInputSchema>;
+
 const getYoutubeAuthUrlFlow = ai.defineFlow(
   {
     name: 'getYoutubeAuthUrlFlow',
+    inputSchema: GetYoutubeAuthUrlInputSchema,
     outputSchema: z.object({
       url: z.string().url().describe('The URL to redirect the user to for authentication.'),
     }),
   },
-  async () => {
-    if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube API credentials are not configured in the .env file.');
+  async ({ clientId, clientSecret }) => {
+    if (!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube redirect URI is not configured in the .env file.');
     }
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.YOUTUBE_CLIENT_ID,
-      process.env.YOUTUBE_CLIENT_SECRET,
+      clientId,
+      clientSecret,
       process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
     );
 
@@ -43,28 +50,33 @@ const getYoutubeAuthUrlFlow = ai.defineFlow(
   }
 );
 
-export async function getYoutubeAuthUrl(): Promise<z.infer<typeof getYoutubeAuthUrlFlow.outputSchema>> {
-  return getYoutubeAuthUrlFlow();
+export async function getYoutubeAuthUrl(input: GetYoutubeAuthUrlInput): Promise<z.infer<typeof getYoutubeAuthUrlFlow.outputSchema>> {
+  return getYoutubeAuthUrlFlow(input);
 }
+
+const GetYoutubeTokensInputSchema = z.object({
+    code: z.string().describe('The authorization code from the redirect.'),
+    clientId: z.string(),
+    clientSecret: z.string(),
+});
+export type GetYoutubeTokensInput = z.infer<typeof GetYoutubeTokensInputSchema>;
 
 
 const getYoutubeTokensFlow = ai.defineFlow({
     name: 'getYoutubeTokensFlow',
-    inputSchema: z.object({
-      code: z.string().describe('The authorization code from the redirect.'),
-    }),
+    inputSchema: GetYoutubeTokensInputSchema,
     outputSchema: z.object({
       accessToken: z.string(),
       refreshToken: z.string().optional(),
       expiryDate: z.number(),
     }),
-}, async ({ code }) => {
-    if (!process.env.YOUTUBE_CLIENT_ID || !process.env.YOUTUBE_CLIENT_SECRET || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube API credentials are not configured in the .env file.');
+}, async ({ code, clientId, clientSecret }) => {
+    if (!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+        throw new Error('YouTube redirect URI is not configured in the .env file.');
     }
     const oauth2Client = new google.auth.OAuth2(
-      process.env.YOUTUBE_CLIENT_ID,
-      process.env.YOUTUBE_CLIENT_SECRET,
+      clientId,
+      clientSecret,
       process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI
     );
 
@@ -79,6 +91,6 @@ const getYoutubeTokensFlow = ai.defineFlow({
     };
 });
 
-export async function getYoutubeTokens(input: z.infer<typeof getYoutubeTokensFlow.inputSchema>): Promise<z.infer<typeof getYoutubeTokensFlow.outputSchema>> {
+export async function getYoutubeTokens(input: GetYoutubeTokensInput): Promise<z.infer<typeof getYoutubeTokensFlow.outputSchema>> {
     return getYoutubeTokensFlow(input);
 }

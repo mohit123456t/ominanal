@@ -15,6 +15,11 @@ import { URLSearchParams } from 'url';
 
 
 // #################### Get Auth URL Flow ####################
+const GetInstagramAuthUrlInputSchema = z.object({
+  clientId: z.string(),
+  clientSecret: z.string(),
+});
+export type GetInstagramAuthUrlInput = z.infer<typeof GetInstagramAuthUrlInputSchema>;
 
 const GetInstagramAuthUrlOutputSchema = z.object({
   url: z.string().url().describe('The URL to redirect the user to for authentication.'),
@@ -24,16 +29,17 @@ export type GetInstagramAuthUrlOutput = z.infer<typeof GetInstagramAuthUrlOutput
 const getInstagramAuthUrlFlow = ai.defineFlow(
   {
     name: 'getInstagramAuthUrlFlow',
+    inputSchema: GetInstagramAuthUrlInputSchema,
     outputSchema: GetInstagramAuthUrlOutputSchema,
   },
-  async () => {
-    if (!process.env.FACEBOOK_CLIENT_ID || !process.env.NEXT_PUBLIC_URL) {
-        throw new Error('FACEBOOK_CLIENT_ID or NEXT_PUBLIC_URL is not set in .env file.');
+  async ({ clientId }) => {
+    if (!process.env.NEXT_PUBLIC_URL) {
+        throw new Error('NEXT_PUBLIC_URL is not set in .env file.');
     }
     const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
 
     const params = new URLSearchParams({
-        client_id: process.env.FACEBOOK_CLIENT_ID,
+        client_id: clientId,
         redirect_uri: redirectUri,
         scope: 'instagram_basic,pages_show_list,instagram_content_publish,pages_manage_posts,pages_read_engagement',
         response_type: 'code',
@@ -44,8 +50,8 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
   }
 );
 
-export async function getInstagramAuthUrl(): Promise<GetInstagramAuthUrlOutput> {
-  return getInstagramAuthUrlFlow();
+export async function getInstagramAuthUrl(input: GetInstagramAuthUrlInput): Promise<GetInstagramAuthUrlOutput> {
+  return getInstagramAuthUrlFlow(input);
 }
 
 
@@ -53,6 +59,8 @@ export async function getInstagramAuthUrl(): Promise<GetInstagramAuthUrlOutput> 
 
 const GetInstagramAccessTokenInputSchema = z.object({
     code: z.string().describe('The authorization code from the redirect.'),
+    clientId: z.string(),
+    clientSecret: z.string(),
 });
 export type GetInstagramAccessTokenInput = z.infer<typeof GetInstagramAccessTokenInputSchema>;
 
@@ -66,16 +74,16 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
     name: 'getInstagramAccessTokenFlow',
     inputSchema: GetInstagramAccessTokenInputSchema,
     outputSchema: GetInstagramAccessTokenOutputSchema,
-}, async ({ code }) => {
-    if (!process.env.FACEBOOK_CLIENT_ID || !process.env.FACEBOOK_CLIENT_SECRET || !process.env.NEXT_PUBLIC_URL) {
-        throw new Error('Facebook App ID, Secret, or NEXT_PUBLIC_URL is not configured in .env file.');
+}, async ({ code, clientId, clientSecret }) => {
+    if (!process.env.NEXT_PUBLIC_URL) {
+        throw new Error('NEXT_PUBLIC_URL is not configured in .env file.');
     }
     const redirectUri = `${process.env.NEXT_PUBLIC_URL}/instagram-callback`;
     
     const url = `https://graph.facebook.com/v20.0/oauth/access_token`;
     const params = new URLSearchParams({
-        client_id: process.env.FACEBOOK_CLIENT_ID,
-        client_secret: process.env.FACEBOOK_CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
         code: code,
         grant_type: 'authorization_code',
