@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { SocialMediaAccount, PlatformCredentials } from '@/lib/types';
 import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
@@ -34,7 +34,7 @@ import { useRouter } from 'next/navigation';
 const platformIcons: { [key: string]: React.ElementType } = {
   Instagram,
   Facebook,
-  YouTube,
+  YouTube: Youtube,
   Twitter,
 };
 
@@ -50,13 +50,13 @@ export default function ConnectedAccountsPage() {
     return collection(firestore, `users/${user.uid}/socialMediaAccounts`);
   }, [user, firestore]);
 
-  const credentialsCollectionRef = useMemoFirebase(() => {
+  const credsRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, `users/${user.uid}/platformCredentials`);
+    return doc(firestore, 'platformCredentials', user.uid);
   }, [user, firestore]);
 
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
-  const { data: credentials, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credentialsCollectionRef);
+  const { data: credentials, isLoading: isLoadingCreds } = useDoc<{[key: string]: PlatformCredentials}>(credsRef);
 
   const handleDisconnect = async (accountId: string) => {
     if (!accountsCollectionRef) return;
@@ -72,7 +72,7 @@ export default function ConnectedAccountsPage() {
   const handleConnect = async (platform: PlatformCredentials['platform']) => {
     setIsConnecting(platform);
     
-    const creds = credentials?.find(c => c.platform === platform);
+    const creds = credentials?.[platform];
     if (!creds?.clientId || !creds?.clientSecret) {
         toast({ variant: 'destructive', title: 'Connection Error', description: `Credentials for ${platform} must be saved first in the API Credentials page.` });
         setIsConnecting(null);
