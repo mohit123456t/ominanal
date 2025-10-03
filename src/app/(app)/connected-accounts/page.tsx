@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { SocialMediaAccount, PlatformCredentials } from '@/lib/types';
-import { getYoutubeAuthUrlAction } from '@/actions/youtube';
+import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
 import { getInstagramAuthUrl } from '@/ai/flows/instagram-auth';
 import { useRouter } from 'next/navigation';
 
@@ -90,7 +90,7 @@ export default function ConnectedAccountsPage() {
     try {
         let authUrlResult;
         if (platform === 'YouTube') {
-            authUrlResult = await getYoutubeAuthUrlAction({clientId: creds.clientId, clientSecret: creds.clientSecret});
+            authUrlResult = await getYoutubeAuthUrl({clientId: creds.clientId, clientSecret: creds.clientSecret});
         } else if (platform === 'Instagram') {
             authUrlResult = await getInstagramAuthUrl({clientId: creds.clientId, clientSecret: creds.clientSecret});
         } else {
