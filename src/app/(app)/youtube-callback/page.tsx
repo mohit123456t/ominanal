@@ -3,12 +3,11 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { LoaderCircle } from 'lucide-react';
-import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
+import { getYoutubeTokensAction } from '@/actions/youtube';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, doc, addDoc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { type SocialMediaAccount, type PlatformCredentials } from '@/lib/types';
-import { google } from 'googleapis';
 
 function YouTubeCallback() {
   const searchParams = useSearchParams();
@@ -56,18 +55,22 @@ function YouTubeCallback() {
           }
           
           setMessage('Exchanging authorization code for tokens...');
-          const { accessToken, refreshToken } = await getYoutubeTokens({ 
+          const { accessToken, refreshToken } = await getYoutubeTokensAction({ 
               code, 
               clientId: credentials.clientId, 
               clientSecret: credentials.clientSecret 
           });
 
            setMessage('Fetching channel details...');
-            const oauth2Client = new google.auth.OAuth2();
-            oauth2Client.setCredentials({ access_token: accessToken });
-            const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
-            const channelResponse = await youtube.channels.list({ part: ['snippet'], mine: true });
-            const channelName = channelResponse.data.items?.[0]?.snippet?.title || 'YouTube Account';
+           const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&access_token=${accessToken}`;
+           const channelResponse = await fetch(youtubeApiUrl);
+           const channelData = await channelResponse.json();
+
+            if (!channelResponse.ok || !channelData.items || channelData.items.length === 0) {
+                console.error("YouTube API Error:", channelData);
+                throw new Error("Could not fetch YouTube channel details.");
+            }
+            const channelName = channelData.items[0]?.snippet?.title || 'YouTube Account';
 
 
           setMessage('Saving your connection...');
@@ -75,7 +78,6 @@ function YouTubeCallback() {
           
           const newAccountData: Omit<SocialMediaAccount, 'id'> = {
               userId: user.uid,
-              credentialsId: 'YouTube',
               platform: 'YouTube',
               accessToken: accessToken,
               refreshToken: refreshToken,

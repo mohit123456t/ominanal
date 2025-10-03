@@ -23,7 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
+import { getYoutubeAuthUrlAction } from '@/actions/youtube';
 import { getInstagramAuthUrl } from '@/ai/flows/instagram-auth';
 import {
   AlertDialog,
@@ -228,7 +228,7 @@ export default function ApiKeysPage() {
     try {
         let authUrlResult;
         if (platform === 'YouTube') {
-            authUrlResult = await getYoutubeAuthUrl({clientId: creds.clientId, clientSecret: creds.clientSecret});
+            authUrlResult = await getYoutubeAuthUrlAction({clientId: creds.clientId, clientSecret: creds.clientSecret});
         } else if (platform === 'Instagram') {
             authUrlResult = await getInstagramAuthUrl({clientId: creds.clientId, clientSecret: creds.clientSecret});
         } else {
@@ -355,5 +355,3 @@ export default function ApiKeysPage() {
     </div>
   );
 }
-
-    

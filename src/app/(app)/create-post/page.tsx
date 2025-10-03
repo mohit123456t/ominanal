@@ -55,7 +55,7 @@ import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebas
 import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { type Post, SocialMediaAccount } from '@/lib/types';
-import { uploadVideoToYoutube } from '@/ai/flows/youtube-upload';
+import { uploadVideoToYoutubeAction } from '@/actions/youtube';
 import { postToInstagram } from '@/ai/flows/instagram-post';
 import { postToFacebook } from '@/ai/flows/facebook-post';
 import { postToTwitter } from '@/ai/flows/twitter-post';
@@ -181,13 +181,13 @@ export default function CreatePostPage() {
             const [title, ...descriptionParts] = text.split('\n');
             const description = descriptionParts.join('\n');
             
-            await uploadVideoToYoutube({
+            await uploadVideoToYoutubeAction({
                 userId: user.uid,
                 accountId: youtubeAccount.id,
                 videoDataUri,
                 title: title || 'My OmniPost AI Video',
                 description: description || '',
-                accessToken: youtubeAccount.apiKey || '',
+                accessToken: youtubeAccount.accessToken || '',
                 refreshToken: youtubeAccount.refreshToken,
             });
             toast({ title: 'Video sent to YouTube!', description: 'Your video is being processed by YouTube.' });
