@@ -86,6 +86,8 @@ export default function CreatePostPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   
   const [selectedPlatforms, setSelectedPlatforms] = useState<Post['platform'][]>([]);
+  const [selectedYouTubeAccountId, setSelectedYouTubeAccountId] = useState<string>('');
+
 
   const { toast } = useToast();
   const { user } = useUser();
@@ -104,6 +106,17 @@ export default function CreatePostPage() {
   }, [user, firestore]);
   
   const { data: credentialsList } = useCollection<PlatformCredentials>(credsCollectionRef);
+
+  const youtubeAccounts = useMemo(() => accounts?.filter(acc => acc.platform === 'YouTube') || [], [accounts]);
+  
+  useEffect(() => {
+    if (youtubeAccounts.length === 1) {
+      setSelectedYouTubeAccountId(youtubeAccounts[0].id);
+    } else {
+      setSelectedYouTubeAccountId('');
+    }
+  }, [youtubeAccounts]);
+
 
   const credentials = useMemo(() => {
     if (!credentialsList) return {};
@@ -190,17 +203,16 @@ export default function CreatePostPage() {
 
     try {
       let somethingPublished = false;
-      const effectiveUrlForApi = mediaFile ? await fileToDataUri(mediaFile) : mediaUrl;
 
       // YouTube Upload Logic
       if (isYouTubeSelected) {
-        const youtubeAccount = accounts?.find(acc => acc.platform === 'YouTube');
+        const youtubeAccount = accounts?.find(acc => acc.id === selectedYouTubeAccountId);
         const youtubeCreds = credentials['YouTube'];
 
-        if (!youtubeAccount || !youtubeCreds?.clientId || !youtubeCreds?.clientSecret) {
-            toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must connect your YouTube account and save credentials first.' });
-        } else if (!youtubeAccount.connected) {
-            toast({ variant: 'destructive', title: 'YouTube Error', description: "Your YouTube account is disconnected. Please connect it in the 'Connected Accounts' page." });
+        if (!youtubeAccount) {
+            toast({ variant: 'destructive', title: 'YouTube Error', description: 'Please select a YouTube channel to post to.' });
+        } else if (!youtubeCreds?.clientId || !youtubeCreds?.clientSecret) {
+            toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must save your YouTube credentials first in API Keys.' });
         } else if (!mediaFile) {
             toast({ variant: 'destructive', title: 'YouTube Error', description: 'YouTube requires a video file to be uploaded.' });
         } else {
@@ -215,7 +227,7 @@ export default function CreatePostPage() {
                 clientId: youtubeCreds.clientId,
                 clientSecret: youtubeCreds.clientSecret,
             });
-            toast({ title: 'Video sent to YouTube!', description: 'Your video is being processed by YouTube.' });
+            toast({ title: 'Video sent to YouTube!', description: `Your video is being processed on the "${youtubeAccount.username}" channel.` });
             somethingPublished = true;
         }
       }
@@ -295,7 +307,7 @@ export default function CreatePostPage() {
 
       // Save a record to Firestore for our own analytics, even if posted via API
       for (const platform of selectedPlatforms) {
-          const postData: Omit<Post, 'id' | 'mediaUrl'> & { mediaUrl?: string } = {
+          const postDataBase: Omit<Post, 'id' | 'mediaUrl'> = {
             userId: user.uid,
             content: text,
             platform: platform,
@@ -309,6 +321,8 @@ export default function CreatePostPage() {
             views: 0,
           };
           
+          const postData: Partial<Post> = {...postDataBase};
+
           if (mediaUrl) {
             postData.mediaUrl = mediaUrl;
           }
@@ -331,6 +345,7 @@ export default function CreatePostPage() {
           setMediaPreview('');
           setDate(new Date());
           setSelectedPlatforms([]);
+          setSelectedYouTubeAccountId('');
       }
 
     } catch (error: any) {
@@ -385,12 +400,32 @@ export default function CreatePostPage() {
               </div>
             </div>
 
-            <Textarea
-              placeholder={isYouTubeSelected ? "Video Title" : "What's on your mind?"}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              className="min-h-[120px] text-base"
-            />
+            {isYouTubeSelected && youtubeAccounts.length > 1 && (
+                <div className="space-y-2">
+                    <Label htmlFor="youtube-channel">Select YouTube Channel</Label>
+                    <Select value={selectedYouTubeAccountId} onValueChange={setSelectedYouTubeAccountId}>
+                        <SelectTrigger id="youtube-channel">
+                            <SelectValue placeholder="Choose a channel..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {youtubeAccounts.map(acc => (
+                                <SelectItem key={acc.id} value={acc.id}>{acc.username}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+
+            <div className="space-y-2">
+                <Label htmlFor="post-content">{isYouTubeSelected ? "Video Title" : "Post Content"}</Label>
+                <Textarea
+                    id="post-content"
+                    placeholder={isYouTubeSelected ? "Enter your video title" : "What's on your mind?"}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="min-h-[120px] text-base"
+                />
+            </div>
             
             {isYouTubeSelected && (
               <div className="space-y-2">
@@ -651,6 +686,3 @@ export default function CreatePostPage() {
     </div>
   );
 }
-
-
-    
