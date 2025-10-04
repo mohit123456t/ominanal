@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   Plus,
   ChartBar,
+  Clipboard,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 
@@ -29,9 +30,7 @@ import VideoEditorManagerView from '@/components/superadmin/VideoEditorManagerVi
 import ThumbnailMakerManagerView from '@/components/superadmin/ThumbnailMakerManagerView';
 import UploaderManagerView from '@/components/superadmin/UploaderManagerView';
 import ScriptWriterManagerView from '@/components/superadmin/ScriptWriterManagerView';
-import { PlaceholderView } from '@/components/superadmin/PlaceholderView';
-
-const ReelsUploadedPage = () => <PlaceholderView title="Reels Uploaded" />;
+import ReelsUploadedPage from '@/components/superadmin/ReelsUploadedPage';
 
 
 const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
