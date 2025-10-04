@@ -15,6 +15,9 @@ import {
   Pencil,
   Tag,
   Users as UsersGroup,
+  ArrowLeft,
+  Plus,
+  ChartBar,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 
@@ -24,11 +27,11 @@ import PricingManagement from '@/components/superadmin/PricingManagement';
 import StaffManagementView from '@/components/superadmin/StaffManagementView';
 import VideoEditorManagerView from '@/components/superadmin/VideoEditorManagerView';
 import ThumbnailMakerManagerView from '@/components/superadmin/ThumbnailMakerManagerView';
+import UploaderManagerView from '@/components/superadmin/UploaderManagerView';
+import ScriptWriterManagerView from '@/components/superadmin/ScriptWriterManagerView';
 import { PlaceholderView } from '@/components/superadmin/PlaceholderView';
 
 const ReelsUploadedPage = () => <PlaceholderView title="Reels Uploaded" />;
-const UploaderManagerView = () => <PlaceholderView title="Uploader Manager" />;
-const ScriptWriterManagerView = () => <PlaceholderView title="Script Writer Manager" />;
 
 
 const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
