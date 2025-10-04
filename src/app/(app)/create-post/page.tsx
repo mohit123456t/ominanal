@@ -383,12 +383,6 @@ export default function CreatePostPage() {
             ? currentSelection.filter(id => id !== accountId)
             : [...currentSelection, accountId];
         
-        // If this was the last account deselected for the platform, remove the platform key
-        if (newSelection.length === 0) {
-            const { [platformId]: _, ...rest } = prev;
-            return rest;
-        }
-
         return { ...prev, [platformId]: newSelection };
     });
   };
@@ -396,12 +390,10 @@ export default function CreatePostPage() {
   const handlePlatformCheckboxChange = (platformId: 'Instagram' | 'YouTube' | 'Twitter', isChecked: boolean) => {
       setSelectedAccounts(prev => {
           if (isChecked) {
-              // When a platform is checked, auto-select its first account if it exists.
               const platformAccounts = accountsByPlatform[platformId];
               const firstAccountId = platformAccounts?.[0]?.id;
               return { ...prev, [platformId]: firstAccountId ? [firstAccountId] : [] };
           } else {
-              // When a platform is unchecked, remove it and all its selected accounts.
               const { [platformId]: _, ...rest } = prev;
               return rest;
           }
@@ -416,8 +408,8 @@ export default function CreatePostPage() {
           if (isChecked) {
               return { ...prev, [platformId]: platformAccounts.map(a => a.id) };
           } else {
-               // Unchecking "Select All" clears selection for that platform
-               return { ...prev, [platformId]: [] };
+               const { [platformId]: _, ...rest } = prev;
+               return { ...rest, [platformId]: [] };
           }
       });
   };
@@ -620,11 +612,10 @@ export default function CreatePostPage() {
       <div className="lg:sticky top-24">
         <h2 className="font-headline text-lg font-semibold mb-4">Live Preview</h2>
         <Tabs defaultValue="instagram" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="instagram"><Instagram className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="facebook"><Facebook className="w-5 h-5"/></TabsTrigger>
             <TabsTrigger value="youtube"><Youtube className="w-5 h-5"/></TabsTrigger>
-            <TabsTrigger value="twitter"><Twitter className="w-5 h-5"/></TabsTrigger>
           </TabsList>
           
           <TabsContent value="instagram">
@@ -714,38 +705,6 @@ export default function CreatePostPage() {
                       <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2">{youtubeDescription || "Your video description will appear here..."}</p>
                   </div>
               </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="twitter">
-             <Card className="bg-white text-black border-gray-200 max-w-[550px] mx-auto">
-                <CardContent className="p-4">
-                    <div className="flex space-x-3">
-                         {userAvatar && <Avatar>
-                            <AvatarImage src={userAvatar.imageUrl} />
-                            <AvatarFallback>JD</AvatarFallback>
-                        </Avatar>}
-                        <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="text-sm font-semibold">Jane Doe</h4>
-                                    <p className="text-xs text-gray-500">@janedoe</p>
-                                </div>
-                                <Twitter className="h-5 w-5 text-sky-500" />
-                            </div>
-                            <p className="text-sm whitespace-pre-wrap">{text || "Your tweet will appear here..."}</p>
-                            {effectiveMediaUrl && !mediaFile && <div className="mt-3 rounded-lg border overflow-hidden"><Image src={effectiveMediaUrl} alt="preview" width={500} height={300} className="object-cover w-full"/></div>}
-                             <div className="flex justify-between items-center text-gray-600 text-xs pt-2">
-                                <span>1m ago</span>
-                                <div className="flex gap-4">
-                                    <span className="flex items-center gap-1"><MessageCircle size={14}/> 12</span>
-                                    <span className="flex items-center gap-1"><Repeat size={14}/> 34</span>
-                                    <span className="flex items-center gap-1"><Heart size={14}/> 56</span>
-                                    <span className="flex items-center gap-1"><Eye size={14}/> 1.2K</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
