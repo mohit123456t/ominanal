@@ -14,6 +14,7 @@ import {
   FileText,
   Settings,
   KeyRound,
+  Shield,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -128,6 +129,16 @@ export function AppSidebar() {
               tooltip={{ children: 'API Credentials' }}
             >
               <Link href="/api-keys">API Credentials</Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === '/superadmin_panal'}
+              icon={<Shield />}
+              tooltip={{ children: 'Super Admin' }}
+            >
+              <Link href="/superadmin_panal">Super Admin</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
