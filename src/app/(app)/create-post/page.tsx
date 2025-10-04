@@ -62,6 +62,7 @@ import { postToFacebook } from '@/ai/flows/facebook-post';
 import { postToTwitter } from '@/ai/flows/twitter-post';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 
 const fileToDataUri = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -85,9 +86,7 @@ export default function CreatePostPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Post['platform'][]>([]);
-  const [selectedYouTubeAccountId, setSelectedYouTubeAccountId] = useState<string>('');
-
+  const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string[]>>({});
 
   const { toast } = useToast();
   const { user } = useUser();
@@ -98,7 +97,7 @@ export default function CreatePostPage() {
     return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
   }, [user, firestore]);
 
-  const { data: accounts } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
+  const { data: accountsList } = useCollection<SocialMediaAccount>(socialMediaAccountsCollection);
   
   const credsCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
@@ -107,15 +106,30 @@ export default function CreatePostPage() {
   
   const { data: credentialsList } = useCollection<PlatformCredentials>(credsCollectionRef);
 
-  const youtubeAccounts = useMemo(() => accounts?.filter(acc => acc.platform === 'YouTube') || [], [accounts]);
-  
+  const accountsByPlatform = useMemo(() => {
+    if (!accountsList) return {};
+    return accountsList.reduce((acc, account) => {
+      // Group Instagram and Facebook under 'instagram' for posting since they use the same API connection
+      const platformKey = (account.platform === 'Facebook' ? 'Instagram' : account.platform) as 'Instagram' | 'YouTube' | 'Twitter';
+      if (!acc[platformKey]) {
+        acc[platformKey] = [];
+      }
+      acc[platformKey].push(account);
+      return acc;
+    }, {} as Record<'Instagram' | 'YouTube' | 'Twitter', SocialMediaAccount[]>);
+  }, [accountsList]);
+
   useEffect(() => {
-    if (youtubeAccounts.length === 1) {
-      setSelectedYouTubeAccountId(youtubeAccounts[0].id);
-    } else {
-      setSelectedYouTubeAccountId('');
+    // Auto-select accounts if there's only one for a given platform
+    const autoSelected: Record<string, string[]> = {};
+    for (const platform in accountsByPlatform) {
+      const platformAccounts = accountsByPlatform[platform as keyof typeof accountsByPlatform];
+      if (platformAccounts.length === 1) {
+        autoSelected[platform] = [platformAccounts[0].id];
+      }
     }
-  }, [youtubeAccounts]);
+    setSelectedAccounts(autoSelected);
+  }, [accountsByPlatform]);
 
 
   const credentials = useMemo(() => {
@@ -148,8 +162,8 @@ export default function CreatePostPage() {
   }
 
   const effectiveMediaUrl = mediaUrl || mediaPreview;
-
-  const isYouTubeSelected = selectedPlatforms.includes('youtube');
+  const isYouTubeSelected = selectedAccounts['YouTube']?.length > 0;
+  const isInstagramPlatformSelected = selectedAccounts['Instagram']?.length > 0;
 
   const handleGenerateCaption = async () => {
     setIsGenerating(true);
@@ -194,149 +208,129 @@ export default function CreatePostPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Please add content or media to your post.' });
         return;
     }
-    if (selectedPlatforms.length === 0) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Please select at least one platform to post to.' });
+    
+    const totalSelectedAccounts = Object.values(selectedAccounts).flat().length;
+    if (totalSelectedAccounts === 0) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please select at least one account to post to.' });
       return;
     }
 
     setIsPublishing(true);
 
     try {
-      let somethingPublished = false;
+      let publishedCount = 0;
+      const allPromises = [];
 
-      // YouTube Upload Logic
+      // YouTube Uploads
       if (isYouTubeSelected) {
-        const youtubeAccount = accounts?.find(acc => acc.id === selectedYouTubeAccountId);
         const youtubeCreds = credentials['YouTube'];
-
-        if (!youtubeAccount) {
-            toast({ variant: 'destructive', title: 'YouTube Error', description: 'Please select a YouTube channel to post to.' });
-        } else if (!youtubeCreds?.clientId || !youtubeCreds?.clientSecret) {
-            toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must save your YouTube credentials first in API Keys.' });
+        if (!youtubeCreds?.clientId || !youtubeCreds?.clientSecret) {
+          toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must save your YouTube credentials first in API Keys.' });
         } else if (!mediaFile) {
-            toast({ variant: 'destructive', title: 'YouTube Error', description: 'YouTube requires a video file to be uploaded.' });
+          toast({ variant: 'destructive', title: 'YouTube Error', description: 'YouTube requires a video file to be uploaded.' });
         } else {
-            const videoDataUri = await fileToDataUri(mediaFile);
-            
-            await uploadVideoToYoutube({
-                videoDataUri,
-                title: text || 'My OmniPost AI Video',
-                description: youtubeDescription,
-                accessToken: youtubeAccount.accessToken || '',
-                refreshToken: youtubeAccount.refreshToken,
-                clientId: youtubeCreds.clientId,
-                clientSecret: youtubeCreds.clientSecret,
-            });
-            toast({ title: 'Video sent to YouTube!', description: `Your video is being processed on the "${youtubeAccount.username}" channel.` });
-            somethingPublished = true;
-        }
-      }
-
-      // Instagram Post Logic
-      if (selectedPlatforms.includes('instagram')) {
-          const instagramAccount = accounts?.find(acc => acc.platform === 'Instagram');
-          if (!instagramAccount || !instagramAccount.instagramId) {
-              toast({ variant: 'destructive', title: 'Instagram Error', description: 'You must connect your Instagram account first.' });
-          } else if (!instagramAccount.connected) {
-              toast({ variant: 'destructive', title: 'Instagram Error', description: "Your Instagram account is disconnected. Please connect it in the 'Connected Accounts' page." });
-          } else if (!text) {
-               toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require a caption.' });
-          } else if (!mediaUrl) { // Instagram requires a public URL
-              toast({ variant: 'destructive', title: 'Instagram Error', description: 'Instagram posts require a public Media URL. File uploads are not supported for Instagram directly.' });
-          }
-          else {
-              await postToInstagram({
-                  instagramUserId: instagramAccount.instagramId,
-                  mediaUrl: mediaUrl,
-                  caption: text,
-                  accessToken: instagramAccount.pageAccessToken || '', // Use PAGE access token
+          const videoDataUri = await fileToDataUri(mediaFile);
+          for (const accountId of selectedAccounts['YouTube']) {
+            const account = accountsList?.find(acc => acc.id === accountId);
+            if (account) {
+              const promise = uploadVideoToYoutube({
+                  videoDataUri,
+                  title: text || 'My OmniPost AI Video',
+                  description: youtubeDescription,
+                  accessToken: account.accessToken || '',
+                  refreshToken: account.refreshToken,
+                  clientId: youtubeCreds.clientId,
+                  clientSecret: youtubeCreds.clientSecret,
+              }).then(() => {
+                toast({ title: 'Video sent to YouTube!', description: `Your video is being processed on the "${account.username}" channel.` });
+                publishedCount++;
+                savePostToFirestore(account, 'youtube');
+              }).catch(err => {
+                toast({ variant: 'destructive', title: `YouTube Error (${account.username})`, description: err.message });
               });
+              allPromises.push(promise);
+            }
+          }
+        }
+      }
 
-              toast({
-                  title: 'Posted to Instagram!',
-                  description: 'Your post should be live on your Instagram account.',
-              });
-              somethingPublished = true;
+      // Instagram & Facebook Posts
+      if (isInstagramPlatformSelected) {
+          const instagramAccountData = accountsByPlatform['Instagram']?.[0]; // All IG/FB accounts use the same connection
+          if (!instagramAccountData || !instagramAccountData.pageAccessToken) {
+              toast({ variant: 'destructive', title: 'Instagram/Facebook Error', description: 'You must connect an Instagram Business/Facebook Page account first.' });
+          } else if (!mediaUrl) {
+              toast({ variant: 'destructive', title: 'Instagram/Facebook Error', description: 'Instagram & Facebook posts require a public Media URL from this app.' });
+          } else {
+              for (const accountId of selectedAccounts['Instagram']) {
+                  const account = accountsList?.find(acc => acc.id === accountId);
+                  if (!account) continue;
+                  
+                  if (account.platform === 'Instagram' && account.instagramId) {
+                      const promise = postToInstagram({
+                          instagramUserId: account.instagramId,
+                          mediaUrl: mediaUrl,
+                          caption: text,
+                          accessToken: instagramAccountData.pageAccessToken || '',
+                      }).then(() => {
+                          toast({ title: `Posted to Instagram!`, description: `@${account.username}` });
+                          publishedCount++;
+                          savePostToFirestore(account, 'instagram');
+                      }).catch(err => {
+                          toast({ variant: 'destructive', title: `Instagram Error (@${account.username})`, description: err.message });
+                      });
+                      allPromises.push(promise);
+                  } else if (account.platform === 'Facebook' && account.facebookPageId) {
+                       const promise = postToFacebook({
+                          facebookPageId: account.facebookPageId,
+                          mediaUrl: mediaUrl,
+                          caption: text,
+                          pageAccessToken: instagramAccountData.pageAccessToken || '',
+                      }).then(() => {
+                          toast({ title: `Posted to Facebook!`, description: `${account.username}` });
+                          publishedCount++;
+                          savePostToFirestore(account, 'facebook');
+                      }).catch(err => {
+                          toast({ variant: 'destructive', title: `Facebook Error (${account.username})`, description: err.message });
+                      });
+                      allPromises.push(promise);
+                  }
+              }
           }
       }
 
-      // Facebook Post Logic
-      if (selectedPlatforms.includes('facebook')) {
-        const facebookAccount = accounts?.find(acc => acc.platform === 'Instagram'); // Instagram connection holds FB data
-        if (!facebookAccount || !facebookAccount.facebookPageId || !facebookAccount.pageAccessToken) {
-            toast({ variant: 'destructive', title: 'Facebook Error', description: 'A connected Instagram/Facebook account with a Page ID and Page Access Token is required.' });
-        } else if (!facebookAccount.connected) {
-            toast({ variant: 'destructive', title: 'Facebook Error', description: "Your Facebook account is disconnected. Please reconnect it in the 'API Keys' page." });
-        } else if (!mediaUrl) {
-            toast({ variant: 'destructive', title: 'Facebook Error', description: 'Facebook posts from this app require a public Media URL.' });
-        } else {
-            await postToFacebook({
-                facebookPageId: facebookAccount.facebookPageId,
-                mediaUrl: mediaUrl,
-                caption: text,
-                pageAccessToken: facebookAccount.pageAccessToken,
-            });
-            toast({ title: 'Posted to Facebook!', description: 'Your post should be live on your Facebook Page.' });
-            somethingPublished = true;
-        }
-      }
-      
-      // Twitter Post Logic
-      if (selectedPlatforms.includes('twitter')) {
-        const twitterAccount = accounts?.find(acc => acc.platform === 'Twitter');
-        if (!twitterAccount) {
-            toast({ variant: 'destructive', title: 'Twitter Error', description: 'You must add your Twitter credentials in the API Keys page.' });
-        } else if (!twitterAccount.connected) {
-            toast({ variant: 'destructive', title: 'Twitter Error', description: "Your Twitter account is disconnected. Please connect it in the 'Connected Accounts' page." });
-        } else if (!twitterAccount.apiKey || !twitterAccount.apiSecret || !twitterAccount.accessToken || !twitterAccount.accessTokenSecret) {
-            toast({ variant: 'destructive', title: 'Twitter Error', description: 'Missing one or more required Twitter API credentials.' });
-        }
-        else {
-            await postToTwitter({
+      // Twitter Posts
+      if (selectedAccounts['Twitter']?.length > 0) {
+        for (const accountId of selectedAccounts['Twitter']) {
+          const account = accountsList?.find(acc => acc.id === accountId);
+          if (account && account.apiKey && account.apiSecret && account.accessToken && account.accessTokenSecret) {
+            const promise = postToTwitter({
                 text,
-                apiKey: twitterAccount.apiKey,
-                apiSecret: twitterAccount.apiSecret,
-                accessToken: twitterAccount.accessToken,
-                accessTokenSecret: twitterAccount.accessTokenSecret,
+                apiKey: account.apiKey,
+                apiSecret: account.apiSecret,
+                accessToken: account.accessToken,
+                accessTokenSecret: account.accessTokenSecret,
+            }).then(() => {
+              toast({ title: 'Posted to Twitter!', description: `@${account.username}` });
+              publishedCount++;
+              savePostToFirestore(account, 'twitter');
+            }).catch(err => {
+              toast({ variant: 'destructive', title: `Twitter Error (@${account.username})`, description: err.message });
             });
-            toast({ title: 'Posted to Twitter!', description: 'Your tweet should be live on your profile.' });
-            somethingPublished = true;
+            allPromises.push(promise);
+          } else if (account) {
+             toast({ variant: 'destructive', title: `Twitter Error (@${account.username})`, description: 'Missing one or more required API credentials for this account.' });
+          }
         }
       }
 
-
-      // Save a record to Firestore for our own analytics, even if posted via API
-      for (const platform of selectedPlatforms) {
-          const postDataBase: Omit<Post, 'id' | 'mediaUrl'> = {
-            userId: user.uid,
-            content: text,
-            platform: platform,
-            status: date ? 'Scheduled' : 'Published',
-            scheduledAt: date?.toISOString(),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            likes: 0,
-            comments: 0,
-            shares: 0,
-            views: 0,
-          };
-          
-          const postData: Partial<Post> = {...postDataBase};
-
-          if (mediaUrl) {
-            postData.mediaUrl = mediaUrl;
-          }
-
-          const postsCollection = collection(firestore, `users/${user.uid}/posts`);
-          addDocumentNonBlocking(postsCollection, postData);
-      }
+      await Promise.all(allPromises);
       
-      if (somethingPublished) {
+      if (publishedCount > 0) {
           toast({
-            title: 'Post Published/Scheduled!',
-            description: 'Your post has been successfully processed.',
+            title: 'Publishing Complete!',
+            description: `${publishedCount} post(s) were successfully processed.`,
           });
-
           // Reset form
           setText('');
           setYoutubeDescription('');
@@ -344,8 +338,7 @@ export default function CreatePostPage() {
           setMediaFile(null);
           setMediaPreview('');
           setDate(new Date());
-          setSelectedPlatforms([]);
-          setSelectedYouTubeAccountId('');
+          setSelectedAccounts({});
       }
 
     } catch (error: any) {
@@ -353,33 +346,77 @@ export default function CreatePostPage() {
         toast({
             variant: 'destructive',
             title: 'Error Publishing Post',
-            description: error.message || 'Failed to publish post. Please try again.',
+            description: error.message || 'An unknown error occurred during publishing.',
         });
     } finally {
         setIsPublishing(false);
     }
   };
 
+  const savePostToFirestore = (account: SocialMediaAccount, platform: Post['platform']) => {
+    if (!user || !firestore) return;
+     const postDataBase: Omit<Post, 'id'> = {
+        userId: user.uid,
+        content: text,
+        platform: platform,
+        status: date ? 'Scheduled' : 'Published',
+        scheduledAt: date?.toISOString(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        views: 0,
+      };
+      
+      const postData: Partial<Post> = {...postDataBase};
 
-  const platforms: { id: Post['platform']; label: string }[] = [
-    { id: 'facebook', label: 'Facebook' },
-    { id: 'instagram', label: 'Instagram' },
-    { id: 'youtube', label: 'YouTube' },
-    { id: 'twitter', label: 'Twitter' },
+      if (mediaUrl) {
+        postData.mediaUrl = mediaUrl;
+      }
+
+      const postsCollection = collection(firestore, `users/${user.uid}/posts`);
+      addDocumentNonBlocking(postsCollection, postData);
+  }
+
+  const platforms: { id: 'Instagram' | 'YouTube' | 'Twitter'; label: string; icon: React.ReactNode }[] = [
+    { id: 'Instagram', label: 'Instagram & Facebook', icon: <><Instagram className="w-5 h-5 text-pink-600"/><Facebook className="w-5 h-5 text-blue-700"/></> },
+    { id: 'YouTube', label: 'YouTube', icon: <Youtube className="w-5 h-5 text-red-600"/> },
+    { id: 'Twitter', label: 'Twitter', icon: <Twitter className="w-5 h-5 text-sky-500"/> },
   ];
 
-  const handlePlatformChange = (platformId: Post['platform']) => {
-    setSelectedPlatforms(prev => 
-        prev.includes(platformId) 
-            ? prev.filter(id => id !== platformId)
-            : [...prev, platformId]
-    );
+  const handleAccountSelection = (platformId: string, accountId: string) => {
+    setSelectedAccounts(prev => {
+        const currentSelection = prev[platformId] || [];
+        const newSelection = currentSelection.includes(accountId)
+            ? currentSelection.filter(id => id !== accountId)
+            : [...currentSelection, accountId];
+        
+        if (newSelection.length === 0) {
+            const { [platformId]: _, ...rest } = prev;
+            return rest;
+        }
+
+        return { ...prev, [platformId]: newSelection };
+    });
   }
   
-  const isInstagramSelected = selectedPlatforms.includes('instagram');
-  const isFacebookSelected = selectedPlatforms.includes('facebook');
-  const isTwitterSelected = selectedPlatforms.includes('twitter');
-
+  const handleSelectAll = (platformId: 'Instagram' | 'YouTube' | 'Twitter', isChecked: boolean) => {
+      const platformAccounts = accountsByPlatform[platformId];
+      if (!platformAccounts) return;
+      
+      setSelectedAccounts(prev => {
+          if (isChecked) {
+              return { ...prev, [platformId]: platformAccounts.map(a => a.id) };
+          } else {
+               const { [platformId]: _, ...rest } = prev;
+               return rest;
+          }
+      });
+  }
+  
+  const isInstagramSelectedForMedia = isInstagramPlatformSelected;
+  const isYouTubeSelectedForMedia = isYouTubeSelected;
 
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -387,34 +424,48 @@ export default function CreatePostPage() {
         <Card>
           <CardContent className="p-4 space-y-4">
             <div>
-              <Label>Select Platforms</Label>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
-                {platforms.map((p) => (
-                   <div key={p.id} className="flex items-center space-x-2">
-                    <Checkbox id={p.id} checked={selectedPlatforms.includes(p.id)} onCheckedChange={() => handlePlatformChange(p.id)} />
-                    <label htmlFor={p.id} className="text-sm font-medium">
-                      {p.label}
-                    </label>
-                  </div>
-                ))}
+              <Label>Select Accounts to Post to</Label>
+              <div className="space-y-4 pt-2">
+                {platforms.map((p) => {
+                  const platformAccounts = accountsByPlatform[p.id];
+                  if (!platformAccounts || platformAccounts.length === 0) return null;
+
+                  const allSelected = platformAccounts.length > 0 && platformAccounts.every(acc => selectedAccounts[p.id]?.includes(acc.id));
+                  
+                  return (
+                    <div key={p.id} className="p-3 border rounded-md">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                {p.icon}
+                                <span className="font-medium">{p.label}</span>
+                            </div>
+                            {platformAccounts.length > 1 && (
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox id={`select-all-${p.id}`} checked={allSelected} onCheckedChange={(checked) => handleSelectAll(p.id, !!checked)} />
+                                    <label htmlFor={`select-all-${p.id}`} className="text-sm">Select All</label>
+                                </div>
+                            )}
+                        </div>
+                         {platformAccounts.length > 1 && <Separator className="my-2"/>}
+                        <div className="space-y-2 mt-2 pl-2">
+                            {platformAccounts.map(acc => (
+                                <div key={acc.id} className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={acc.id} 
+                                        checked={selectedAccounts[p.id]?.includes(acc.id)} 
+                                        onCheckedChange={() => handleAccountSelection(p.id, acc.id)} 
+                                    />
+                                    <label htmlFor={acc.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        @{acc.username} <span className="text-muted-foreground">({acc.platform})</span>
+                                    </label>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
-
-            {isYouTubeSelected && youtubeAccounts.length > 1 && (
-                <div className="space-y-2">
-                    <Label htmlFor="youtube-channel">Select YouTube Channel</Label>
-                    <Select value={selectedYouTubeAccountId} onValueChange={setSelectedYouTubeAccountId}>
-                        <SelectTrigger id="youtube-channel">
-                            <SelectValue placeholder="Choose a channel..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {youtubeAccounts.map(acc => (
-                                <SelectItem key={acc.id} value={acc.id}>{acc.username}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
 
             <div className="space-y-2">
                 <Label htmlFor="post-content">{isYouTubeSelected ? "Video Title" : "Post Content"}</Label>
@@ -443,10 +494,10 @@ export default function CreatePostPage() {
             
             <Tabs defaultValue="url" className="w-full">
                 <TabsList>
-                    <TabsTrigger value="url" disabled={isYouTubeSelected}>
+                    <TabsTrigger value="url" disabled={isYouTubeSelectedForMedia}>
                         <Link className="mr-2 h-4 w-4"/> Media URL
                     </TabsTrigger>
-                    <TabsTrigger value="upload" disabled={isInstagramSelected || isFacebookSelected}>
+                    <TabsTrigger value="upload" disabled={isInstagramSelectedForMedia}>
                         <Upload className="mr-2 h-4 w-4"/> Upload File
                     </TabsTrigger>
                 </TabsList>
@@ -458,9 +509,9 @@ export default function CreatePostPage() {
                         placeholder="https://... (publicly accessible media URL)"
                         value={mediaUrl}
                         onChange={handleUrlChange}
-                        disabled={isYouTubeSelected}
+                        disabled={isYouTubeSelectedForMedia}
                     />
-                    {isYouTubeSelected && <p className="text-xs text-muted-foreground">YouTube only supports file uploads from this interface.</p>}
+                    {isYouTubeSelectedForMedia && <p className="text-xs text-muted-foreground">YouTube only supports file uploads from this interface.</p>}
                 </TabsContent>
                 <TabsContent value="upload" className="space-y-2">
                     <Label htmlFor="media-file">Upload Image/Video</Label>
@@ -469,13 +520,11 @@ export default function CreatePostPage() {
                         type="file"
                         onChange={handleFileChange}
                         accept="image/*,video/*"
-                        disabled={isInstagramSelected || isFacebookSelected}
+                        disabled={isInstagramSelectedForMedia}
                     />
-                    {(isInstagramSelected || isFacebookSelected) && <p className="text-xs text-muted-foreground">Instagram & Facebook only support public URLs from this interface.</p>}
+                    {isInstagramSelectedForMedia && <p className="text-xs text-muted-foreground">Instagram & Facebook only support public URLs from this interface.</p>}
                 </TabsContent>
             </Tabs>
-
-            
           </CardContent>
         </Card>
 
