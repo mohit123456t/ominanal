@@ -110,7 +110,6 @@ export default function CreatePostPage() {
   const accountsByPlatform = useMemo(() => {
     if (!accountsList) return {};
     return accountsList.reduce((acc, account) => {
-      // Group Instagram and Facebook under 'Instagram' for posting since they use the same API connection
       const platformKey = (account.platform === 'Facebook' ? 'Instagram' : account.platform) as 'Instagram' | 'YouTube' | 'Twitter';
       if (!acc[platformKey]) {
         acc[platformKey] = [];
@@ -119,18 +118,6 @@ export default function CreatePostPage() {
       return acc;
     }, {} as Record<'Instagram' | 'YouTube' | 'Twitter', SocialMediaAccount[]>);
   }, [accountsList]);
-
-  useEffect(() => {
-    // This effect can be simplified or removed if auto-selection is handled differently
-    const autoSelected: Record<string, string[]> = {};
-    for (const platform in accountsByPlatform) {
-      const platformAccounts = accountsByPlatform[platform as keyof typeof accountsByPlatform];
-      if (platformAccounts.length === 1) {
-        autoSelected[platform] = [platformAccounts[0].id];
-      }
-    }
-    setSelectedAccounts(autoSelected);
-  }, [accountsByPlatform]);
 
 
   const credentials = useMemo(() => {
@@ -396,6 +383,7 @@ export default function CreatePostPage() {
             ? currentSelection.filter(id => id !== accountId)
             : [...currentSelection, accountId];
         
+        // If this was the last account deselected for the platform, remove the platform key
         if (newSelection.length === 0) {
             const { [platformId]: _, ...rest } = prev;
             return rest;
@@ -403,9 +391,24 @@ export default function CreatePostPage() {
 
         return { ...prev, [platformId]: newSelection };
     });
-  }
+  };
   
-  const handleSelectAll = (platformId: 'Instagram' | 'YouTube' | 'Twitter', isChecked: boolean) => {
+  const handlePlatformCheckboxChange = (platformId: 'Instagram' | 'YouTube' | 'Twitter', isChecked: boolean) => {
+      setSelectedAccounts(prev => {
+          if (isChecked) {
+              // When a platform is checked, auto-select its first account if it exists.
+              const platformAccounts = accountsByPlatform[platformId];
+              const firstAccountId = platformAccounts?.[0]?.id;
+              return { ...prev, [platformId]: firstAccountId ? [firstAccountId] : [] };
+          } else {
+              // When a platform is unchecked, remove it and all its selected accounts.
+              const { [platformId]: _, ...rest } = prev;
+              return rest;
+          }
+      });
+  };
+
+  const handleSelectAllForPlatform = (platformId: 'Instagram' | 'YouTube' | 'Twitter', isChecked: boolean) => {
       const platformAccounts = accountsByPlatform[platformId];
       if (!platformAccounts) return;
       
@@ -413,11 +416,11 @@ export default function CreatePostPage() {
           if (isChecked) {
               return { ...prev, [platformId]: platformAccounts.map(a => a.id) };
           } else {
-               const { [platformId]: _, ...rest } = prev;
-               return rest;
+               // Unchecking "Select All" clears selection for that platform
+               return { ...prev, [platformId]: [] };
           }
       });
-  }
+  };
   
   const isInstagramSelectedForMedia = isInstagramPlatformSelected;
   const isYouTubeSelectedForMedia = isYouTubeSelected;
@@ -427,55 +430,60 @@ export default function CreatePostPage() {
       <div className="space-y-6">
         <Card>
           <CardContent className="p-4 space-y-4">
-            <div>
-              <Label>Select Accounts to Post to</Label>
-               <Accordion type="multiple" className="w-full space-y-2 pt-2">
-                {platforms.map((p) => {
-                  const platformAccounts = accountsByPlatform[p.id];
-                  if (!platformAccounts || platformAccounts.length === 0) return null;
+             <div>
+                <Label>Select Accounts to Post to</Label>
+                 <div className="space-y-4 pt-2">
+                    {platforms.map((p) => {
+                        const platformAccounts = accountsByPlatform[p.id];
+                        if (!platformAccounts || platformAccounts.length === 0) return null;
+                        
+                        const isPlatformSelected = selectedAccounts[p.id] && selectedAccounts[p.id]!.length > 0;
+                        const allForPlatformSelected = isPlatformSelected && platformAccounts.length > 1 && platformAccounts.every(acc => selectedAccounts[p.id]?.includes(acc.id));
 
-                  const allSelected = platformAccounts.length > 0 && platformAccounts.every(acc => selectedAccounts[p.id]?.includes(acc.id));
-                  
-                  return (
-                    <AccordionItem value={p.id} key={p.id} className="border rounded-md px-3">
-                        <AccordionTrigger>
-                           <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-2">
-                                    {p.icon}
-                                    <span className="font-medium">{p.label}</span>
+                        return (
+                            <div key={p.id} className="p-4 border rounded-lg space-y-3">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id={`platform-${p.id}`} 
+                                        checked={isPlatformSelected} 
+                                        onCheckedChange={(checked) => handlePlatformCheckboxChange(p.id, !!checked)} 
+                                    />
+                                    <label htmlFor={`platform-${p.id}`} className="flex items-center gap-2 font-medium cursor-pointer">
+                                        {p.icon}
+                                        {p.label}
+                                    </label>
                                 </div>
-                            </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                             {platformAccounts.length > 1 && (
-                                <>
-                                <Separator className="my-2"/>
-                                <div className="flex items-center space-x-2 pb-2">
-                                    <Checkbox id={`select-all-${p.id}`} checked={allSelected} onCheckedChange={(checked) => handleSelectAll(p.id, !!checked)} />
-                                    <label htmlFor={`select-all-${p.id}`} className="text-sm font-medium">Select All</label>
-                                </div>
-                                </>
-                            )}
-                            <div className="space-y-2">
-                                {platformAccounts.map(acc => (
-                                    <div key={acc.id} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={acc.id} 
-                                            checked={selectedAccounts[p.id]?.includes(acc.id)} 
-                                            onCheckedChange={() => handleAccountSelection(p.id, acc.id)} 
-                                        />
-                                        <label htmlFor={acc.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            @{acc.username} <span className="text-muted-foreground">({acc.platform})</span>
-                                        </label>
+                                
+                                {isPlatformSelected && (
+                                    <div className="pl-6 space-y-3 border-l ml-2 pt-2">
+                                        {platformAccounts.length > 1 && (
+                                            <div className="flex items-center space-x-2">
+                                                <Checkbox id={`select-all-${p.id}`} checked={allForPlatformSelected} onCheckedChange={(checked) => handleSelectAllForPlatform(p.id, !!checked)} />
+                                                <label htmlFor={`select-all-${p.id}`} className="text-sm font-medium">Select All</label>
+                                            </div>
+                                        )}
+                                        <div className="space-y-2">
+                                            {platformAccounts.map(acc => (
+                                                <div key={acc.id} className="flex items-center space-x-2">
+                                                    <Checkbox 
+                                                        id={acc.id} 
+                                                        checked={selectedAccounts[p.id]?.includes(acc.id)} 
+                                                        onCheckedChange={() => handleAccountSelection(p.id, acc.id)} 
+                                                    />
+                                                    <label htmlFor={acc.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                                        @{acc.username} <span className="text-muted-foreground">({acc.platform})</span>
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                  )
-                })}
-              </Accordion>
+                        )
+                    })}
+                 </div>
             </div>
+
 
             <div className="space-y-2">
                 <Label htmlFor="post-content">{isYouTubeSelected ? "Video Title" : "Post Content"}</Label>
@@ -745,5 +753,3 @@ export default function CreatePostPage() {
     </div>
   );
 }
-
-    
