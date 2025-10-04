@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -479,7 +480,7 @@ const StaffCard = ({ name, count, icon, onClick, gradient }: { name: string, cou
             </div>
             {React.isValidElement(icon) && (
                 <div className={`p-3 rounded-lg ${gradient}`}>
-                    {React.cloneElement(icon, { className: 'h-8 w-8' })}
+                    {React.cloneElement(icon as React.ReactElement<any>, { className: 'h-8 w-8' })}
                 </div>
             )}
         </div>
@@ -678,7 +679,7 @@ const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNod
     </motion.button>
 );
 
-export default function SuperAdminPanel() {
+function SuperAdminPanel() {
     const [activeView, setActiveView] = useState('dashboard');
     const [isLoading, setIsLoading] = useState(false); // Not fetching data, so no loading state
     const [dashboardData, setDashboardData] = useState({}); // Placeholder
@@ -762,7 +763,7 @@ export default function SuperAdminPanel() {
                         Logout
                     </motion.button>
                 </div>
-            </aside>
+            </motion.aside>
 
             <main className="flex-1 ml-64 overflow-y-auto">
                  <AnimatePresence mode="wait">
@@ -781,4 +782,7 @@ export default function SuperAdminPanel() {
         </div>
     );
 };
-</>
+
+export default function SuperAdminPanelPage() {
+    return <SuperAdminPanel />;
+}
