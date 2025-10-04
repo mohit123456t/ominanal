@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -23,13 +22,13 @@ import SuperAdminDashboard from '@/components/superadmin/SuperAdminDashboard';
 import SuperAdminFinance from '@/components/superadmin/SuperAdminFinance';
 import PricingManagement from '@/components/superadmin/PricingManagement';
 import StaffManagementView from '@/components/superadmin/StaffManagementView';
+import VideoEditorManagerView from '@/components/superadmin/VideoEditorManagerView';
 import { PlaceholderView } from '@/components/superadmin/PlaceholderView';
 
 const ReelsUploadedPage = () => <PlaceholderView title="Reels Uploaded" />;
 const UploaderManagerView = () => <PlaceholderView title="Uploader Manager" />;
 const ScriptWriterManagerView = () => <PlaceholderView title="Script Writer Manager" />;
 const ThumbnailMakerManagerView = () => <PlaceholderView title="Thumbnail Maker Manager" />;
-const VideoEditorManagerView = () => <PlaceholderView title="Video Editor Manager" />;
 
 
 const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
