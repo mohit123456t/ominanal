@@ -35,6 +35,10 @@ export function EngagementRateChart({ data }: EngagementRateChartProps) {
       comments: {
         label: "Comments",
         color: "hsl(var(--chart-2))",
+      },
+      users: {
+        label: "Users",
+        color: "hsl(var(--chart-1))",
       }
     } satisfies ChartConfig
 
@@ -47,7 +51,7 @@ export function EngagementRateChart({ data }: EngagementRateChartProps) {
           tickLine={false}
           tickMargin={10}
           axisLine={false}
-          tickFormatter={(value) => value.charAt(0).toUpperCase() + value.slice(1)}
+          tickFormatter={(value) => value.slice(0, 3)}
         />
         <YAxis />
         <Tooltip cursor={false} content={<ChartTooltipContent indicator="dot" />} />
