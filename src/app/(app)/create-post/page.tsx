@@ -63,6 +63,7 @@ import { postToTwitter } from '@/ai/flows/twitter-post';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 const fileToDataUri = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -109,7 +110,7 @@ export default function CreatePostPage() {
   const accountsByPlatform = useMemo(() => {
     if (!accountsList) return {};
     return accountsList.reduce((acc, account) => {
-      // Group Instagram and Facebook under 'instagram' for posting since they use the same API connection
+      // Group Instagram and Facebook under 'Instagram' for posting since they use the same API connection
       const platformKey = (account.platform === 'Facebook' ? 'Instagram' : account.platform) as 'Instagram' | 'YouTube' | 'Twitter';
       if (!acc[platformKey]) {
         acc[platformKey] = [];
@@ -120,7 +121,7 @@ export default function CreatePostPage() {
   }, [accountsList]);
 
   useEffect(() => {
-    // Auto-select accounts if there's only one for a given platform
+    // This effect can be simplified or removed if auto-selection is handled differently
     const autoSelected: Record<string, string[]> = {};
     for (const platform in accountsByPlatform) {
       const platformAccounts = accountsByPlatform[platform as keyof typeof accountsByPlatform];
@@ -162,9 +163,9 @@ export default function CreatePostPage() {
   }
 
   const effectiveMediaUrl = mediaUrl || mediaPreview;
-  const isYouTubeSelected = selectedAccounts['YouTube']?.length > 0;
-  const isInstagramPlatformSelected = selectedAccounts['Instagram']?.length > 0;
-
+  const isYouTubeSelected = Object.entries(selectedAccounts).some(([platform, ids]) => platform === 'YouTube' && ids.length > 0);
+  const isInstagramPlatformSelected = Object.entries(selectedAccounts).some(([platform, ids]) => platform === 'Instagram' && ids.length > 0);
+  
   const handleGenerateCaption = async () => {
     setIsGenerating(true);
     try {
@@ -222,7 +223,8 @@ export default function CreatePostPage() {
       const allPromises = [];
 
       // YouTube Uploads
-      if (isYouTubeSelected) {
+      const youtubeAccountIds = selectedAccounts['YouTube'] || [];
+      if (youtubeAccountIds.length > 0) {
         const youtubeCreds = credentials['YouTube'];
         if (!youtubeCreds?.clientId || !youtubeCreds?.clientSecret) {
           toast({ variant: 'destructive', title: 'YouTube Error', description: 'You must save your YouTube credentials first in API Keys.' });
@@ -230,7 +232,7 @@ export default function CreatePostPage() {
           toast({ variant: 'destructive', title: 'YouTube Error', description: 'YouTube requires a video file to be uploaded.' });
         } else {
           const videoDataUri = await fileToDataUri(mediaFile);
-          for (const accountId of selectedAccounts['YouTube']) {
+          for (const accountId of youtubeAccountIds) {
             const account = accountsList?.find(acc => acc.id === accountId);
             if (account) {
               const promise = uploadVideoToYoutube({
@@ -255,14 +257,15 @@ export default function CreatePostPage() {
       }
 
       // Instagram & Facebook Posts
-      if (isInstagramPlatformSelected) {
+      const instagramAccountIds = selectedAccounts['Instagram'] || [];
+      if (instagramAccountIds.length > 0) {
           const instagramAccountData = accountsByPlatform['Instagram']?.[0]; // All IG/FB accounts use the same connection
           if (!instagramAccountData || !instagramAccountData.pageAccessToken) {
               toast({ variant: 'destructive', title: 'Instagram/Facebook Error', description: 'You must connect an Instagram Business/Facebook Page account first.' });
           } else if (!mediaUrl) {
               toast({ variant: 'destructive', title: 'Instagram/Facebook Error', description: 'Instagram & Facebook posts require a public Media URL from this app.' });
           } else {
-              for (const accountId of selectedAccounts['Instagram']) {
+              for (const accountId of instagramAccountIds) {
                   const account = accountsList?.find(acc => acc.id === accountId);
                   if (!account) continue;
                   
@@ -300,8 +303,9 @@ export default function CreatePostPage() {
       }
 
       // Twitter Posts
-      if (selectedAccounts['Twitter']?.length > 0) {
-        for (const accountId of selectedAccounts['Twitter']) {
+      const twitterAccountIds = selectedAccounts['Twitter'] || [];
+      if (twitterAccountIds.length > 0) {
+        for (const accountId of twitterAccountIds) {
           const account = accountsList?.find(acc => acc.id === accountId);
           if (account && account.apiKey && account.apiSecret && account.accessToken && account.accessTokenSecret) {
             const promise = postToTwitter({
@@ -425,7 +429,7 @@ export default function CreatePostPage() {
           <CardContent className="p-4 space-y-4">
             <div>
               <Label>Select Accounts to Post to</Label>
-              <div className="space-y-4 pt-2">
+               <Accordion type="multiple" className="w-full space-y-2 pt-2">
                 {platforms.map((p) => {
                   const platformAccounts = accountsByPlatform[p.id];
                   if (!platformAccounts || platformAccounts.length === 0) return null;
@@ -433,38 +437,44 @@ export default function CreatePostPage() {
                   const allSelected = platformAccounts.length > 0 && platformAccounts.every(acc => selectedAccounts[p.id]?.includes(acc.id));
                   
                   return (
-                    <div key={p.id} className="p-3 border rounded-md">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                {p.icon}
-                                <span className="font-medium">{p.label}</span>
+                    <AccordionItem value={p.id} key={p.id} className="border rounded-md px-3">
+                        <AccordionTrigger>
+                           <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                    {p.icon}
+                                    <span className="font-medium">{p.label}</span>
+                                </div>
                             </div>
-                            {platformAccounts.length > 1 && (
-                                <div className="flex items-center space-x-2">
+                        </AccordionTrigger>
+                        <AccordionContent>
+                             {platformAccounts.length > 1 && (
+                                <>
+                                <Separator className="my-2"/>
+                                <div className="flex items-center space-x-2 pb-2">
                                     <Checkbox id={`select-all-${p.id}`} checked={allSelected} onCheckedChange={(checked) => handleSelectAll(p.id, !!checked)} />
-                                    <label htmlFor={`select-all-${p.id}`} className="text-sm">Select All</label>
+                                    <label htmlFor={`select-all-${p.id}`} className="text-sm font-medium">Select All</label>
                                 </div>
+                                </>
                             )}
-                        </div>
-                         {platformAccounts.length > 1 && <Separator className="my-2"/>}
-                        <div className="space-y-2 mt-2 pl-2">
-                            {platformAccounts.map(acc => (
-                                <div key={acc.id} className="flex items-center space-x-2">
-                                    <Checkbox 
-                                        id={acc.id} 
-                                        checked={selectedAccounts[p.id]?.includes(acc.id)} 
-                                        onCheckedChange={() => handleAccountSelection(p.id, acc.id)} 
-                                    />
-                                    <label htmlFor={acc.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                        @{acc.username} <span className="text-muted-foreground">({acc.platform})</span>
-                                    </label>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                            <div className="space-y-2">
+                                {platformAccounts.map(acc => (
+                                    <div key={acc.id} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={acc.id} 
+                                            checked={selectedAccounts[p.id]?.includes(acc.id)} 
+                                            onCheckedChange={() => handleAccountSelection(p.id, acc.id)} 
+                                        />
+                                        <label htmlFor={acc.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                            @{acc.username} <span className="text-muted-foreground">({acc.platform})</span>
+                                        </label>
+                                    </div>
+                                ))}
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
                   )
                 })}
-              </div>
+              </Accordion>
             </div>
 
             <div className="space-y-2">
@@ -735,3 +745,5 @@ export default function CreatePostPage() {
     </div>
   );
 }
+
+    
