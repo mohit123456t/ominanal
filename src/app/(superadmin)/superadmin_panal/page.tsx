@@ -23,12 +23,12 @@ import SuperAdminFinance from '@/components/superadmin/SuperAdminFinance';
 import PricingManagement from '@/components/superadmin/PricingManagement';
 import StaffManagementView from '@/components/superadmin/StaffManagementView';
 import VideoEditorManagerView from '@/components/superadmin/VideoEditorManagerView';
+import ThumbnailMakerManagerView from '@/components/superadmin/ThumbnailMakerManagerView';
 import { PlaceholderView } from '@/components/superadmin/PlaceholderView';
 
 const ReelsUploadedPage = () => <PlaceholderView title="Reels Uploaded" />;
 const UploaderManagerView = () => <PlaceholderView title="Uploader Manager" />;
 const ScriptWriterManagerView = () => <PlaceholderView title="Script Writer Manager" />;
-const ThumbnailMakerManagerView = () => <PlaceholderView title="Thumbnail Maker Manager" />;
 
 
 const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
