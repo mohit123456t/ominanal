@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth, useFirebase } from '@/firebase';
 import {
   signInWithEmailAndPassword,
+  getIdTokenResult
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -42,76 +42,66 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Hardcoded check for Super Admin
-    if (email === 'mohitmleena3@gmail.com') {
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const loggedInUser = userCredential.user;
-
-        // Ensure superadmin has a user document
-        const userDocRef = doc(firestore, 'users', loggedInUser.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (!userDocSnap.exists()) {
-            await setDoc(userDocRef, {
-                uid: loggedInUser.uid,
-                email: loggedInUser.email,
-                name: 'Super Admin',
-                role: 'superadmin',
-                createdAt: new Date().toISOString(),
-            });
-        }
-
-        toast({ title: 'Super Admin Login Successful!' });
-        window.location.href = '/superadmin_panal';
-        return; 
-      } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: error.message });
-        setIsLoading(false);
-        return;
-      }
-    }
-
-    // Standard user login
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
 
       toast({
         title: 'Successfully logged in!',
-        description: `Checking your role...`,
+        description: 'Checking your role...',
       });
-
+      
+      // SUPER ADMIN CHECK (HARDCODED & FAST)
+      if (loggedInUser.email === 'mohitmleena3@gmail.com') {
+        const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
+          await setDoc(userDocRef, {
+            uid: loggedInUser.uid,
+            email: loggedInUser.email,
+            name: 'Super Admin',
+            role: 'superadmin',
+            createdAt: new Date().toISOString(),
+          });
+        }
+        window.location.href = '/superadmin_panal';
+        return;
+      }
+      
+      // Fetch user document from Firestore
       const userDocRef = doc(firestore, 'users', loggedInUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         const role = userData.role;
+
         switch (role) {
           case 'admin':
             window.location.href = '/admin_panel';
-            return;
+            break;
           case 'brand':
             window.location.href = '/brand_panel';
-            return;
+            break;
           case 'video_editor':
             window.location.href = '/video_editor_panel';
-            return;
+            break;
           case 'script_writer':
             window.location.href = '/script_writer_panel';
-            return;
+            break;
           case 'thumbnail_maker':
             window.location.href = '/thumbnail_maker_panel';
-            return;
+            break;
           case 'uploader':
             window.location.href = '/uploader_panel';
-            return;
+            break;
           default:
             toast({
               variant: 'destructive',
               title: 'Login Failed',
               description: "Your user role is not recognized. Please contact support.",
             });
+            setIsLoading(false);
         }
       } else {
          toast({
@@ -119,6 +109,7 @@ export default function LoginPage() {
           title: 'Login Failed',
           description: "Could not find user details. Please contact support.",
         });
+        setIsLoading(false);
       }
     } catch (error: any) {
       console.error(error);
@@ -133,7 +124,6 @@ export default function LoginPage() {
         title: 'Authentication Error',
         description: description,
       });
-    } finally {
       setIsLoading(false);
     }
   };
