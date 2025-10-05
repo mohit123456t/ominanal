@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload } from 'lucide-react';
+import { Upload, ArrowLeft, CheckCircle, File, Download, Scissors, MessageSquare } from 'lucide-react';
 
 
 interface Campaign {
@@ -12,6 +12,207 @@ interface Campaign {
   reels?: any[];
   description?: string;
 }
+
+const TaskDetailsView = ({ onBack }: { onBack: () => void }) => {
+    // Mock data for task details
+    const taskDetails = {
+        id: 'V015',
+        campaign: 'Summer Glow',
+        status: 'In-Progress',
+        progress: 60,
+        assigned: '2024-01-08',
+        deadline: 'In 2 days',
+        description: 'Edit makeup tutorial video with transitions and effects',
+        requirements: [
+            'Add smooth transitions between clips',
+            'Include brand overlays and call-to-action',
+            'Ensure HD quality (1080p minimum)',
+            'Add background music and voiceover',
+            'Review for any artifacts before submission'
+        ],
+        assets: [
+            { name: 'Raw footage - Makeup Tutorial.mp4', size: '245 MB', uploaded: '2024-01-08' },
+            { name: 'Brand Assets.zip', size: '15 MB', uploaded: '2024-01-08' },
+            { name: 'Voiceover Script.pdf', size: '2 MB', uploaded: '2024-01-08' }
+        ],
+        comments: [
+            { user: 'Admin', message: 'Please ensure the transitions are smooth and professional', time: '2024-01-08 10:30 AM' },
+            { user: 'Priya', message: 'Working on the transitions now', time: '2024-01-08 11:15 AM' }
+        ]
+    };
+
+    const StatusBadge = ({ status }: { status: string }) => {
+        const statusClasses: { [key: string]: string } = {
+            "Pending Footage": "bg-slate-200 text-slate-800",
+            "In-Progress": "bg-blue-100 text-blue-800",
+            "Submitted": "bg-yellow-100 text-yellow-800",
+            "Approved": "bg-green-100 text-green-800",
+        };
+        return <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusClasses[status]}`}>{status}</span>;
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="flex items-center justify-between">
+                <div>
+                    <button onClick={onBack} className="flex items-center text-slate-600 hover:text-slate-800 mb-2">
+                        <span className="mr-2"><ArrowLeft /></span>
+                        Back to Dashboard
+                    </button>
+                    <h1 className="text-2xl font-bold text-slate-900">Task Details</h1>
+                    <p className="text-slate-600">Complete information about your assigned task</p>
+                </div>
+                <div className="text-right">
+                    <StatusBadge status={taskDetails.status} />
+                    <p className="text-sm text-slate-500 mt-1">Progress: {taskDetails.progress}%</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Task Information</h3>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div>
+                                <p className="text-sm text-slate-500 font-medium">Task ID</p>
+                                <p className="text-lg font-semibold text-slate-800">{taskDetails.id}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-500 font-medium">Campaign</p>
+                                <p className="text-lg font-semibold text-slate-800">{taskDetails.campaign}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-500 font-medium">Assigned Date</p>
+                                <p className="text-lg font-semibold text-slate-800">{taskDetails.assigned}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-slate-500 font-medium">Deadline</p>
+                                <p className={`text-lg font-semibold ${taskDetails.deadline === 'In 2 days' ? 'text-red-600' : 'text-slate-800'}`}>
+                                    {taskDetails.deadline}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Task Description</h3>
+                        <p className="text-slate-600 leading-relaxed">{taskDetails.description}</p>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Requirements</h3>
+                        <ul className="space-y-3">
+                            {taskDetails.requirements.map((req, index) => (
+                                <li key={index} className="flex items-start">
+                                    <span className="text-green-500 mr-3 mt-1"><CheckCircle /></span>
+                                    <span className="text-slate-600">{req}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Available Assets</h3>
+                        <div className="space-y-3">
+                            {taskDetails.assets.map((asset, index) => (
+                                <div key={index} className="flex items-center justify-between p-3 border border-slate-200 rounded-lg">
+                                    <div className="flex items-center">
+                                        <span className="text-slate-400 mr-3"><File /></span>
+                                        <div>
+                                            <p className="font-medium text-slate-800">{asset.name}</p>
+                                            <p className="text-sm text-slate-500">{asset.size} • Uploaded {asset.uploaded}</p>
+                                        </div>
+                                    </div>
+                                    <button className="text-slate-600 hover:text-slate-800">
+                                        <span><Download /></span>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="space-y-6">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Progress Tracker</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-slate-600">Overall Progress</span>
+                                    <span className="font-medium text-slate-800">{taskDetails.progress}%</span>
+                                </div>
+                                <div className="w-full bg-slate-200 rounded-full h-3">
+                                    <div className="bg-slate-600 h-3 rounded-full" style={{ width: `${taskDetails.progress}%` }}></div>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center">
+                                    <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
+                                    <span className="text-sm text-slate-600">Raw footage downloaded</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
+                                    <span className="text-sm text-slate-600">Initial editing completed</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
+                                    <span className="text-sm text-slate-600">Adding transitions</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <span className="w-3 h-3 bg-slate-300 rounded-full mr-3"></span>
+                                    <span className="text-sm text-slate-600">Final review pending</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Comments & Updates</h3>
+                        <div className="space-y-4 max-h-64 overflow-y-auto">
+                            {taskDetails.comments.map((comment, index) => (
+                                <div key={index} className="border-l-2 border-slate-200 pl-4">
+                                    <div className="flex justify-between items-start mb-1">
+                                        <p className="font-medium text-slate-800">{comment.user}</p>
+                                        <p className="text-xs text-slate-500">{comment.time}</p>
+                                    </div>
+                                    <p className="text-sm text-slate-600">{comment.message}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                            <textarea
+                                placeholder="Add a comment..."
+                                className="w-full p-3 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-slate-500"
+                                rows={3}
+                            ></textarea>
+                            <button className="mt-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                                Post Comment
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Quick Actions</h3>
+                        <div className="space-y-3">
+                            <button className="w-full flex items-center justify-center px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+                                <span className="mr-2"><Scissors /></span>
+                                Open Editor
+                            </button>
+                            <button className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                                <span className="mr-2"><Upload /></span>
+                                Submit for Review
+                            </button>
+                            <button className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                                <span className="mr-2"><MessageSquare /></span>
+                                Request Extension
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // === ANIMATED STATUS BADGE ===
 const StatusBadge = ({ status }: { status: string }) => {
@@ -31,245 +232,6 @@ const StatusBadge = ({ status }: { status: string }) => {
     >
       {status}
     </motion.span>
-  );
-};
-
-// === ANIMATED MODAL ===
-const TaskDetailsPage = ({ campaign, isOpen, onClose }: { campaign: Campaign | null, isOpen: boolean, onClose: () => void }) => {
-  const [videoUrl, setVideoUrl] = useState('');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!isOpen || !campaign) return null;
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-    }
-  };
-
-  const handleSubmit = () => {
-    if (!videoUrl && !uploadedFile) {
-      alert('Please provide either a video URL or upload a file');
-      return;
-    }
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      alert('Video submitted successfully!');
-      onClose();
-    }, 2000);
-  };
-
-  // Modal Animation Variants
-  const modalVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
-    exit: { opacity: 0, y: 50, transition: { duration: 0.3 } }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, x: -20 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: { duration: 0.5 }
-    }
-  };
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-white z-50 overflow-y-auto"
-        >
-          <div className="min-h-screen">
-            {/* Header */}
-            <motion.div
-              variants={modalVariants}
-              initial="hidden"
-              animate="visible"
-              className="bg-gradient-to-r from-slate-50 to-slate-100 border-b border-slate-200"
-            >
-              <div className="max-w-4xl mx-auto px-6 py-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <motion.h1
-                      variants={itemVariants}
-                      className="text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
-                    >
-                      {campaign.name}
-                    </motion.h1>
-                    <motion.p variants={itemVariants} className="text-slate-600 mt-2 text-lg">
-                      Campaign Details & Tasks
-                    </motion.p>
-                  </div>
-                  <motion.button
-                    whileHover={{ rotate: 90, scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={onClose}
-                    className="text-slate-400 hover:text-slate-600 text-3xl font-bold"
-                  >
-                    &times;
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Content Sections */}
-            <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
-              {[{
-                title: "Campaign Information",
-                content: (
-                  <div className="space-y-5">
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span className="text-sm font-medium text-slate-600">Status:</span>
-                      <StatusBadge status={campaign.status} />
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-lg">
-                      <span className="text-sm font-medium text-slate-600">ID:</span>
-                      <p className="text-slate-800 mt-1 text-xl">{campaign.id}</p>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-lg">
-                      <span className="text-sm font-medium text-slate-600">Reels:</span>
-                      <p className="text-slate-800 mt-1 text-xl">{campaign.reels?.length || 0}</p>
-                    </div>
-                    <div className="p-3 bg-slate-50 rounded-lg">
-                      <span className="text-sm font-medium text-slate-600">Description:</span>
-                      <p className="text-slate-800 mt-1 text-lg">{campaign.description}</p>
-                    </div>
-                  </div>
-                )
-              },
-              {
-                title: "Campaign Description",
-                content: <p className="text-slate-700 leading-relaxed text-lg">{campaign.description}</p>
-              },
-              {
-                title: "Reels",
-                content: campaign.reels?.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {campaign.reels.map((reel, index) => (
-                      <motion.div
-                        key={index}
-                        whileHover={{ y: -5, boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" }}
-                        className="flex items-center gap-4 p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200 cursor-pointer"
-                      >
-                        <div className="w-14 h-14 bg-slate-200 rounded-xl flex items-center justify-center">
-                          <span className="text-slate-600 text-2xl">🎥</span>
-                        </div>
-                        <div>
-                          <p className="text-lg font-medium text-slate-800">{reel.title || `Reel ${index + 1}`}</p>
-                          <p className="text-sm text-slate-500">Status: {reel.status || 'Pending'}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-slate-500 italic text-lg py-4"
-                  >
-                    No reels available yet
-                  </motion.p>
-                )
-              },
-              ...(campaign.status === 'Active' ? [{
-                title: "Upload Completed Video",
-                content: (
-                  <div className="space-y-5">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Video URL (Optional)</label>
-                      <input
-                        type="url"
-                        value={videoUrl}
-                        onChange={(e) => setVideoUrl(e.target.value)}
-                        placeholder="https://example.com/video.mp4"
-                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 text-lg transition-all"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">Or Upload Video File</label>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="file"
-                          accept="video/*"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                          id="video-upload"
-                        />
-                        <label
-                          htmlFor="video-upload"
-                          className="px-5 py-3 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-700 rounded-xl hover:from-slate-200 hover:to-slate-300 cursor-pointer transition-all shadow-sm hover:shadow-md flex items-center gap-2"
-                        >
-                          <Upload /> Choose File
-                        </label>
-                        {uploadedFile && (
-                          <motion.span
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="text-sm text-slate-600 bg-slate-100 px-3 py-1 rounded-full"
-                          >
-                            {uploadedFile.name}
-                          </motion.span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="pt-4">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || (!videoUrl && !uploadedFile)}
-                        className="px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:shadow-lg disabled:bg-slate-400 disabled:cursor-not-allowed transition-all text-lg font-bold w-full"
-                      >
-                        {isSubmitting ? 'Submitting...' : 'Submit Video'}
-                      </motion.button>
-                    </div>
-                  </div>
-                )
-              }] : []),
-              {
-                title: "",
-                content: (
-                  <div className="flex justify-center pt-4">
-                    <motion.button
-                      whileHover={{ x: -8 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={onClose}
-                      className="px-8 py-4 bg-gradient-to-r from-slate-200 to-slate-300 text-slate-800 rounded-xl hover:shadow-md transition-all text-lg font-bold flex items-center gap-2"
-                    >
-                      ← Back to Campaigns
-                    </motion.button>
-                  </div>
-                )
-              }].map((section, idx) => (
-                <motion.div
-                  key={idx}
-                  variants={itemVariants}
-                  className="bg-white rounded-2xl shadow-lg border border-slate-200/80 p-8 hover:shadow-xl transition-shadow"
-                >
-                  {section.title && (
-                    <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
-                      <span className="w-2 h-8 bg-gradient-to-t from-indigo-500 to-purple-500 rounded-full mr-3"></span>
-                      {section.title}
-                    </h3>
-                  )}
-                  {section.content}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 };
 
@@ -329,14 +291,10 @@ const AssignedTasks = () => {
     }
   };
 
+  if(isModalOpen) return <TaskDetailsView onBack={handleCloseModal} />;
+
   return (
     <>
-      <TaskDetailsPage
-        campaign={selectedCampaign}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-      />
-
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
