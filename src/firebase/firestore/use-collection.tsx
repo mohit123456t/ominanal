@@ -74,16 +74,11 @@ export function useCollection<T = any>(
       (err: FirestoreError) => {
         let path = "unknown/path";
         try {
-          if ('_query' in memoizedTargetRefOrQuery) {
-             // It's a Query
+            // It's a Query
              const q = memoizedTargetRefOrQuery as Query;
-             if ('path' in q.ref) {
+             if (q.ref && 'path' in q.ref) {
                  path = (q.ref as CollectionReference).path;
              }
-          } else if ('path' in memoizedTargetRefOrQuery) {
-             // It's a CollectionReference
-             path = (memoizedTargetRefOrQuery as CollectionReference).path;
-          }
         } catch (e) {
             console.error("Could not extract path for error reporting:", e);
         }
