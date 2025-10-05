@@ -20,9 +20,6 @@ import {
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, LogIn } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -32,51 +29,14 @@ export default function LoginPage() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
-  const firestore = useFirestore();
 
   useEffect(() => {
-    if (!isUserLoading && user && firestore) {
-      const checkUserRoleAndRedirect = async () => {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            const role = userData.role;
-            // Redirect based on role
-            switch (role) {
-                case 'admin':
-                    router.push('/admin_panel');
-                    break;
-                case 'superadmin':
-                    router.push('/superadmin_panal');
-                    break;
-                case 'video_editor':
-                    router.push('/video_editor_panel');
-                    break;
-                 case 'script_writer':
-                    router.push('/script_writer_panel');
-                    break;
-                case 'thumbnail_maker':
-                    router.push('/thumbnail_maker_panel');
-                    break;
-                case 'uploader':
-                    router.push('/uploader_panel');
-                    break;
-                case 'brand':
-                     router.push('/brand_panel');
-                    break;
-                default:
-                    router.push('/dashboard');
-                    break;
-            }
-        } else {
-            // Default redirection if no role is found
-            router.push('/dashboard');
-        }
-      };
-      checkUserRoleAndRedirect();
+    // This effect now only handles redirecting an already logged-in user.
+    // The role-based redirection is now handled by the main AppLayout.
+    if (!isUserLoading && user) {
+      router.push('/dashboard'); // Always go to dashboard first, AppLayout will handle the rest.
     }
-  }, [user, isUserLoading, router, firestore]);
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async () => {
     if (!auth) return;
@@ -85,8 +45,9 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Successfully logged in!',
+        description: 'Redirecting to your dashboard...',
       });
-      // Redirection is handled by the useEffect hook
+      // The useEffect hook will handle redirection after the user state updates.
     } catch (error: any) {
       console.error(error);
       toast({
@@ -94,8 +55,7 @@ export default function LoginPage() {
         title: 'Authentication Error',
         description: error.message,
       });
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Only set loading to false on error
     }
   };
 
