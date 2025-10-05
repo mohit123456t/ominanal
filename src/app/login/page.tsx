@@ -48,22 +48,28 @@ export default function LoginPage() {
         description: `Checking your role...`,
       });
       
+      // SUPER ADMIN CHECK: Hardcode the super admin email for direct access.
+      if (loggedInUser.email === 'mohitmleena3@gmail.com') {
+        window.location.href = '/superadmin_panal';
+        return;
+      }
+
+      // Check for other roles
       const userDocRef = doc(firestore, 'users', loggedInUser.uid);
       const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
 
-      // Fetch both documents concurrently
       const [userDocSnap, adminDocSnap] = await Promise.all([
           getDoc(userDocRef),
-          getDoc(adminDocRef),
+          getDoc(adminDocSnap),
       ]);
-
-      // Priority 1: Check if user is a Super Admin
+      
+      // Admin role check (non-superadmin)
       if (adminDocSnap.exists()) {
-          window.location.href = '/superadmin_panal';
+          window.location.href = '/admin_panel';
           return;
       }
       
-      // Priority 2: Check if user is in the main users collection with a role
+      // Brand, staff, etc. role check
       if (userDocSnap.exists()) {
           const userData = userDocSnap.data();
           const role = userData.role;
@@ -86,26 +92,15 @@ export default function LoginPage() {
               case 'uploader':
                 window.location.href = '/uploader_panel';
                 return;
-              default:
-                 // This case handles users who have a doc but an unknown or missing role.
-                 toast({
-                  variant: 'destructive',
-                  title: 'Login Failed',
-                  description: "Your user role is not configured correctly. Please contact support.",
-                });
-                setIsLoading(false);
-                return;
           }
       }
 
-      // If user is not found in either collection
+      // If no role is found after all checks
       toast({
         variant: 'destructive',
         title: 'Login Failed',
         description: "Could not determine your user role. Please contact support.",
       });
-      setIsLoading(false);
-
 
     } catch (error: any) {
       console.error(error);
@@ -120,6 +115,7 @@ export default function LoginPage() {
         title: 'Authentication Error',
         description: description,
       });
+    } finally {
       setIsLoading(false);
     }
   };
