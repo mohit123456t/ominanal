@@ -21,7 +21,7 @@ import {
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, UserPlus } from 'lucide-react';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
