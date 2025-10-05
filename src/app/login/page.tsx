@@ -51,15 +51,16 @@ export default function LoginPage() {
         description: 'Checking your role...',
       });
       
+      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+      
       // SUPER ADMIN CHECK (HARDCODED & FAST)
       if (loggedInUser.email === 'mohitmleena3@gmail.com') {
-        const userDocRef = doc(firestore, 'users', loggedInUser.uid);
         const userDocSnap = await getDoc(userDocRef);
         if (!userDocSnap.exists()) {
           await setDoc(userDocRef, {
             uid: loggedInUser.uid,
             email: loggedInUser.email,
-            name: 'Super Admin',
+            name: loggedInUser.displayName || 'Super Admin',
             role: 'superadmin',
             createdAt: new Date().toISOString(),
           });
@@ -69,7 +70,6 @@ export default function LoginPage() {
       }
       
       // Fetch user document from Firestore
-      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
       const userDocSnap = await getDoc(userDocRef);
 
       if (userDocSnap.exists()) {
@@ -78,6 +78,16 @@ export default function LoginPage() {
 
         switch (role) {
           case 'admin':
+            // Ensure document exists for admin, though it should if they're in the DB
+             if (!userDocSnap.exists()) {
+              await setDoc(userDocRef, {
+                uid: loggedInUser.uid,
+                email: loggedInUser.email,
+                name: loggedInUser.displayName || 'Admin User',
+                role: 'admin',
+                createdAt: new Date().toISOString(),
+              });
+            }
             window.location.href = '/admin_panel';
             break;
           case 'brand':
