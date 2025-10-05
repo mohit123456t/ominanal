@@ -31,6 +31,7 @@ import {
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
 import PlaceholderView from '@/components/admin/PlaceholderView';
+import CampaignManagerView from '@/components/admin/CampaignManagerView';
 
 
 // --- Placeholder Views ---
@@ -219,39 +220,6 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
 };
 
 const ProfileView = () => <PlaceholderView name="Profile" />;
-
-const CampaignManagerView = ({ onSelectCampaign }: { onSelectCampaign: (id: string) => void }) => {
-    const campaigns = [
-        { id: 'camp-001', name: 'Summer Kick-off Campaign', status: 'Active', budget: 50000 },
-        { id: 'camp-002', name: 'Diwali Bonanza Sale', status: 'Completed', budget: 120000 },
-        { id: 'camp-003', name: 'New Fitness Tracker', status: 'Active', budget: 75000 },
-    ];
-
-    return (
-         <div className="p-1">
-             <h2 className="text-2xl font-bold text-slate-800 mb-6">Campaign Management</h2>
-             <div className="space-y-4">
-                 {campaigns.map(campaign => (
-                     <motion.div
-                         key={campaign.id}
-                         layout
-                         initial={{ opacity: 0, y: 20 }}
-                         animate={{ opacity: 1, y: 0 }}
-                         className="bg-white/60 p-5 rounded-xl border border-white/40 shadow-sm flex items-center justify-between"
-                     >
-                         <div>
-                             <h3 className="font-bold text-lg text-slate-800">{campaign.name}</h3>
-                             <p className="text-sm text-slate-600">Status: {campaign.status} | Budget: ₹{campaign.budget.toLocaleString()}</p>
-                         </div>
-                         <button onClick={() => onSelectCampaign(campaign.id)} className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md">
-                             View Details
-                         </button>
-                     </motion.div>
-                 ))}
-             </div>
-         </div>
-    );
-};
 
 
 const Logo = () => (
