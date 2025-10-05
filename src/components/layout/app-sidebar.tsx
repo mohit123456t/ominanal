@@ -120,26 +120,6 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/admin_panel'}
-              icon={<Shield />}
-              tooltip={{ children: 'Admin Panel' }}
-            >
-              <Link href="/admin_panel">Admin Panel</Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/superadmin_panal'}
-              icon={<Shield />}
-              tooltip={{ children: 'Super Admin' }}
-            >
-              <Link href="/superadmin_panal">Super Admin</Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={handleLogout}
                 icon={<LogOut />}
