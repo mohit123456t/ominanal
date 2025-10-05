@@ -87,7 +87,7 @@ const BrandPanel = () => {
 
     // Fetch all brand data from a single user document
     const userDocRef = useMemoFirebase(() => 
-        user && firestore ? doc(firestore, `users/${user.uid}`) : null,
+        user && firestore ? doc(firestore, 'users', user.uid) : null,
         [user, firestore]
     );
     const { data: brandData, isLoading: isDataLoading } = useDoc(userDocRef);
@@ -127,7 +127,7 @@ const BrandPanel = () => {
             const campaignWithMeta = {
                 ...newCampaignData,
                 id: `camp_${Date.now()}`,
-                userId: user.uid,
+                userId: user?.uid,
                 createdAt: new Date().toISOString(),
                 status: 'Pending Approval', // Default status
             };
@@ -146,7 +146,7 @@ const BrandPanel = () => {
             const orderWithMeta = {
                 ...newOrderData,
                 id: `order_${Date.now()}`,
-                userId: user.uid,
+                userId: user?.uid,
                 createdAt: new Date().toISOString(),
                 status: 'Pending',
             };
