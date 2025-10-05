@@ -12,11 +12,9 @@ import {
   Bell,
   LogOut,
   ArrowLeft,
-  DollarSign,
-  BarChart,
 } from 'lucide-react';
 import { useAuth, useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, collectionGroup, doc } from 'firebase/firestore';
+import { collection, query, doc, collectionGroup } from 'firebase/firestore';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
@@ -27,7 +25,6 @@ import PlaceholderView from '@/components/admin/PlaceholderView';
 import FinanceView from '@/components/admin/FinanceView';
 import EarningsView from '@/components/admin/EarningsView';
 import DashboardView from '@/components/admin/DashboardView';
-
 
 const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBack: () => void; }) => (
     <div>
@@ -93,12 +90,13 @@ const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNod
 function AdminPanel() {
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
+    const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
     const router = useRouter();
     const { user, auth } = useAuth();
     const { firestore } = useFirebase();
 
     // Data Fetching Hooks
-    const userDocRef = useMemoFirebase(() => 
+    const userDocRef = useMemoFirebase(() =>
         user && firestore ? doc(firestore, 'users', user.uid) : null
     , [user, firestore]);
     const { data: adminProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
@@ -106,6 +104,7 @@ function AdminPanel() {
     const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
     const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
     
+    // Assuming campaigns are in a top-level collection for the admin to manage
     const campaignsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campaigns') : null, [firestore]);
     const { data: campaigns, isLoading: campaignsLoading } = useCollection(campaignsQuery);
 
@@ -142,6 +141,11 @@ function AdminPanel() {
         setSelectedCampaignId(id);
         setActiveView('campaign_detail');
     };
+    
+    const onViewBrand = (brandId: string) => {
+        setSelectedBrandId(brandId);
+        setActiveView('brand_view');
+    };
 
     const isLoading = usersLoading || campaignsLoading || transactionsLoading || isProfileLoading;
 
@@ -158,11 +162,11 @@ function AdminPanel() {
             case 'profile': return <ProfileView profile={adminProfile} />;
             case 'campaigns': return <CampaignManagerView campaigns={campaigns || []} users={users || []} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-approval': return <CampaignApprovalView campaigns={campaigns || []} />;
-            case 'users': return <UserManagementView brands={brands || []} onViewBrand={() => { /* Placeholder */ }} />;
+            case 'users': return <UserManagementView brands={brands || []} onViewBrand={onViewBrand} />;
             case 'finance': return <FinanceView transactions={transactions || []} setView={setActiveView} />;
             case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
             case 'communication': return <PlaceholderView name="Communication" />;
-            case 'brand_view': return <BrandPanel viewBrandId={null} onBack={() => setActiveView('users')} />;
+            case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
             case 'dashboard':
             default:
                 return <DashboardView campaigns={campaigns || []} users={users || []} />;
@@ -266,3 +270,4 @@ function AdminPanel() {
 export default function AdminPanelPage() {
     return <AdminPanel />;
 }
+    
