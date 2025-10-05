@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -95,7 +95,7 @@ function AdminPanel() {
     const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
     const router = useRouter();
-    const auth = useAuth();
+    const { user, auth } = useAuth();
     const { firestore } = useFirebase();
 
     // Data Fetching Hooks
@@ -108,8 +108,8 @@ function AdminPanel() {
     const transactionsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'transactions')) : null, [firestore]);
     const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
 
-    const brands = useMemoFirebase(() => users?.filter(u => u.role === 'brand') || [], [users]);
-    const staff = useMemoFirebase(() => users?.filter(u => u.role !== 'brand') || [], [users]);
+    const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
+    const staff = useMemo(() => users?.filter(u => u.role !== 'brand') || [], [users]);
 
 
     const navItems = [
@@ -140,6 +140,8 @@ function AdminPanel() {
     };
 
     const isLoading = usersLoading || campaignsLoading || transactionsLoading;
+    const adminProfile = useMemo(() => users?.find(u => u.id === user?.uid), [users, user]);
+
 
     const renderView = () => {
         if (isLoading) {
@@ -236,7 +238,7 @@ function AdminPanel() {
                             <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping absolute"></div>
                             <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
                         </div>
-                        <div className="font-semibold text-sm text-slate-700">Admin</div>
+                        <div className="font-semibold text-sm text-slate-700">{adminProfile?.name || 'Admin'}</div>
                     </div>
                 </motion.header>
 

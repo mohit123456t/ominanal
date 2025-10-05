@@ -34,7 +34,7 @@ const ProfileView = () => {
         }
     }, [userProfile]);
 
-    const handleUpdateProfile = async () => {
+    const handleUpdateProfile = useCallback(async () => {
         if (!userDocRef) {
             toast({ variant: 'destructive', title: 'Error', description: 'User not authenticated.'});
             return;
@@ -49,7 +49,7 @@ const ProfileView = () => {
         } finally {
             setIsSaving(false);
         }
-    };
+    }, [userDocRef, profile, toast]);
 
     const handleInputChange = (field: string, value: string) => {
         setProfile(prev => ({ ...prev, [field]: value }));
@@ -63,6 +63,15 @@ const ProfileView = () => {
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
             </div>
         );
+    }
+    
+    if (!userProfile) {
+        return (
+             <div className="text-center p-8 bg-white/40 backdrop-blur-lg rounded-xl shadow-md border">
+                <h3 className="text-xl font-bold text-red-600">Profile Not Found</h3>
+                <p className="text-slate-600 mt-2">Could not load the admin profile data. It might not have been created in the database yet.</p>
+             </div>
+        )
     }
 
     return (
@@ -113,7 +122,7 @@ const ProfileView = () => {
                         <div className="space-y-4">
                             <InfoField icon="📧" label="Email Address" value={profile.email} />
                             <InfoField icon="📱" label="Phone" value={profile.mobileNumber || '—'} />
-                            <InfoField icon="📅" label="Member Since" value={profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'} />
+                            <InfoField icon="📅" label="Member Since" value={profile.createdAt?.seconds ? new Date(profile.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'} />
                         </div>
                     </motion.div>
 
@@ -126,7 +135,7 @@ const ProfileView = () => {
                         <h3 className="text-xl font-bold text-slate-800 mb-6">Personal Information</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <EditableField label="Full Name" value={profile.name} isEditing={isEditing} onChange={(e) => handleInputChange('name', e.target.value)} />
-                            <EditableField label="Email Address" value={profile.email} isEditing={false} type="email" onChange={(e) => handleInputChange('email', e.target.value)} />
+                            <EditableField label="Email Address" value={profile.email} isEditing={false} type="email" />
                             <EditableField label="Phone Number" value={profile.mobileNumber} isEditing={isEditing} type="tel" onChange={(e) => handleInputChange('mobileNumber', e.target.value)} placeholder="Enter phone number" />
                             <ReadOnlyField label="Department" value={profile.department || 'Administration'} />
                             <ReadOnlyField label="Role" value={profile.role} />
@@ -162,7 +171,7 @@ const InfoField = ({ icon, label, value }: { icon: string, label: string, value:
     </div>
 );
 
-const EditableField = ({ label, value, isEditing, onChange, type = 'text', placeholder }: { label: string, value: string, isEditing: boolean, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, placeholder?: string }) => (
+const EditableField = ({ label, value, isEditing, onChange, type = 'text', placeholder }: { label: string, value: string, isEditing: boolean, onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, placeholder?: string }) => (
     <div>
         <label className="block text-sm font-medium text-slate-600 mb-1.5">{label}</label>
         {isEditing ? (
