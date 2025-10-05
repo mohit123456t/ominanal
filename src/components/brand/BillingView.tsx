@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type User } from 'firebase/auth';
-import AddFundsPanel from './AddFundsPanel';
 import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 
 // Status colors for transaction history
@@ -17,7 +16,7 @@ const statusColors = {
 
 const BillingView = ({ user }: { user: User | null }) => {
     const firestore = useFirestore();
-    const [showAddFunds, setShowAddFunds] = useState(false);
+    const [amountToAdd, setAmountToAdd] = useState('');
     
     // Fetch user data including balance
     const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
@@ -29,16 +28,16 @@ const BillingView = ({ user }: { user: User | null }) => {
     const { data: transactions, isLoading: isTransactionsLoading, error: transactionsError } = useCollection(transactionsCollectionRef);
 
 
-    const handleAddFunds = async () => {
-        if (!transactionsCollectionRef || !user) return;
-        
-        // In a real app, this amount would come from the AddFundsPanel form.
-        // For this demo, we'll use a fixed amount to prove the connection.
-        const amountToAdd = 5000; 
+    const handleAddFunds = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!transactionsCollectionRef || !user || !amountToAdd || parseFloat(amountToAdd) <= 0) {
+            alert('Please enter a valid amount.');
+            return;
+        }
 
         const newTransaction = {
             type: 'DEPOSIT',
-            amount: amountToAdd,
+            amount: parseFloat(amountToAdd),
             status: 'Pending',
             timestamp: serverTimestamp(),
             brandId: user.uid, // Add brandId to the transaction document
@@ -46,7 +45,7 @@ const BillingView = ({ user }: { user: User | null }) => {
         try {
             await addDoc(transactionsCollectionRef, newTransaction);
             alert('Your request to add funds has been submitted for admin approval.');
-            setShowAddFunds(false);
+            setAmountToAdd('');
         } catch (error) {
             console.error("Error adding funds request:", error);
             alert('Failed to submit funds request.');
@@ -114,27 +113,28 @@ const BillingView = ({ user }: { user: User | null }) => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="animate-fade-in">
             <h1 className="text-3xl font-bold text-slate-900 mb-6">Billing & Funds</h1>
 
-            <div className="flex gap-4 mb-6">
-                <button
-                    onClick={() => setShowAddFunds(!showAddFunds)}
-                    className="font-semibold text-white bg-slate-800 hover:bg-slate-900 px-5 py-2.5 rounded-lg transition-colors shadow-md"
-                >
-                    {showAddFunds ? 'Close Panel' : 'Add Funds'}
-                </button>
-            </div>
-
-            <AnimatePresence>
-                {showAddFunds && (
-                    <motion.div 
-                        className="mb-8 bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg border border-white/30 p-6"
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0, padding: 0, margin: 0 }}
-                    >
-                        <AddFundsPanel onComplete={handleAddFunds} />
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <motion.div 
+                className="mb-8 bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg border border-white/30 p-6"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+            >
+                <h3 className="text-xl font-bold text-slate-800 mb-4">Add Funds to Wallet</h3>
+                <form onSubmit={handleAddFunds} className="flex flex-col sm:flex-row items-start gap-4">
+                    <div className="w-full sm:w-auto flex-grow">
+                        <label htmlFor="amount" className="sr-only">Amount (₹)</label>
+                        <input
+                            id="amount"
+                            type="number"
+                            value={amountToAdd}
+                            onChange={(e) => setAmountToAdd(e.target.value)}
+                            placeholder="Enter amount to add"
+                            className="w-full px-4 py-2.5 bg-white/50 border border-slate-300/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            required
+                        />
+                    </div>
+                    <button type="submit" className="w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 shadow-md">Request to Add Funds</button>
+                </form>
+            </motion.div>
 
             {renderKeyMetrics()}
             {renderTransactionHistory()}

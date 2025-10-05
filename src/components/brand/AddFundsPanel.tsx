@@ -12,8 +12,8 @@ const AddFundsPanel = ({ onComplete }: { onComplete: () => void }) => {
             alert('Please enter a valid amount.');
             return;
         }
-        // Placeholder for payment processing
-        alert(`Funds added successfully! (This is a demo)\nAmount: ₹${amount}\nGateway: ${selectedGateway}`);
+        // This component is now a placeholder and its logic is moved to BillingView.
+        alert(`This is a demo. Fund request logic has been moved.`);
         onComplete();
     };
     
