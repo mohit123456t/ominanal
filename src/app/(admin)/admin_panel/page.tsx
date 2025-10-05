@@ -12,26 +12,14 @@ import {
   Bell,
   LogOut,
   ArrowLeft,
-  PlayCircle,
-  Users,
-  Rocket,
-  MoreHorizontal,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
 import PlaceholderView from '@/components/admin/PlaceholderView';
 import CampaignManagerView from '@/components/admin/CampaignManagerView';
+import ProfileView from '@/components/admin/ProfileView';
 
 
 // --- Placeholder Views ---
@@ -146,17 +134,17 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   <StatCard
                     title="Active Campaigns" value={dashboardData.activeCampaigns.toString()}
-                    change={`${dashboardData.pendingApprovals} pending`} icon={<PlayCircle />}
+                    change={`${dashboardData.pendingApprovals} pending`} icon={<LayoutDashboard />}
                     color={{bg: "bg-purple-100", text: "text-purple-600"}}
                   />
                   <StatCard
                     title="Team Members" value={dashboardData.totalTeamMembers.toString()}
-                    change="All active" icon={<Users />}
+                    change="All active" icon={<UsersGroup />}
                     color={{bg: "bg-orange-100", text: "text-orange-600"}}
                   />
                   <StatCard
                     title="Total Views" value={dashboardData.totalViews.toLocaleString()}
-                    change="Across all campaigns" icon={<Rocket />}
+                    change="Across all campaigns" icon={<LayoutDashboard />}
                     color={{bg: "bg-pink-100", text: "text-pink-600"}} size="large"
                   />
                   <StatCard
@@ -170,25 +158,7 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
                   <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" variants={itemVariants}>
                     <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
                     <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                          <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                          <Tooltip
-                            cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
-                            contentStyle={{ 
-                                backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                backdropFilter: 'blur(10px)',
-                                border: '1px solid rgba(0, 0, 0, 0.1)', 
-                                borderRadius: '12px',
-                             }}
-                          />
-                          <Legend wrapperStyle={{ fontSize: '14px' }}/>
-                          <Bar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
-                          <Bar dataKey="expenses" fill="#f59e0b" name="Expenses" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      <p>Chart coming soon...</p>
                     </div>
                   </motion.div>
 
@@ -218,9 +188,6 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
     </div>
   );
 };
-
-const ProfileView = () => <PlaceholderView name="Profile" />;
-
 
 const Logo = () => (
     <div className="flex items-center gap-2">
