@@ -220,7 +220,7 @@ function AdminPanel() {
             case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
             case 'dashboard':
             default:
-                return <DashboardView campaigns={campaigns || []} users={users || []} />;
+                return <DashboardView campaigns={campaigns || []} users={users || []} expenses={expenses || []} />;
         }
     };
 

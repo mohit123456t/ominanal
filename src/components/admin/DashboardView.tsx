@@ -24,7 +24,7 @@ const StatCard = ({ title, value, icon, color }: { title: string; value: string;
   );
 
 // 🖥️ Main Dashboard — iOS फ्रॉस्टेड ग्लास थीम
-const DashboardView = ({ campaigns, users }: { campaigns: any[], users: any[] }) => {
+const DashboardView = ({ campaigns, users, expenses }: { campaigns: any[], users: any[], expenses: any[] }) => {
   const dashboardData = useMemo(() => {
     const totalRevenue = campaigns.reduce((sum, camp) => sum + (camp.budget || 0), 0);
     const activeCampaigns = campaigns.filter(c => c.status === 'Active').length;
@@ -40,29 +40,48 @@ const DashboardView = ({ campaigns, users }: { campaigns: any[], users: any[] })
   }, [campaigns, users]);
 
   const revenueData = useMemo(() => {
-      // Create a map to hold revenue per month
-      const monthlyRevenue: { [key: string]: { name: string; revenue: number; expenses: number } } = {};
       const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
+      const monthlyData: { [key: string]: { name: string; revenue: number; expenses: number } } = {};
+  
+      // Initialize all months
+      monthNames.forEach(month => {
+          monthlyData[month] = { name: month, revenue: 0, expenses: 0 };
+      });
+  
+      // Process revenue from campaigns
       campaigns.forEach(campaign => {
-          if (campaign.createdAt) {
+          if (campaign.createdAt?.seconds) {
               const date = new Date(campaign.createdAt.seconds * 1000);
               const monthName = monthNames[date.getMonth()];
               if (monthName) {
-                  if (!monthlyRevenue[monthName]) {
-                      monthlyRevenue[monthName] = { name: monthName, revenue: 0, expenses: 0 };
-                  }
-                  monthlyRevenue[monthName].revenue += campaign.budget || 0;
-                  // Placeholder for expenses
-                  monthlyRevenue[monthName].expenses += (campaign.budget || 0) * 0.6; // Assuming 60% expenses
+                  monthlyData[monthName].revenue += campaign.budget || 0;
               }
           }
       });
-      // Sort by month order
-      return Object.values(monthlyRevenue).sort((a,b) => monthNames.indexOf(a.name) - monthNames.indexOf(b.name));
-  }, [campaigns]);
+  
+      // Process expenses
+      expenses.forEach(expense => {
+          if (expense.date) {
+              const date = new Date(expense.date);
+              const monthName = monthNames[date.getMonth()];
+              if (monthName) {
+                  monthlyData[monthName].expenses += expense.amount || 0;
+              }
+          }
+      });
+  
+      // Return sorted array of months that have data
+      return Object.values(monthlyData).filter(m => m.revenue > 0 || m.expenses > 0);
+  }, [campaigns, expenses]);
 
   const brands = useMemo(() => users.filter(u => u.role === 'brand'), [users]);
+
+  const formatYAxis = (tickItem: number) => {
+    if (tickItem >= 1000) {
+      return `₹${tickItem / 1000}k`;
+    }
+    return `₹${tickItem}`;
+  };
 
   return (
     <div className="min-h-screen">
@@ -95,7 +114,7 @@ const DashboardView = ({ campaigns, users }: { campaigns: any[], users: any[] })
                             <RechartsBarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                 <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value/1000}k`}/>
+                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis}/>
                                 <Tooltip
                                     cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
                                     contentStyle={{ 
@@ -104,6 +123,7 @@ const DashboardView = ({ campaigns, users }: { campaigns: any[], users: any[] })
                                         border: '1px solid rgba(0, 0, 0, 0.1)', 
                                         borderRadius: '12px'
                                     }}
+                                    formatter={(value: number) => `₹${value.toLocaleString()}`}
                                 />
                                 <Legend wrapperStyle={{ fontSize: '14px' }}/>
                                 <RechartsBar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
