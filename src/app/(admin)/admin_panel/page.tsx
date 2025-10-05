@@ -15,6 +15,7 @@ import {
   PlayCircle,
   Users,
   Rocket,
+  MoreHorizontal,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 import {
@@ -28,11 +29,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
+import CampaignDetailView from '@/components/admin/CampaignDetailView';
 import PlaceholderView from '@/components/admin/PlaceholderView';
 
 
 // --- Placeholder Views ---
-const CampaignManagerView = () => <PlaceholderView name="Campaign Manager" />;
 const UserManagementView = ({ onViewBrand }: { onViewBrand: (brandId: string) => void }) => <PlaceholderView name="User Management" onViewBrand={onViewBrand} />;
 const FinanceView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Finance" onNavigate={setView} />;
 const EarningsView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Earnings" onNavigate={setView} />;
@@ -219,6 +220,40 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
 
 const ProfileView = () => <PlaceholderView name="Profile" />;
 
+const CampaignManagerView = ({ onSelectCampaign }: { onSelectCampaign: (id: string) => void }) => {
+    const campaigns = [
+        { id: 'camp-001', name: 'Summer Kick-off Campaign', status: 'Active', budget: 50000 },
+        { id: 'camp-002', name: 'Diwali Bonanza Sale', status: 'Completed', budget: 120000 },
+        { id: 'camp-003', name: 'New Fitness Tracker', status: 'Active', budget: 75000 },
+    ];
+
+    return (
+         <div className="p-1">
+             <h2 className="text-2xl font-bold text-slate-800 mb-6">Campaign Management</h2>
+             <div className="space-y-4">
+                 {campaigns.map(campaign => (
+                     <motion.div
+                         key={campaign.id}
+                         layout
+                         initial={{ opacity: 0, y: 20 }}
+                         animate={{ opacity: 1, y: 0 }}
+                         className="bg-white/60 p-5 rounded-xl border border-white/40 shadow-sm flex items-center justify-between"
+                     >
+                         <div>
+                             <h3 className="font-bold text-lg text-slate-800">{campaign.name}</h3>
+                             <p className="text-sm text-slate-600">Status: {campaign.status} | Budget: ₹{campaign.budget.toLocaleString()}</p>
+                         </div>
+                         <button onClick={() => onSelectCampaign(campaign.id)} className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md">
+                             View Details
+                         </button>
+                     </motion.div>
+                 ))}
+             </div>
+         </div>
+    );
+};
+
+
 const Logo = () => (
     <div className="flex items-center gap-2">
         <svg
@@ -272,7 +307,8 @@ const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNod
 
 function AdminPanel() {
     const [activeView, setActiveView] = useState('dashboard');
-    const [selectedBrandId, setSelectedBrandId] = useState(null);
+    const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+    const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
     const router = useRouter();
     const auth = useAuth();
 
@@ -298,10 +334,19 @@ function AdminPanel() {
         }
     };
 
+    const handleSelectCampaign = (id: string) => {
+        setSelectedCampaignId(id);
+        setActiveView('campaign_detail');
+    };
+
     const renderView = () => {
+        if (selectedCampaignId && activeView === 'campaign_detail') {
+            return <CampaignDetailView campaignId={selectedCampaignId} onClose={() => { setSelectedCampaignId(null); setActiveView('campaigns'); }} />;
+        }
+        
         switch (activeView) {
             case 'profile': return <ProfileView />;
-            case 'campaigns': return <CampaignManagerView />;
+            case 'campaigns': return <CampaignManagerView onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-approval': return <CampaignApprovalView />;
             case 'users': return <UserManagementView onViewBrand={(brandId: any) => { setSelectedBrandId(brandId); setActiveView('brand_view'); }} />;
             case 'finance': return <FinanceView setView={setActiveView} />;
