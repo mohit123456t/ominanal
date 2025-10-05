@@ -32,38 +32,14 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // This effect handles redirecting a user who is already logged in
+  // This effect handles redirecting a user who is ALREADY logged in and lands on this page.
+  // The main redirection logic after a fresh login is now in AppLayout.
   useEffect(() => {
-    if (!isUserLoading && user && firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        getDoc(userDocRef).then(userDocSnap => {
-            if (userDocSnap.exists()) {
-                const userData = userDocSnap.data();
-                const role = userData.role;
-                 if (role === 'superadmin') {
-                    router.push('/superadmin_panel');
-                } else if (role === 'admin') {
-                    router.push('/admin_panel');
-                } else if (role === 'brand') {
-                    router.push('/brand_panel');
-                } else if (role === 'video_editor') {
-                    router.push('/video_editor_panel');
-                } else if (role === 'script_writer') {
-                    router.push('/script_writer_panel');
-                } else if (role === 'thumbnail_maker') {
-                    router.push('/thumbnail_maker_panel');
-                } else if (role === 'uploader') {
-                    router.push('/uploader_panel');
-                }
-                else {
-                    router.push('/dashboard');
-                }
-            } else {
-                 router.push('/dashboard'); // Default fallback
-            }
-        });
+    if (!isUserLoading && user) {
+        // Just push to a generic starting point, AppLayout will handle the role-based redirect.
+        router.push('/dashboard');
     }
-  }, [user, isUserLoading, router, firestore]);
+  }, [user, isUserLoading, router]);
 
 
   const handleLogin = async () => {
@@ -77,52 +53,15 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const loggedInUser = userCredential.user;
-
+      // This will sign in the user and trigger the onAuthStateChanged listener.
+      // The AppLayout component's useEffect will then handle the redirection.
+      await signInWithEmailAndPassword(auth, email, password);
+      
       toast({
         title: 'Successfully logged in!',
-        description: 'Checking your role and redirecting...',
+        description: 'Redirecting you to your panel...',
       });
-
-      // Fetch user role from Firestore and redirect
-      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
-
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data();
-        const role = userData.role;
-        
-        switch (role) {
-            case 'superadmin':
-                router.push('/superadmin_panel');
-                break;
-            case 'admin':
-                router.push('/admin_panel');
-                break;
-            case 'brand':
-                router.push('/brand_panel');
-                break;
-            case 'video_editor':
-                router.push('/video_editor_panel');
-                break;
-            case 'script_writer':
-                router.push('/script_writer_panel');
-                break;
-            case 'thumbnail_maker':
-                router.push('/thumbnail_maker_panel');
-                break;
-            case 'uploader':
-                router.push('/uploader_panel');
-                break;
-            default:
-                router.push('/dashboard');
-                break;
-        }
-      } else {
-        // Fallback if user document doesn't exist for some reason
-        router.push('/dashboard');
-      }
+      // No need for role check here, AppLayout handles it globally.
 
     } catch (error: any) {
       console.error(error);
@@ -136,6 +75,7 @@ export default function LoginPage() {
   };
 
 
+  // Show a loader while checking auth state or if the user is already logged in and redirecting.
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
