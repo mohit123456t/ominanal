@@ -46,6 +46,7 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
 
+      // Immediately fetch the user's role from Firestore
       const userDocRef = doc(firestore, 'users', loggedInUser.uid);
       const userDocSnap = await getDoc(userDocRef);
       
@@ -56,13 +57,13 @@ export default function LoginPage() {
 
       toast({
         title: 'Successfully logged in!',
-        description: `Redirecting you to your ${role} panel...`,
+        description: `Redirecting you to your panel...`,
       });
 
-      // Direct redirection based on role
+      // Direct redirection based on the fetched role
       switch (role) {
         case 'superadmin':
-          router.push('/superadmin_panel');
+          router.push('/superadmin_panal');
           break;
         case 'admin':
           router.push('/admin_panel');
@@ -165,6 +166,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
             />
           </div>
         </CardContent>
