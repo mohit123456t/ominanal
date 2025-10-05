@@ -14,17 +14,18 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
-  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { LoaderCircle, LogIn } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { LoaderCircle, UserPlus } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
 
-
-export default function LoginPage() {
+export default function SignupPage() {
+  const [name, setName] = useState('');
+  const [brandName, setBrandName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,70 +36,57 @@ export default function LoginPage() {
   const firestore = useFirestore();
 
   useEffect(() => {
-    if (!isUserLoading && user && firestore) {
-      const checkUserRoleAndRedirect = async () => {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            const role = userData.role;
-            // Redirect based on role
-            switch (role) {
-                case 'admin':
-                    router.push('/admin_panel');
-                    break;
-                case 'superadmin':
-                    router.push('/superadmin_panal');
-                    break;
-                case 'video_editor':
-                    router.push('/video_editor_panel');
-                    break;
-                 case 'script_writer':
-                    router.push('/script_writer_panel');
-                    break;
-                case 'thumbnail_maker':
-                    router.push('/thumbnail_maker_panel');
-                    break;
-                case 'uploader':
-                    router.push('/uploader_panel');
-                    break;
-                case 'brand':
-                     router.push('/brand_panel');
-                    break;
-                default:
-                    router.push('/dashboard');
-                    break;
-            }
-        } else {
-            // Default redirection if no role is found (e.g., for brands)
-            router.push('/dashboard');
-        }
-      };
-      checkUserRoleAndRedirect();
+    // If user is already logged in, redirect them away from signup
+    if (!isUserLoading && user) {
+      router.push('/brand_panel');
     }
-  }, [user, isUserLoading, router, firestore]);
+  }, [user, isUserLoading, router]);
 
-  const handleLogin = async () => {
-    if (!auth) return;
+  const handleSignup = async () => {
+    if (!auth || !firestore) return;
+    if (password.length < 6) {
+        toast({
+            variant: 'destructive',
+            title: 'Weak Password',
+            description: 'Password should be at least 6 characters.',
+        });
+        return;
+    }
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: 'Successfully logged in!',
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const newUser = userCredential.user;
+
+      // Update Firebase Auth profile
+      await updateProfile(newUser, { displayName: name });
+
+      // Create user document in Firestore
+      const userDocRef = doc(firestore, 'users', newUser.uid);
+      await setDoc(userDocRef, {
+        uid: newUser.uid,
+        name: name,
+        email: email,
+        brandName: brandName,
+        role: 'brand', // Assign the brand role
+        createdAt: new Date().toISOString(),
       });
-      // Redirection is handled by the useEffect hook
+
+      toast({
+        title: 'Account Created!',
+        description: "You've been successfully signed up.",
+      });
+      // The useEffect will handle redirection to the brand_panel
     } catch (error: any) {
       console.error(error);
       toast({
         variant: 'destructive',
-        title: 'Authentication Error',
+        title: 'Signup Error',
         description: error.message,
       });
     } finally {
       setIsLoading(false);
     }
   };
-
 
   if (isUserLoading || user) {
     return (
@@ -140,16 +128,38 @@ export default function LoginPage() {
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Client & Staff Login</CardTitle>
+          <CardTitle>Create Brand Account</CardTitle>
           <CardDescription>
-            Enter your credentials to access your panel.
+            Join our platform to manage your campaigns.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="login-email">Email</Label>
+           <div className="space-y-2">
+            <Label htmlFor="signup-name">Your Name</Label>
             <Input
-              id="login-email"
+              id="signup-name"
+              type="text"
+              placeholder="John Doe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+           <div className="space-y-2">
+            <Label htmlFor="signup-brand-name">Brand Name</Label>
+            <Input
+              id="signup-brand-name"
+              type="text"
+              placeholder="My Awesome Brand"
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="signup-email">Email</Label>
+            <Input
+              id="signup-email"
               type="email"
               placeholder="m@example.com"
               value={email}
@@ -158,9 +168,9 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="login-password">Password</Label>
+            <Label htmlFor="signup-password">Password</Label>
             <Input
-              id="login-password"
+              id="signup-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -169,14 +179,14 @@ export default function LoginPage() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button onClick={handleLogin} className="w-full" disabled={isLoading}>
-             {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <LogIn className="mr-2"/>}
-            Login
+          <Button onClick={handleSignup} className="w-full" disabled={isLoading}>
+             {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <UserPlus className="mr-2"/>}
+            Create Account
           </Button>
            <p className="text-center text-sm text-muted-foreground">
-            Are you a new brand?{' '}
-            <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
-              Sign Up
+            Already have an account?{' '}
+            <Link href="/login" className="underline underline-offset-4 hover:text-primary">
+              Log In
             </Link>
           </p>
         </CardFooter>

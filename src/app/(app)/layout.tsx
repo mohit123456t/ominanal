@@ -10,7 +10,7 @@ import { LoaderCircle } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 
 
-const unauthenticatedRoutes = ['/instagram-callback', '/youtube-callback'];
+const unauthenticatedRoutes = ['/login', '/signup', '/instagram-callback', '/youtube-callback'];
 
 export default function AppLayout({
   children,
@@ -39,7 +39,7 @@ export default function AppLayout({
                 const userData = userDocSnap.data();
                 const role = userData.role;
                 // If user with a specific role tries to access the main app, redirect them
-                if (role && role !== 'brand' && !pathname.startsWith(`/${role}_panel`)) {
+                if (role && role !== 'user' && !pathname.startsWith(`/${role}_panel`)) {
                      switch (role) {
                         case 'admin':
                             router.push('/admin_panel');
@@ -59,8 +59,11 @@ export default function AppLayout({
                         case 'uploader':
                              router.push('/uploader_panel');
                             break;
+                        case 'brand':
+                             router.push('/brand_panel');
+                            break;
                         default:
-                            // stay in the main app layout if role is brand or not defined
+                            // stay in the main app layout if role is user or not defined
                             break;
                     }
                 }
