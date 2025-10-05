@@ -86,10 +86,13 @@ const BrandPanel = () => {
     const [showOrderForm, setShowOrderForm] = useState(false);
 
     // Fetch all brand data from a single user document
-    const userDocRef = useMemoFirebase(() => 
-        user && firestore ? doc(firestore, 'users', user.uid) : null,
-        [user, firestore]
-    );
+    const userDocRef = useMemoFirebase(() => {
+      if (user && firestore) {
+        return doc(firestore, 'users', user.uid);
+      }
+      return null;
+    }, [user, firestore]);
+
     const { data: brandData, isLoading: isDataLoading } = useDoc(userDocRef);
 
     const campaigns = brandData?.campaigns || [];
