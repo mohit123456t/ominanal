@@ -1,8 +1,8 @@
 export const firebaseConfig = {
-  "projectId": "studio-7471193336-2fb56",
-  "appId": "1:464738559217:web:cf4578d70e52eef6eaf550",
-  "apiKey": "AIzaSyAL08R_MoOPkXVG3BoOUs3-GRCtD9CeAbc",
-  "authDomain": "studio-7471193336-2fb56.firebaseapp.com",
-  "measurementId": "",
-  "messagingSenderId": "464738559217"
+  apiKey: "AIzaSyDBaiDzlqGhdliglCow7fO3xGvdIb4Axgw",
+  authDomain: "omnipost-ai-09802347-41c0c.firebaseapp.com",
+  projectId: "omnipost-ai-09802347-41c0c",
+  storageBucket: "omnipost-ai-09802347-41c0c.firebasestorage.app",
+  messagingSenderId: "588944718697",
+  appId: "1:588944718697:web:35564f38923919d0541bf8"
 };
