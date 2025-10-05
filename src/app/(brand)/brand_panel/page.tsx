@@ -26,8 +26,8 @@ import CampaignDetailView from '@/components/brand/CampaignDetailView';
 import NewCampaignForm from '@/components/brand/NewCampaignForm';
 import OrderForm from '@/components/brand/OrderForm';
 import PricingView from '@/components/brand/PricingView';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, addDoc, setDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, addDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -85,26 +85,16 @@ const BrandPanel = () => {
     const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
     const [showOrderForm, setShowOrderForm] = useState(false);
 
-    // Fetch campaigns
-    const campaignsCollection = useMemoFirebase(() => 
-        user && firestore ? collection(firestore, `users/${user.uid}/campaigns`) : null,
-        [user, firestore]
-    );
-    const { data: campaigns, isLoading: campaignsLoading } = useCollection(campaignsCollection);
-
-    // Fetch orders
-    const ordersCollection = useMemoFirebase(() =>
-        user && firestore ? collection(firestore, `users/${user.uid}/orders`) : null,
-        [user, firestore]
-    );
-    const { data: orders, isLoading: ordersLoading } = useCollection(ordersCollection);
-
-    // Fetch profile
-    const profileDoc = useMemoFirebase(() => 
+    // Fetch all brand data from a single user document
+    const userDocRef = useMemoFirebase(() => 
         user && firestore ? doc(firestore, `users/${user.uid}`) : null,
         [user, firestore]
     );
-    const { data: profile, isLoading: profileLoading } = useCollection(profileDoc);
+    const { data: brandData, isLoading: isDataLoading } = useDoc(userDocRef);
+
+    const campaigns = brandData?.campaigns || [];
+    const orders = brandData?.orders || [];
+    const profile = brandData;
 
 
     useEffect(() => {
@@ -132,13 +122,17 @@ const BrandPanel = () => {
     };
 
     const handleCreateCampaign = async (newCampaignData: any) => {
-        if (!user || !campaignsCollection) return;
+        if (!userDocRef) return;
         try {
-            await addDoc(campaignsCollection, {
+            const campaignWithMeta = {
                 ...newCampaignData,
+                id: `camp_${Date.now()}`,
                 userId: user.uid,
                 createdAt: new Date().toISOString(),
                 status: 'Pending Approval', // Default status
+            };
+            await updateDoc(userDocRef, {
+                campaigns: arrayUnion(campaignWithMeta)
             });
             setShowNewCampaignForm(false);
         } catch (error) {
@@ -147,13 +141,17 @@ const BrandPanel = () => {
     };
 
     const handleCreateOrder = async (newOrderData: any) => {
-       if (!user || !ordersCollection) return;
+       if (!userDocRef) return;
         try {
-            await addDoc(ordersCollection, {
+            const orderWithMeta = {
                 ...newOrderData,
+                id: `order_${Date.now()}`,
                 userId: user.uid,
                 createdAt: new Date().toISOString(),
                 status: 'Pending',
+            };
+            await updateDoc(userDocRef, {
+                orders: arrayUnion(orderWithMeta)
             });
             setShowOrderForm(false);
         } catch (error) {
@@ -162,9 +160,11 @@ const BrandPanel = () => {
     };
 
     const handleUpdateProfile = async (updatedProfile: any) => {
-        if (!profileDoc) return;
+        if (!userDocRef) return;
         try {
-            await setDoc(profileDoc, updatedProfile, { merge: true });
+            // We only update the fields that are part of the main user doc
+            const { campaigns, orders, ...profileData } = updatedProfile;
+            await setDoc(userDocRef, profileData, { merge: true });
         } catch (error) {
             console.error("Error updating profile:", error);
         }
@@ -192,7 +192,7 @@ const BrandPanel = () => {
     ];
 
     const renderView = () => {
-        const isLoading = campaignsLoading || ordersLoading || profileLoading || isUserLoading;
+        const isLoading = isDataLoading || isUserLoading;
 
         if (isLoading) {
             return <div className="text-center p-8">Loading...</div>;
