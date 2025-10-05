@@ -14,7 +14,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth, useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, collectionGroup, updateDoc } from 'firebase/firestore';
+import { collection, query, doc, collectionGroup, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
@@ -110,6 +110,9 @@ function AdminPanel() {
     const transactionsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'transactions')) : null, [firestore]);
     const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
 
+    const expensesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'expenses')) : null, [firestore]);
+    const { data: expenses, isLoading: expensesLoading } = useCollection(expensesQuery);
+
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
     
     const adminProfileName = adminProfile?.name || 'Admin';
@@ -126,7 +129,7 @@ function AdminPanel() {
             await updateDoc(transactionDocRef, { status: newStatus });
             if (newStatus === 'Completed' && transaction.type === 'DEPOSIT') {
                 const userDocRef = doc(firestore, 'users', transaction.brandId);
-                const { runTransaction, getDoc } = await import('firebase/firestore');
+                const { runTransaction } = await import('firebase/firestore');
                 await runTransaction(firestore, async (dbTransaction) => {
                     const userDoc = await dbTransaction.get(userDocRef);
                     if (!userDoc.exists()) {
@@ -140,6 +143,25 @@ function AdminPanel() {
         } catch (error: any) {
             toast({ variant: 'destructive', title: "Update Failed", description: error.message });
             console.error("Error updating transaction:", error);
+        }
+    };
+    
+    const handleAddExpense = async (expenseData: { description: string; amount: number; date: string; }) => {
+        if (!firestore) {
+            toast({ variant: 'destructive', title: "Error", description: "Database not available." });
+            return false;
+        }
+        try {
+            const expensesCollection = collection(firestore, 'expenses');
+            await addDoc(expensesCollection, {
+                ...expenseData,
+                createdAt: serverTimestamp(),
+            });
+            toast({ title: 'Success', description: 'Expense has been recorded.' });
+            return true;
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: `Failed to add expense: ${error.message}` });
+            return false;
         }
     };
 
@@ -176,7 +198,7 @@ function AdminPanel() {
         setActiveView('brand_view');
     };
 
-    const isLoading = usersLoading || campaignsLoading || transactionsLoading || isProfileLoading;
+    const isLoading = usersLoading || campaignsLoading || transactionsLoading || isProfileLoading || expensesLoading;
 
     const renderView = () => {
         if (isLoading) {
@@ -192,7 +214,7 @@ function AdminPanel() {
             case 'campaigns': return <CampaignManagerView campaigns={campaigns || []} users={users || []} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-approval': return <CampaignApprovalView campaigns={campaigns || []} />;
             case 'users': return <UserManagementView brands={brands || []} onViewBrand={onViewBrand} />;
-            case 'finance': return <FinanceView transactions={transactions || []} setView={setActiveView} onUpdateStatus={handleUpdateTransactionStatus} />;
+            case 'finance': return <FinanceView transactions={transactions || []} expenses={expenses || []} onUpdateStatus={handleUpdateTransactionStatus} onAddExpense={handleAddExpense} />;
             case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
             case 'communication': return <PlaceholderView name="Communication" />;
             case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
