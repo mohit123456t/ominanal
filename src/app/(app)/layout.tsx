@@ -5,9 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { AppHeader } from '@/components/layout/app-header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
 
 const unauthenticatedRoutes = ['/login', '/signup', '/forgot-password', '/instagram-callback', '/youtube-callback'];
 const panelRoutes = [
@@ -22,58 +21,32 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    if (isUserLoading) {
-      return; 
-    }
-    
-    // If user is not logged in and not on an allowed unauthenticated route, redirect to login
-    if (!user) {
-        if (!unauthenticatedRoutes.includes(pathname)) {
-            router.push('/login');
-        }
-        return;
-    }
-
-    // If user is logged in, check their role and redirect if necessary
-    if (firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        getDoc(userDocRef).then(userDocSnap => {
-            if (userDocSnap.exists()) {
-                const role = userDocSnap.data().role;
-                const targetPath = `/${role}_panel`;
-                
-                // If the user is on a generic page but should be on a specific panel, redirect them.
-                if (panelRoutes.includes(targetPath) && !pathname.startsWith(targetPath)) {
-                   router.push(targetPath);
-                }
-            } else {
-                 // Default redirection if user doc doesn't exist but they are authenticated
-                if (!pathname.startsWith('/dashboard') && !unauthenticatedRoutes.includes(pathname) && !panelRoutes.some(p => pathname.startsWith(p))) {
-                   router.push('/dashboard');
-                }
-            }
-        });
-    }
-
-  }, [user, isUserLoading, router, pathname, firestore]);
-  
   // If the route is one of the panels or an auth page, render it directly without the main app layout
   if (unauthenticatedRoutes.includes(pathname) || panelRoutes.some(p => pathname.startsWith(p))) {
     return <>{children}</>;
   }
 
-
+  // Show a loading spinner while checking auth state for main app routes
   if (isUserLoading || (!user && !unauthenticatedRoutes.includes(pathname))) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  // If user is not authenticated and not on an allowed route, this will be caught by the loader condition,
+  // but a push to login can be a fallback (though login page handles redirection mostly)
+  if (!user && !unauthenticatedRoutes.includes(pathname)) {
+      router.push('/login');
+      return (
+          <div className="flex h-screen w-full items-center justify-center bg-background">
+              <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
+          </div>
+      );
   }
 
   // For authenticated users on main app routes, show the standard layout
