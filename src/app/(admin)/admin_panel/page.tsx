@@ -15,8 +15,8 @@ import {
   DollarSign,
   BarChart,
 } from 'lucide-react';
-import { useAuth, useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, collectionGroup } from 'firebase/firestore';
+import { useAuth, useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, collectionGroup, doc } from 'firebase/firestore';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
@@ -92,13 +92,17 @@ const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNod
 
 function AdminPanel() {
     const [activeView, setActiveView] = useState('dashboard');
-    const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
     const router = useRouter();
     const { user, auth } = useAuth();
     const { firestore } = useFirebase();
 
     // Data Fetching Hooks
+    const userDocRef = useMemoFirebase(() => 
+        user && firestore ? doc(firestore, 'users', user.uid) : null
+    , [user, firestore]);
+    const { data: adminProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
     const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
     const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
     
@@ -110,11 +114,6 @@ function AdminPanel() {
 
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
     
-    const adminProfile = useMemo(() => {
-      if (!users || !user) return null;
-      return users.find(u => u.id === user.uid);
-    }, [users, user]);
-
     const adminProfileName = adminProfile?.name || 'Admin';
 
     const navItems = [
@@ -144,7 +143,7 @@ function AdminPanel() {
         setActiveView('campaign_detail');
     };
 
-    const isLoading = usersLoading || campaignsLoading || transactionsLoading;
+    const isLoading = usersLoading || campaignsLoading || transactionsLoading || isProfileLoading;
 
     const renderView = () => {
         if (isLoading) {
@@ -159,11 +158,11 @@ function AdminPanel() {
             case 'profile': return <ProfileView profile={adminProfile} />;
             case 'campaigns': return <CampaignManagerView campaigns={campaigns || []} users={users || []} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-approval': return <CampaignApprovalView campaigns={campaigns || []} />;
-            case 'users': return <UserManagementView brands={brands || []} onViewBrand={(brandId: any) => { setSelectedBrandId(brandId); setActiveView('brand_view'); }} />;
+            case 'users': return <UserManagementView brands={brands || []} onViewBrand={() => { /* Placeholder */ }} />;
             case 'finance': return <FinanceView transactions={transactions || []} setView={setActiveView} />;
             case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
             case 'communication': return <PlaceholderView name="Communication" />;
-            case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
+            case 'brand_view': return <BrandPanel viewBrandId={null} onBack={() => setActiveView('users')} />;
             case 'dashboard':
             default:
                 return <DashboardView campaigns={campaigns || []} users={users || []} />;

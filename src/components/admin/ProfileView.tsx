@@ -21,18 +21,10 @@ const ProfileView = ({ profile: initialProfile }: { profile: any | null }) => {
     const [profile, setProfile] = useState<Partial<any>>({});
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-
+    
     useEffect(() => {
         if (initialProfile) {
             setProfile(initialProfile);
-            setIsLoading(false);
-        } else {
-            // If after a short delay initialProfile is still null, stop loading
-            const timer = setTimeout(() => {
-                setIsLoading(false);
-            }, 1500);
-            return () => clearTimeout(timer);
         }
     }, [initialProfile]);
 
@@ -57,16 +49,8 @@ const ProfileView = ({ profile: initialProfile }: { profile: any | null }) => {
     const handleInputChange = (field: string, value: string) => {
         setProfile(prev => ({ ...prev, [field]: value }));
     };
-
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-full">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
-            </div>
-        );
-    }
     
-    if (!profile || Object.keys(profile).length === 0) {
+    if (!initialProfile) {
         return (
              <div className="text-center p-8 bg-white/40 backdrop-blur-lg rounded-xl shadow-md border">
                 <h3 className="text-xl font-bold text-red-600">Profile Not Found</h3>
