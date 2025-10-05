@@ -38,9 +38,22 @@ export default function SignupPage() {
   useEffect(() => {
     // If user is already logged in, redirect them away from signup
     if (!isUserLoading && user) {
-      router.push('/brand_panel');
+      // Fetch role and redirect
+      if (firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        getDoc(userDocRef).then(userDocSnap => {
+          if (userDocSnap.exists()) {
+            const role = userDocSnap.data().role || 'brand';
+            router.push(`/${role}_panel`);
+          } else {
+            router.push('/brand_panel');
+          }
+        });
+      } else {
+        router.push('/brand_panel');
+      }
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, firestore]);
 
   const handleSignup = async () => {
     if (!auth || !firestore) return;
@@ -75,7 +88,7 @@ export default function SignupPage() {
         title: 'Account Created!',
         description: "You've been successfully signed up.",
       });
-      // The useEffect will handle redirection to the brand_panel
+      // The useEffect will handle redirection to the brand_panel after state update
     } catch (error: any) {
       console.error(error);
       toast({

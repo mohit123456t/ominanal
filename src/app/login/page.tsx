@@ -78,8 +78,8 @@ export default function LoginPage() {
           router.push('/script_writer_panel');
           break;
         case 'thumbnail_maker':
-          router.push('/thumbnail_maker_panel');
-          break;
+            router.push('/thumbnail_maker_panel');
+            break;
         case 'uploader':
             router.push('/uploader_panel');
             break;

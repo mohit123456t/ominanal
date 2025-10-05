@@ -9,14 +9,12 @@ import { useUser, useFirestore } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 
-
 const unauthenticatedRoutes = ['/login', '/signup', '/instagram-callback', '/youtube-callback'];
 const panelRoutes = [
-    '/admin_panel', '/superadmin_panel', '/brand_panel', 
-    '/video_editor_panel', '/script_writer_panel', 
+    '/admin_panel', '/superadmin_panel', '/brand_panel',
+    '/video_editor_panel', '/script_writer_panel',
     '/thumbnail_maker_panel', '/uploader_panel'
 ];
-
 
 export default function AppLayout({
   children,
@@ -28,14 +26,38 @@ export default function AppLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-   useEffect(() => {
+  useEffect(() => {
     if (isUserLoading) {
       return; 
     }
     
     // If user is not logged in and not on an allowed unauthenticated route, redirect to login
-    if (!user && !unauthenticatedRoutes.includes(pathname)) {
-      router.push('/login');
+    if (!user) {
+        if (!unauthenticatedRoutes.includes(pathname)) {
+            router.push('/login');
+        }
+        return;
+    }
+
+    // If user is logged in, check their role and redirect if necessary
+    if (firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        getDoc(userDocRef).then(userDocSnap => {
+            if (userDocSnap.exists()) {
+                const role = userDocSnap.data().role;
+                const targetPath = `/${role}_panel`;
+                
+                // If the user is on a generic page but should be on a specific panel, redirect them.
+                if (panelRoutes.includes(targetPath) && !pathname.startsWith(targetPath)) {
+                   router.push(targetPath);
+                }
+            } else {
+                 // Default redirection if user doc doesn't exist but they are authenticated
+                if (!pathname.startsWith('/dashboard')) {
+                   // router.push('/dashboard');
+                }
+            }
+        });
     }
 
   }, [user, isUserLoading, router, pathname, firestore]);
