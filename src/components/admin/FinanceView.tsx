@@ -2,46 +2,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle } from 'lucide-react';
-import { useFirebase } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc } from 'firebase/firestore';
 
-
-const FinanceView = ({ transactions, setView }: { transactions: any[], setView: (view: string) => void }) => {
-    const { firestore } = useFirebase();
-    const { toast } = useToast();
-
-    const handleUpdateStatus = async (transaction: any, newStatus: string) => {
-        if (!firestore || !transaction.brandId || !transaction.id) {
-            toast({ variant: 'destructive', title: "Error", description: "Invalid transaction data or database connection." });
-            return;
-        }
-
-        const transactionDocRef = doc(firestore, `users/${transaction.brandId}/transactions`, transaction.id);
-        
-        try {
-            await updateDoc(transactionDocRef, { status: newStatus });
-            if (newStatus === 'Completed' && transaction.type === 'DEPOSIT') {
-                const userDocRef = doc(firestore, 'users', transaction.brandId);
-                // Note: This needs a server-side function for security in production
-                // For this demo, we'll optimistically update from the client.
-                const { getDoc, runTransaction } = await import('firebase/firestore');
-                await runTransaction(firestore, async (dbTransaction) => {
-                    const userDoc = await dbTransaction.get(userDocRef);
-                    if (!userDoc.exists()) {
-                        throw new Error("User document not found!");
-                    }
-                    const newBalance = (userDoc.data().balance || 0) + transaction.amount;
-                    dbTransaction.update(userDocRef, { balance: newBalance });
-                });
-            }
-            toast({ title: 'Success', description: `Transaction status updated to ${newStatus}.` });
-            // Note: The UI will update automatically due to the real-time listener in the parent component.
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: "Update Failed", description: error.message });
-            console.error("Error updating transaction:", error);
-        }
-    };
+const FinanceView = ({ transactions, setView, onUpdateStatus }: { transactions: any[], setView: (view: string) => void, onUpdateStatus: (transaction: any, newStatus: string) => void }) => {
     
     return (
         <div className="p-6 animate-fade-in">
@@ -86,8 +48,8 @@ const FinanceView = ({ transactions, setView }: { transactions: any[], setView: 
                                         <td className="p-3">
                                             {tx.status === 'Pending' && (
                                                 <div className="flex items-center space-x-2">
-                                                    <button onClick={() => handleUpdateStatus(tx, 'Completed')} className="p-1.5 text-green-600 hover:bg-green-100 rounded-md"><CheckCircle /></button>
-                                                    <button onClick={() => handleUpdateStatus(tx, 'Rejected')} className="p-1.5 text-red-600 hover:bg-red-100 rounded-md"><XCircle /></button>
+                                                    <button onClick={() => onUpdateStatus(tx, 'Completed')} className="p-1.5 text-green-600 hover:bg-green-100 rounded-md"><CheckCircle /></button>
+                                                    <button onClick={() => onUpdateStatus(tx, 'Rejected')} className="p-1.5 text-red-600 hover:bg-red-100 rounded-md"><XCircle /></button>
                                                 </div>
                                             )}
                                         </td>

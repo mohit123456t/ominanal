@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,7 +14,8 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth, useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, collectionGroup } from 'firebase/firestore';
+import { collection, query, doc, collectionGroup, updateDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
@@ -34,7 +35,6 @@ const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBac
         <PlaceholderView name={`Brand Panel (ID: ${viewBrandId})`} />
     </div>
 );
-
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -67,7 +67,6 @@ const Logo = () => (
     </div>
 );
 
-
 const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
     <motion.button
         onClick={onClick}
@@ -94,6 +93,7 @@ function AdminPanel() {
     const router = useRouter();
     const { user, auth } = useAuth();
     const { firestore } = useFirebase();
+    const { toast } = useToast();
 
     // Data Fetching Hooks
     const userDocRef = useMemoFirebase(() =>
@@ -104,7 +104,6 @@ function AdminPanel() {
     const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
     const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
     
-    // Assuming campaigns are in a top-level collection for the admin to manage
     const campaignsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campaigns') : null, [firestore]);
     const { data: campaigns, isLoading: campaignsLoading } = useCollection(campaignsQuery);
 
@@ -114,6 +113,36 @@ function AdminPanel() {
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
     
     const adminProfileName = adminProfile?.name || 'Admin';
+    
+    const handleUpdateTransactionStatus = async (transaction: any, newStatus: string) => {
+        if (!firestore || !transaction.brandId || !transaction.id) {
+            toast({ variant: 'destructive', title: "Error", description: "Invalid transaction data or database connection." });
+            return;
+        }
+
+        const transactionDocRef = doc(firestore, `users/${transaction.brandId}/transactions`, transaction.id);
+        
+        try {
+            await updateDoc(transactionDocRef, { status: newStatus });
+            if (newStatus === 'Completed' && transaction.type === 'DEPOSIT') {
+                const userDocRef = doc(firestore, 'users', transaction.brandId);
+                const { runTransaction, getDoc } = await import('firebase/firestore');
+                await runTransaction(firestore, async (dbTransaction) => {
+                    const userDoc = await dbTransaction.get(userDocRef);
+                    if (!userDoc.exists()) {
+                        throw new Error("User document not found!");
+                    }
+                    const newBalance = (userDoc.data().balance || 0) + transaction.amount;
+                    dbTransaction.update(userDocRef, { balance: newBalance });
+                });
+            }
+            toast({ title: 'Success', description: `Transaction status updated to ${newStatus}.` });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Update Failed", description: error.message });
+            console.error("Error updating transaction:", error);
+        }
+    };
+
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
@@ -163,7 +192,7 @@ function AdminPanel() {
             case 'campaigns': return <CampaignManagerView campaigns={campaigns || []} users={users || []} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-approval': return <CampaignApprovalView campaigns={campaigns || []} />;
             case 'users': return <UserManagementView brands={brands || []} onViewBrand={onViewBrand} />;
-            case 'finance': return <FinanceView transactions={transactions || []} setView={setActiveView} />;
+            case 'finance': return <FinanceView transactions={transactions || []} setView={setActiveView} onUpdateStatus={handleUpdateTransactionStatus} />;
             case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
             case 'communication': return <PlaceholderView name="Communication" />;
             case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
