@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -12,8 +13,12 @@ import {
   Bell,
   LogOut,
   ArrowLeft,
+  DollarSign,
+  BarChart,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
+import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
@@ -35,9 +40,22 @@ const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBac
 );
 
 
+const StatCard = ({ title, value, icon, color }: { title: string; value: string; icon: React.ReactNode; color: string; }) => (
+    <motion.div
+      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80"
+      whileHover={{ y: -5, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-md font-semibold text-slate-700">{title}</h3>
+        <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
+      </div>
+      <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{value}</p>
+    </motion.div>
+  );
+
 // 🖥️ Main Dashboard — iOS फ्रॉस्टेड ग्लास थीम
 const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
-  const [showFinance, setShowFinance] = useState(false);
   const [dashboardData, setDashboardData] = useState({
     totalRevenue: 567890, netProfit: 397523, activeCampaigns: 42, totalTeamMembers: 15,
     totalViews: 1250000, pendingApprovals: 8, accountIssues: 0,
@@ -70,86 +88,45 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
           <h1 className="text-3xl font-bold text-slate-800 tracking-tighter">Dashboard</h1>
           <p className="text-md text-slate-500 mt-1">Welcome back! Here's what's happening.</p>
         </div>
-        <motion.button
-          onClick={() => onViewChange('finance')}
-          className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-500/20 font-semibold"
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {showFinance ? 'Back to Dashboard' : 'View Finance Details'}
-        </motion.button>
       </motion.div>
 
-      <AnimatePresence mode="wait">
-        {showFinance ? (
-          <motion.div key="finance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <FinanceView setView={onViewChange} />
-          </motion.div>
-        ) : (
-          <motion.div key="dashboard">
+        <motion.div>
             {loading ? (
               <div className="flex justify-center items-center h-96">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
               </div>
             ) : (
               <motion.div  initial="hidden" animate="show" className="space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  <motion.div
-                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 "
-                      whileHover={{ y: -5, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-md font-semibold text-slate-700">Active Campaigns</h3>
-                      <div className={`p-3 rounded-lg bg-purple-100 text-purple-600`}><LayoutDashboard /></div>
-                    </div>
-                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.activeCampaigns}</p> 
-                    <p className="text-sm text-slate-500 flex items-center">{dashboardData.pendingApprovals} pending</p>
-                  </motion.div>
-                  <motion.div
-                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 "
-                      whileHover={{ y: -5, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-md font-semibold text-slate-700">Team Members</h3>
-                      <div className={`p-3 rounded-lg bg-orange-100 text-orange-600`}><UsersGroup /></div>
-                    </div>
-                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.totalTeamMembers}</p> 
-                    <p className="text-sm text-slate-500 flex items-center">All active</p>
-                  </motion.div>
-                  <motion.div
-                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 md:col-span-2"
-                      whileHover={{ y: -5, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-md font-semibold text-slate-700">Total Views</h3>
-                      <div className={`p-3 rounded-lg bg-pink-100 text-pink-600`}><LayoutDashboard /></div>
-                    </div>
-                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.totalViews.toLocaleString()}</p> 
-                    <p className="text-sm text-slate-500 flex items-center">Across all campaigns</p>
-                  </motion.div>
-                   <motion.div
-                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 md:col-span-2"
-                      whileHover={{ y: -5, scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-md font-semibold text-slate-700">Pending Approvals</h3>
-                      <div className={`p-3 rounded-lg bg-yellow-100 text-yellow-600`}><CheckCircle /></div>
-                    </div>
-                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.pendingApprovals}</p> 
-                    <p className="text-sm text-slate-500 flex items-center">Action required</p>
-                  </motion.div>
-
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard title="Total Revenue" value={`₹${dashboardData.totalRevenue.toLocaleString()}`} icon={<DollarSign/>} color="bg-green-100 text-green-600"/>
+                    <StatCard title="Active Campaigns" value={dashboardData.activeCampaigns.toString()} icon={<LayoutDashboard/>} color="bg-purple-100 text-purple-600"/>
+                    <StatCard title="Team Members" value={dashboardData.totalTeamMembers.toString()} icon={<UsersGroup/>} color="bg-orange-100 text-orange-600"/>
+                    <StatCard title="Pending Approvals" value={dashboardData.pendingApprovals.toString()} icon={<CheckCircle/>} color="bg-yellow-100 text-yellow-600"/>
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                   <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
                     <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
                     <div className="h-80">
-                      <p>Chart coming soon...</p>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <RechartsBarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value/1000}k`}/>
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
+                                    contentStyle={{ 
+                                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                        backdropFilter: 'blur(5px)',
+                                        border: '1px solid rgba(0, 0, 0, 0.1)', 
+                                        borderRadius: '12px'
+                                    }}
+                                />
+                                <Legend wrapperStyle={{ fontSize: '14px' }}/>
+                                <RechartsBar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
+                                <RechartsBar dataKey="expenses" fill="#f59e0b" name="Expenses" radius={[4, 4, 0, 0]} />
+                            </RechartsBarChart>
+                        </ResponsiveContainer>
                     </div>
                   </motion.div>
 
@@ -174,8 +151,6 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
               </motion.div>
             )}
           </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
@@ -379,3 +354,6 @@ function AdminPanel() {
 export default function AdminPanelPage() {
     return <AdminPanel />;
 }
+
+
+    
