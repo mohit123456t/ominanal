@@ -24,6 +24,10 @@
           "type": "string",
           "description": "Last name of the user."
         },
+        "mobileNumber": {
+          "type": "string",
+          "description": "Mobile number of the user."
+        },
         "subscriptionId": {
           "type": "string",
           "description": "Reference to Subscription. (Relationship: User 1:1 Subscription)"
@@ -34,6 +38,7 @@
         "email",
         "firstName",
         "lastName",
+        "mobileNumber",
         "subscriptionId"
       ]
     },

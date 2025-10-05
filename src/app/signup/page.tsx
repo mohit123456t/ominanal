@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ export default function SignupPage() {
   const [brandName, setBrandName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
@@ -60,6 +61,7 @@ export default function SignupPage() {
         name: name,
         email: email,
         brandName: brandName,
+        mobileNumber: mobileNumber,
         role: 'brand', // Assign the brand role
         createdAt: new Date().toISOString(),
       });
@@ -151,6 +153,18 @@ export default function SignupPage() {
               placeholder="My Awesome Brand"
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
+              disabled={isLoading}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="signup-mobile">Mobile Number</Label>
+            <Input
+              id="signup-mobile"
+              type="tel"
+              placeholder="Your mobile number"
+              value={mobileNumber}
+              onChange={(e) => setMobileNumber(e.target.value)}
               disabled={isLoading}
               required
             />
