@@ -1,95 +1,180 @@
-/**
- * @fileOverview Firestore Security Rules for OmniPost AI.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for personal data,
- * a role-based model for team data, and allows public read access for subscription data.
- * Data validation is relaxed during this prototyping phase, focusing on authorization.
- *
- * Data Structure:
- * - /users/{userId}: Root for user-specific data.  Enforces ownership.
- * - /teams/{teamId}: Root for team data. Uses a members map for role-based access.
- * - /teams/{teamId}/members/{memberId}: Stores team member roles.
- * - /users/{userId}/socialMediaAccounts/{socialMediaAccountId}: User's social media accounts. Enforces ownership.
- * - /users/{userId}/posts/{postId}: User's social media posts. Enforces ownership.
- * - /users/{userId}/posts/{postId}/platformPosts/{platformPostId}: Platform-specific post details. Enforces ownership.
- * - /subscriptions/{subscriptionId}: Publicly readable subscription plan details.
- *
- * Key Security Decisions:
- * - User listing is disallowed.
- * - Subscriptions are publicly readable to facilitate easy access to plan information.
- * - Data validation is minimized to accelerate prototyping, focusing on authorization.
- *
- * Denormalization for Authorization:
- * - Ownership: The `ownerId` field is denormalized into the `/teams/{teamId}` document
- * - Roles: The `members` map (UID -> role) is denormalized into the `/teams/{teamId}` document to avoid `get()` calls and allow easy role-based access.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is authenticated.
+     * @description Grants full access only to the authenticated user.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' can create their profile.
+     * @allow (get) User with ID 'user123' can read their profile.
+     * @deny (get) User with ID 'user456' cannot read user 'user123's profile.
+     * @principle Enforces document ownership for all operations.
      */
-    function isSignedIn() {
-      return request.auth != null;
+    match /users/{userId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
-     * @description Checks if the authenticated user's ID matches the provided user ID.
-     * @param {string} userId - The user ID to compare against.
+     * @description Allows team owners and admins to manage team data and members.
+     * @path /teams/{teamId}
+     * @allow (create) User with owner role can create a team.
+     * @allow (get) User with a role in the team can read team info.
+     * @deny (update) User without a role in the team cannot update team info.
+     * @principle Enforces role-based access control for team data.
      */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    match /teams/{teamId} {
+      function userRole(teamId) {
+        return get(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid)).data.role;
+      }
+      function isAdminOrOwner(teamId) {
+        return isSignedIn() && (userRole(teamId) == 'admin' || userRole(teamId) == 'owner');
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isSignedIn() && exists(/databases/$(database)/documents/teams/$(teamId)/members/$(request.auth.uid));
+      allow list: if false;
+      allow create: if request.auth.uid == request.resource.data.ownerId && isSignedIn();
+      allow update: if isAdminOrOwner(teamId);
+      allow delete: if isAdminOrOwner(teamId);
     }
 
     /**
-     * @description Checks if the authenticated user is the existing owner of the document.
-     *              Combines the ownership check with an existence check.
-     * @param {string} userId - The user ID to compare against.
+     * @description Allows team members to be managed by team admins and owners.
+     * @path /teams/{teamId}/members/{memberId}
+     * @allow (create) Team admin can add a new member.
+     * @allow (get) Team member can view their own membership.
+     * @deny (delete) Non-admin cannot remove a member.
+     * @principle Role-based access control for team membership.
      */
-    function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+    match /teams/{teamId}/members/{memberId} {
+        function getTeamId() {
+            return request.path[6];
+        }
+        function userRole() {
+          return get(/databases/$(database)/documents/teams/$(getTeamId())/members/$(request.auth.uid)).data.role;
+        }
+        function isAdminOrOwner() {
+          return isSignedIn() && (userRole() == 'admin' || userRole() == 'owner');
+        }
+        function isSignedIn() {
+          return request.auth != null;
+        }
+        allow get: if isSignedIn() && request.auth.uid == memberId;
+        allow list: if false;
+        allow create: if isAdminOrOwner();
+        allow update: if isAdminOrOwner();
+        allow delete: if isAdminOrOwner();
     }
 
     /**
-     * @description Allows read and write access to authenticated users
+     * @description Grants the user access to their own platform credentials.
+     * @path /users/{userId}/platformCredentials/{platform}
+     * @allow (create) User 'user123' can create credentials for their account.
+     * @allow (get) User 'user123' can retrieve credentials for their account.
+     * @deny (update) User 'user456' cannot update user 'user123's credentials.
+     * @principle User can only manage their own platform credentials.
      */
-    // match /{document=**} {
-    //    allow read: if isSignedIn();
-    //    allow write: if isSignedIn();
-    // }
+    match /users/{userId}/platformCredentials/{platform} {
+        function isOwner(userId) {
+          return request.auth != null && request.auth.uid == userId;
+        }
+        function isSignedIn() {
+          return request.auth != null;
+        }
+        allow get: if isOwner(userId);
+        allow list: if false;
+        allow create: if isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+    }
 
     /**
-     * @description Defines a subscription id
+     * @description Grants the user access to their own social media accounts.
+     * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}
+     * @allow (create) User 'user123' can add a social media account.
+     * @allow (get) User 'user123' can view their social media accounts.
+     * @deny (update) User 'user456' cannot modify user 'user123's social media accounts.
+     * @principle User can only manage their own social media accounts.
      */
-     match /subscriptions/{subscriptionId} {
-        allow read: if true;
-        allow write: if false;
-     }
+    match /users/{userId}/socialMediaAccounts/{socialMediaAccountId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
 
-     match /users/{userId} {
-        allow read, write: if isSignedIn() && isOwner(userId);
+    /**
+     * @description Grants the user access to their own posts.
+     * @path /users/{userId}/posts/{postId}
+     * @allow (create) User 'user123' can create a post.
+     * @allow (get) User 'user123' can view their posts.
+     * @deny (update) User 'user456' cannot modify user 'user123's posts.
+     * @principle User can only manage their own posts.
+     */
+    match /users/{userId}/posts/{postId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
 
-        match /socialMediaAccounts/{socialMediaAccountId} {
-          allow read, write: if isSignedIn() && isOwner(userId);
-        }
+    /**
+     * @description Grants access to platform-specific posts based on the parent post's ownership.
+     * @path /users/{userId}/posts/{postId}/platformPosts/{platformPostId}
+     * @allow (create) User 'user123' can create a platform post under their post.
+     * @allow (get) User 'user123' can view their platform posts.
+     * @deny (update) User 'user456' cannot modify user 'user123's platform posts.
+     * @principle Inherits ownership from the parent post.
+     */
+    match /users/{userId}/posts/{postId}/platformPosts/{platformPostId} {
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
 
-        match /posts/{postId} {
-          allow read, write: if isSignedIn() && isOwner(userId);
-
-          match /platformPosts/{platformPostId} {
-            allow read, write: if isSignedIn() && isOwner(userId);
-          }
-        }
-     }
-
-     match /teams/{teamId} {
-        allow read, write: if isSignedIn();
-
-        match /members/{memberId} {
-          allow read, write: if isSignedIn() && request.auth.uid == teamId;
-        }
-     }
+    /**
+     * @description Allows public read access to subscription plans, with owner-only writes.
+     * @path /subscriptions/{subscriptionId}
+     * @allow (get) Any user can retrieve subscription information.
+     * @deny (create) Anonymous user cannot create a subscription plan.
+     * @principle Public read access with restricted write access for subscriptions.
+     */
+    match /subscriptions/{subscriptionId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }
