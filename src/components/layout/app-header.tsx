@@ -52,4 +52,6 @@ export function AppHeader() {
         </h1>
       </div>
       <UserNav />
-    </
+    </header>
+  );
+}
