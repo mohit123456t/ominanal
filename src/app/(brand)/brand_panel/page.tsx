@@ -27,7 +27,7 @@ import NewCampaignForm from '@/components/brand/NewCampaignForm';
 import OrderForm from '@/components/brand/OrderForm';
 import PricingView from '@/components/brand/PricingView';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, setDoc, addDoc, collection } from 'firebase/firestore';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -38,7 +38,7 @@ const Logo = () => (
             xmlns="http://www.w3.org/2000/svg"
         >
             <path
-            d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z"
+            d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 2 12Z"
             fill="currentColor"
             />
             <path
@@ -77,6 +77,8 @@ const BrandPanel = () => {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
+    const [descriptionsCollection, setDescriptionsCollection] = useState<any>(null);
+
 
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
@@ -87,10 +89,10 @@ const BrandPanel = () => {
 
     // Fetch all brand data from a single user document
     const userDocRef = useMemoFirebase(() => {
-      if (user && firestore) {
-        return doc(firestore, 'users', user.uid);
-      }
-      return null;
+        if (user && firestore) {
+            return doc(firestore, 'users', user.uid);
+        }
+        return null;
     }, [user, firestore]);
 
     const { data: brandData, isLoading: isDataLoading } = useDoc(userDocRef);
@@ -104,6 +106,12 @@ const BrandPanel = () => {
         const savedView = localStorage.getItem('brandActiveView');
         if (savedView) setActiveView(savedView);
     }, []);
+
+    useEffect(() => {
+        if (firestore) {
+            setDescriptionsCollection(collection(firestore, 'descriptions'));
+        }
+    }, [firestore]);
 
     useEffect(() => {
         localStorage.setItem('brandActiveView', activeView);
@@ -125,7 +133,7 @@ const BrandPanel = () => {
     };
 
     const handleCreateCampaign = async (newCampaignData: any) => {
-        if (!userDocRef) return;
+        if (!userDocRef || !descriptionsCollection) return;
         try {
             const campaignWithMeta = {
                 ...newCampaignData,
@@ -137,7 +145,17 @@ const BrandPanel = () => {
             await updateDoc(userDocRef, {
                 campaigns: arrayUnion(campaignWithMeta)
             });
+
+             if (newCampaignData.description) {
+                await addDoc(descriptionsCollection, {
+                    campaignId: campaignWithMeta.id,
+                    description: newCampaignData.description,
+                    createdAt: new Date().toISOString(),
+                });
+            }
+
             setShowNewCampaignForm(false);
+             setDescriptionsCollection(null);
         } catch (error) {
             console.error("Error creating campaign:", error);
         }
