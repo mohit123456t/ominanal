@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +27,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
   const { firestore } = useFirebase();
-  const router = useRouter();
   const { toast } = useToast();
   
   const handleLogin = async () => {
@@ -45,54 +43,62 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
 
-      // Check for user role in the 'users' collection first
-      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
-      
-      let role = 'user'; // default role
-
-      if (userDocSnap.exists()) {
-        role = userDocSnap.data().role || 'user';
-      } else {
-        // If no user doc, check if they are an admin in the dedicated admin roles collection
-        const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
-        const adminDocSnap = await getDoc(adminDocRef);
-        if (adminDocSnap.exists()) {
-            role = 'superadmin';
-        }
-      }
-
-
       toast({
         title: 'Successfully logged in!',
         description: `Redirecting you to your panel...`,
       });
 
-      switch (role) {
-        case 'superadmin':
-          router.push('/superadmin_panal');
-          break;
-        case 'admin':
-          router.push('/admin_panel');
-          break;
-        case 'brand':
-          router.push('/brand_panel');
-          break;
-        case 'video_editor':
-          router.push('/video_editor_panel');
-          break;
-        case 'script_writer':
-          router.push('/script_writer_panel');
-          break;
-        case 'thumbnail_maker':
-            router.push('/thumbnail_maker_panel');
-            break;
-        case 'uploader':
-            router.push('/uploader_panel');
-            break;
-        default:
-          router.push('/login'); 
-          break;
+      // Check for user role in the 'users' collection first
+      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      
+      let role = 'user'; // default role
+      let redirected = false;
+
+      if (userDocSnap.exists()) {
+        role = userDocSnap.data().role || 'user';
+        redirected = true;
+        switch (role) {
+            case 'admin':
+              window.location.href = '/admin_panel';
+              break;
+            case 'brand':
+              window.location.href = '/brand_panel';
+              break;
+            case 'video_editor':
+              window.location.href = '/video_editor_panel';
+              break;
+            case 'script_writer':
+              window.location.href = '/script_writer_panel';
+              break;
+            case 'thumbnail_maker':
+              window.location.href = '/thumbnail_maker_panel';
+              break;
+            case 'uploader':
+              window.location.href = '/uploader_panel';
+              break;
+            default:
+              window.location.href = '/login'; 
+              break;
+        }
+      } else {
+        // If no user doc, check if they are an admin in the dedicated admin roles collection
+        const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
+        const adminDocSnap = await getDoc(adminDocRef);
+        if (adminDocSnap.exists()) {
+            redirected = true;
+            window.location.href = '/superadmin_panal';
+        }
+      }
+
+      if (!redirected) {
+          // Fallback if no role is found
+          toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: "Could not determine your user role. Please contact support.",
+          });
+          setIsLoading(false);
       }
 
     } catch (error: any) {
@@ -108,8 +114,7 @@ export default function LoginPage() {
         title: 'Authentication Error',
         description: description,
       });
-    } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
