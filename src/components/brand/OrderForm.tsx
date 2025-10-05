@@ -1,8 +1,13 @@
 'use client';
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { addDoc, collection } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
 
 const OrderForm = ({ campaign, onCreateOrder, onCancel }: { campaign: any; onCreateOrder: (order: any) => void; onCancel: () => void; }) => {
+    const { user } = useUser();
+    const firestore = useFirestore();
+
     const [formData, setFormData] = useState({
         type: '',
         quantity: '',
@@ -60,11 +65,9 @@ const OrderForm = ({ campaign, onCreateOrder, onCancel }: { campaign: any; onCre
             budget: parseFloat(formData.budget),
             deadline: formData.deadline,
             status: 'Pending',
-            notes: formData.notes,
-            createdAt: new Date().toISOString()
+            notes: formData.notes
         };
         
-        alert("Order Created! (This is a demo)");
         onCreateOrder(newOrder);
     };
 
@@ -176,5 +179,3 @@ const OrderForm = ({ campaign, onCreateOrder, onCancel }: { campaign: any; onCre
 };
 
 export default OrderForm;
-
-    

@@ -1,8 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { User } from 'firebase/auth';
-
 import {
     LayoutDashboard,
     Folder,
@@ -28,6 +26,8 @@ import CampaignDetailView from '@/components/brand/CampaignDetailView';
 import NewCampaignForm from '@/components/brand/NewCampaignForm';
 import OrderForm from '@/components/brand/OrderForm';
 import PricingView from '@/components/brand/PricingView';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, addDoc, setDoc } from 'firebase/firestore';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -73,63 +73,52 @@ const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, labe
     </button>
 );
 
-const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: string; onBack?: () => void }) => {
+const BrandPanel = () => {
     const router = useRouter();
-    const isViewMode = !!propViewBrandId;
+    const { user, isUserLoading } = useUser();
+    const firestore = useFirestore();
 
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
     
-    const [user, setUser] = useState<Partial<User>>({uid: 'brand-user-1', email: 'brand@example.com'});
-
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-    const [campaigns, setCampaigns] = useState<any[]>([]);
     const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
     const [showOrderForm, setShowOrderForm] = useState(false);
-    const [orders, setOrders] = useState<any[]>([]);
-    const [profile, setProfile] = useState<any>({});
+
+    // Fetch campaigns
+    const campaignsCollection = useMemoFirebase(() => 
+        user && firestore ? collection(firestore, `users/${user.uid}/campaigns`) : null,
+        [user, firestore]
+    );
+    const { data: campaigns, isLoading: campaignsLoading } = useCollection(campaignsCollection);
+
+    // Fetch orders
+    const ordersCollection = useMemoFirebase(() =>
+        user && firestore ? collection(firestore, `users/${user.uid}/orders`) : null,
+        [user, firestore]
+    );
+    const { data: orders, isLoading: ordersLoading } = useCollection(ordersCollection);
+
+    // Fetch profile
+    const profileDoc = useMemoFirebase(() => 
+        user && firestore ? doc(firestore, `users/${user.uid}`) : null,
+        [user, firestore]
+    );
+    const { data: profile, isLoading: profileLoading } = useCollection(profileDoc);
+
 
     useEffect(() => {
         const savedView = localStorage.getItem('brandActiveView');
-        if (savedView) {
-            setActiveView(savedView);
-        }
-        const savedCampaign = localStorage.getItem('brandSelectedCampaign');
-        if (savedCampaign) {
-            try {
-                setSelectedCampaign(JSON.parse(savedCampaign));
-            } catch (e) {
-                setSelectedCampaign(null);
-            }
-        }
+        if (savedView) setActiveView(savedView);
     }, []);
-
 
     useEffect(() => {
         localStorage.setItem('brandActiveView', activeView);
     }, [activeView]);
 
-    useEffect(() => {
-        localStorage.setItem('brandSelectedCampaign', JSON.stringify(selectedCampaign));
-    }, [selectedCampaign]);
-    
-    useEffect(() => {
-        // Placeholder data since DB is disconnected
-        setProfile({ name: 'Brand User', brandName: 'Awesome Brand', email: user?.email });
-        setCampaigns([
-            { id: 'camp1', name: 'Summer Sale', status: 'Active', budget: 50000, reels: [] },
-            { id: 'camp2', name: 'Winter Collection', status: 'Completed', budget: 75000, reels: [] }
-        ]);
-        setOrders([ {id: 'order1', campaignName: 'Summer Sale', reels: 10, amount: 10000} ]);
-    }, [user?.uid, propViewBrandId]);
-
-    const handleLogout = async () => {
-        if (isViewMode) {
-            window.close();
-        } else {
-            alert("Logout functionality is disabled in this demo.");
-            router.push('/');
-        }
+    const handleLogout = () => {
+        // Replace with your actual logout logic
+        router.push('/login');
     };
 
     const handleSelectCampaign = (campaign: any) => {
@@ -142,26 +131,43 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
         setActiveView('campaigns');
     };
 
-    const handleCreateCampaign = async (newCampaign: any) => {
-        alert("Campaign created! (This is a demo, not saved to DB)");
-        setCampaigns(prev => [...prev, {id: `demo-${Date.now()}`, ...newCampaign}]);
-        setShowNewCampaignForm(false);
+    const handleCreateCampaign = async (newCampaignData: any) => {
+        if (!user || !campaignsCollection) return;
+        try {
+            await addDoc(campaignsCollection, {
+                ...newCampaignData,
+                userId: user.uid,
+                createdAt: new Date().toISOString(),
+                status: 'Pending Approval', // Default status
+            });
+            setShowNewCampaignForm(false);
+        } catch (error) {
+            console.error("Error creating campaign:", error);
+        }
     };
 
-    const handleUpdateCampaign = async (updatedCampaign: any) => {
-        alert("Campaign updated! (This is a demo, not saved to DB)");
-        setCampaigns(prev => prev.map(c => c.id === updatedCampaign.id ? updatedCampaign : c));
-    };
-
-    const handleCreateOrder = async (newOrder: any) => {
-       alert("Order created! (This is a demo, not saved to DB)");
-        setOrders(prev => [...prev, {id: `demo-${Date.now()}`, ...newOrder}]);
-        setShowOrderForm(false);
+    const handleCreateOrder = async (newOrderData: any) => {
+       if (!user || !ordersCollection) return;
+        try {
+            await addDoc(ordersCollection, {
+                ...newOrderData,
+                userId: user.uid,
+                createdAt: new Date().toISOString(),
+                status: 'Pending',
+            });
+            setShowOrderForm(false);
+        } catch (error) {
+            console.error("Error creating order:", error);
+        }
     };
 
     const handleUpdateProfile = async (updatedProfile: any) => {
-        alert("Profile updated! (This is a demo, not saved to DB)");
-        setProfile(prev => ({...prev, ...updatedProfile}));
+        if (!profileDoc) return;
+        try {
+            await setDoc(profileDoc, updatedProfile, { merge: true });
+        } catch (error) {
+            console.error("Error updating profile:", error);
+        }
     };
 
     const handleCancelNewCampaign = () => setShowNewCampaignForm(false);
@@ -186,20 +192,26 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
     ];
 
     const renderView = () => {
+        const isLoading = campaignsLoading || ordersLoading || profileLoading || isUserLoading;
+
+        if (isLoading) {
+            return <div className="text-center p-8">Loading...</div>;
+        }
+
         if (selectedCampaign && activeView === 'campaign_detail') {
             return <CampaignDetailView campaignId={selectedCampaign.id} onClose={handleBackToCampaigns} onCreateOrder={() => setShowOrderForm(true)} />;
         }
         switch (activeView) {
             case 'campaigns':
-                return <CampaignsView campaigns={campaigns} onSelectCampaign={handleSelectCampaign} onNewCampaign={() => setShowNewCampaignForm(true)} onCreateOrder={handleCreateOrderForCampaign} />;
+                return <CampaignsView campaigns={campaigns || []} onSelectCampaign={handleSelectCampaign} onNewCampaign={() => setShowNewCampaignForm(true)} onCreateOrder={handleCreateOrderForCampaign} />;
             case 'pricing': return <PricingView />;
-            case 'analytics': return <AnalyticsView campaigns={campaigns} />;
+            case 'analytics': return <AnalyticsView campaigns={campaigns || []} />;
             case 'billing': return <BillingView user={user} />;
-            case 'support': return <SupportView user={user} campaigns={campaigns} />;
+            case 'support': return <SupportView user={user} campaigns={campaigns || []} />;
             case 'profile': return <ProfileView user={user} profile={profile} onUpdateProfile={handleUpdateProfile} />;
             case 'dashboard':
             default:
-                return <DashboardView campaigns={campaigns} profile={profile} onNewCampaign={() => setShowNewCampaignForm(true)} onNavigateToAnalytics={() => setActiveView('analytics')} onNavigateToCampaigns={() => setActiveView('campaigns')} />;
+                return <DashboardView campaigns={campaigns || []} profile={profile} onNewCampaign={() => setShowNewCampaignForm(true)} onNavigateToAnalytics={() => setActiveView('analytics')} onNavigateToCampaigns={() => setActiveView('campaigns')} />;
         }
     };
 

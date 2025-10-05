@@ -1,6 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Pencil, Save } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser } from '@/firebase';
+
 
 const EditableField = ({ label, name, value, onChange, type = "text", editable = true }: { label: string, name: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void, type?: string, editable?: boolean }) => (
     <div>
@@ -18,20 +21,16 @@ const EditableField = ({ label, name, value, onChange, type = "text", editable =
 );
 
 const ProfileView = ({ user, profile: initialProfile, onUpdateProfile }: { user: any; profile: any; onUpdateProfile: (profile: any) => void; }) => {
-    const placeholderProfile = {
-        name: 'Brand User',
-        brandName: 'Awesome Brand',
-        ownerName: 'Brand Owner',
-        phone: '123-456-7890',
-        address: '123 Brand Street, Market City',
-        brandId: `BRND${user?.uid.slice(-4).toUpperCase() || 'DEMO'}`,
-        email: user?.email || 'brand@example.com',
-        lastUpdated: new Date().toISOString(),
-    };
     
-    const [profile, setProfile] = useState(initialProfile || placeholderProfile);
+    const [profile, setProfile] = useState(initialProfile || {});
     const [securityMsg, setSecurityMsg] = useState<{type: string, text: string} | null>(null);
     const [editMode, setEditMode] = useState(false);
+
+    useEffect(() => {
+        if (initialProfile) {
+            setProfile(initialProfile);
+        }
+    }, [initialProfile]);
 
     useEffect(() => {
         if (securityMsg) {
@@ -45,15 +44,16 @@ const ProfileView = ({ user, profile: initialProfile, onUpdateProfile }: { user:
     };
 
     const handleSave = () => {
-        // This is a placeholder as we are not connected to a DB.
-        alert('Profile updated successfully! (This is a demo)');
-        onUpdateProfile(profile); // This is a dummy function now
+        onUpdateProfile({
+            ...profile,
+            lastUpdated: new Date().toISOString(),
+        });
         setEditMode(false);
         setSecurityMsg({ type: 'success', text: 'Profile updated successfully!' });
     };
 
     const handleCancel = () => {
-        setProfile(initialProfile || placeholderProfile);
+        setProfile(initialProfile || {});
         setEditMode(false);
     };
 
@@ -86,14 +86,14 @@ const ProfileView = ({ user, profile: initialProfile, onUpdateProfile }: { user:
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <h2 className="text-xl font-semibold text-slate-800 col-span-full border-b border-slate-300/70 pb-3">Brand Information</h2>
                     <EditableField label="Brand Name" name="brandName" value={profile.brandName} onChange={handleChange} editable={editMode} />
-                    <EditableField label="Brand ID" name="brandId" value={profile.brandId} onChange={handleChange} editable={false} />
+                    <EditableField label="Brand ID" name="brandId" value={profile.brandId || `BRND${user?.uid.slice(-4).toUpperCase()}`} onChange={handleChange} editable={false} />
                     <EditableField label="Contact Email" name="email" value={profile.email} onChange={handleChange} editable={false} />
                     <EditableField label="Phone Number" name="phone" value={profile.phone} onChange={handleChange} editable={editMode} />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-6 pt-6">
                      <h2 className="text-xl font-semibold text-slate-800 col-span-full border-b border-slate-300/70 pb-3">Owner Details</h2>
-                    <EditableField label="Owner Name" name="ownerName" value={profile.ownerName} onChange={handleChange} editable={editMode} />
+                    <EditableField label="Owner Name" name="name" value={profile.name} onChange={handleChange} editable={editMode} />
                     <EditableField label="Company Address" name="address" value={profile.address} onChange={handleChange} editable={editMode} />
                 </div>
             </div>

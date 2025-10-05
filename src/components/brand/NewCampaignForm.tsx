@@ -1,8 +1,14 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+
 
 const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (campaign: any) => void; onCancel: () => void; }) => {
+    const { user } = useUser();
+    const firestore = useFirestore();
+
     const [campaignData, setCampaignData] = useState({
         name: '',
         description: '',
@@ -13,16 +19,24 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
     const [uploadOption, setUploadOption] = useState('gdrive');
     const [gdriveLink, setGdriveLink] = useState('');
     const [file, setFile] = useState<File | null>(null);
-    const [priceSettings, setPriceSettings] = useState({ pricePerReel: 150, discountTiers: [{reels: 10, discount: 5}, {reels: 20, discount: 10}] });
+    
+    // Fetch pricing settings from Firestore
+    const pricingCollection = useMemoFirebase(() => firestore ? collection(firestore, 'settings') : null, [firestore]);
+    const { data: settingsDocs, isLoading: loadingPricing } = useCollection(pricingCollection);
+    const priceSettings = settingsDocs?.find(doc => doc.id === 'pricing') || { pricePerReel: 150, discountTiers: [{reels: 10, discount: 5}, {reels: 20, discount: 10}] };
+
     const [totalBudget, setTotalBudget] = useState(0);
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
     const [couponError, setCouponError] = useState('');
     const [couponSuccess, setCouponSuccess] = useState('');
     const [error, setError] = useState('');
-    const [loadingPricing, setLoadingPricing] = useState(false);
-    const [balance, setBalance] = useState(100000); // Placeholder balance
-    const [loadingBalance, setLoadingBalance] = useState(false);
+    
+    // Fetch balance from Firestore
+    const userDoc = useMemoFirebase(() => user && firestore ? collection(firestore, `users/${user.uid}`) : null, [user, firestore]);
+    const { data: userData, isLoading: loadingBalance } = useCollection(userDoc as any);
+    const balance = userData?.balance || 0;
+
 
     // Calculate total budget
     useEffect(() => {
@@ -36,8 +50,8 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
         let baseCost = reels * pricePerReel;
         let volumeDiscount = 0;
 
-        const sortedTiers = [...(discountTiers || [])].sort((a, b) => b.reels - a.reels);
-        const applicableTier = sortedTiers.find(tier => reels >= tier.reels);
+        const sortedTiers = [...(discountTiers || [])].sort((a:any, b:any) => b.reels - a.reels);
+        const applicableTier = sortedTiers.find((tier:any) => reels >= tier.reels);
         if (applicableTier) {
             volumeDiscount = baseCost * (applicableTier.discount / 100);
         }
@@ -114,7 +128,6 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
             coupon: appliedCoupon ? appliedCoupon.code : null
         };
         
-        alert("Campaign created! (This is a demo, not saved to DB)");
         onCreateCampaign(newCampaign);
     };
 
@@ -203,5 +216,3 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
 };
 
 export default NewCampaignForm;
-
-    
