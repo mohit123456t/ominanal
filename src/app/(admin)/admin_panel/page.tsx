@@ -111,6 +111,12 @@ function AdminPanel() {
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
     const staff = useMemo(() => users?.filter(u => u.role !== 'brand') || [], [users]);
 
+    const adminProfileName = useMemo(() => {
+      if (!users || !user) return 'Admin';
+      const admin = users.find(u => u.id === user.uid);
+      return admin?.name || 'Admin';
+    }, [users, user]);
+
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
@@ -140,8 +146,6 @@ function AdminPanel() {
     };
 
     const isLoading = usersLoading || campaignsLoading || transactionsLoading;
-    const adminProfile = useMemo(() => users?.find(u => u.id === user?.uid), [users, user]);
-
 
     const renderView = () => {
         if (isLoading) {
@@ -238,7 +242,7 @@ function AdminPanel() {
                             <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping absolute"></div>
                             <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
                         </div>
-                        <div className="font-semibold text-sm text-slate-700">{adminProfile?.name || 'Admin'}</div>
+                        <div className="font-semibold text-sm text-slate-700">{adminProfileName}</div>
                     </div>
                 </motion.header>
 
