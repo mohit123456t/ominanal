@@ -18,7 +18,7 @@ import { useAuth, useFirebase } from '@/firebase';
 import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, LogIn } from 'lucide-react';
 
@@ -45,10 +45,25 @@ export default function LoginPage() {
     // Hardcoded check for Super Admin
     if (email === 'mohitmleena3@gmail.com') {
       try {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const loggedInUser = userCredential.user;
+
+        // Ensure superadmin has a user document
+        const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (!userDocSnap.exists()) {
+            await setDoc(userDocRef, {
+                uid: loggedInUser.uid,
+                email: loggedInUser.email,
+                name: 'Super Admin',
+                role: 'superadmin',
+                createdAt: new Date().toISOString(),
+            });
+        }
+
         toast({ title: 'Super Admin Login Successful!' });
         window.location.href = '/superadmin_panal';
-        return; // Stop further execution
+        return; 
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Authentication Error', description: error.message });
         setIsLoading(false);
