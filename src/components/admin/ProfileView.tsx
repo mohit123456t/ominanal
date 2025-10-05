@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth, useFirebase } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -28,7 +28,11 @@ const ProfileView = ({ profile: initialProfile }: { profile: any | null }) => {
             setProfile(initialProfile);
             setIsLoading(false);
         } else {
-            setIsLoading(true);
+            // If after a short delay initialProfile is still null, stop loading
+            const timer = setTimeout(() => {
+                setIsLoading(false);
+            }, 1500);
+            return () => clearTimeout(timer);
         }
     }, [initialProfile]);
 
@@ -191,3 +195,4 @@ const ReadOnlyField = ({ label, value, mono }: { label: string, value: string, m
 );
 
 export default ProfileView;
+    
