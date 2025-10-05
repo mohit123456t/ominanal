@@ -56,7 +56,7 @@ const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNod
         className={`group relative flex items-center w-full text-left px-4 py-3 text-sm font-semibold rounded-lg 
                     transition-all duration-300 ease-in-out transform 
                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
-                    opacity-0 animate-slideInLeft ${
+                    ${
             active
                 ? 'bg-indigo-50 text-indigo-600'
                 : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 hover:translate-x-1'
@@ -128,8 +128,8 @@ const ThumbnailMakerPanel = () => {
     }
 
     return (
-        <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
-            <aside className="w-64 flex-shrink-0 bg-white border-r border-slate-200 flex flex-col no-scrollbar">
+        <div className="flex h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent font-sans text-slate-800">
+            <aside className="w-64 flex-shrink-0 bg-white/40 backdrop-blur-xl border-r border-slate-300/70 shadow-lg flex flex-col no-scrollbar">
                 <div className="h-20 flex items-center px-6 flex-shrink-0">
                     <Logo />
                 </div>
@@ -145,15 +145,15 @@ const ThumbnailMakerPanel = () => {
                         />
                     ))}
                 </nav>
-                <div className="px-4 py-4 border-t border-slate-200 flex-shrink-0">
-                    <button onClick={handleLogout} className="group flex items-center w-full text-left px-4 py-3 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                <div className="px-4 py-4 border-t border-slate-300/70 flex-shrink-0">
+                    <button onClick={handleLogout} className="group flex items-center w-full text-left px-4 py-3 text-sm font-semibold rounded-lg text-slate-600 hover:bg-slate-500/10 hover:text-slate-900">
                         <span className="mr-3 text-slate-400 group-hover:text-slate-600"><LogOut /></span>
                         Logout
                     </button>
                 </div>
             </aside>
             <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0">
+                <header className="h-16 bg-white/60 backdrop-blur-lg border-b border-slate-300/70 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
                     <h1 className="text-xl font-bold text-slate-900 capitalize">{getHeaderText()}</h1>
                     <div className="font-semibold">{userProfile?.name || 'User'}</div>
                 </header>
