@@ -27,9 +27,10 @@ const CampaignCard = ({ campaign, onSelectCampaign, onCreateOrder }: { campaign:
         onCreateOrder && onCreateOrder(campaign);
     };
 
+    const reelsArray = Array.isArray(campaign.reels) ? campaign.reels : [];
     const engagementRate = campaign.engagementRate || '0.00%';
-    const lastUpdated = campaign.lastUpdated ? new Date(campaign.lastUpdated).toLocaleDateString() : 'N/A';
-    const reelsCount = campaign.reels || 0;
+    const lastUpdated = reelsArray.length > 0 ? new Date(Math.max(...reelsArray.map((r: any) => new Date(r.uploadedAt || 0).getTime()))).toLocaleDateString() : 'N/A';
+    const reelsCount = reelsArray.length;
     const views = (campaign.views || 0).toLocaleString();
 
     return (

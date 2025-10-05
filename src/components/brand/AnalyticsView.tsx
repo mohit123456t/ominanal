@@ -20,8 +20,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 const AnalyticsView = ({ campaigns = [] }: { campaigns: any[] }) => {
     // Process data for the chart
     const chartData = useMemo(() => campaigns.map(campaign => {
-        const totalLikes = campaign.reels ? campaign.reels.reduce((sum: number, reel: any) => sum + (reel.likes || 0), 0) : 0;
-        const totalComments = campaign.reels ? campaign.reels.reduce((sum: number, reel: any) => sum + (reel.comments || 0), 0) : 0;
+        const reelsArray = Array.isArray(campaign.reels) ? campaign.reels : [];
+        const totalLikes = reelsArray.reduce((sum: number, reel: any) => sum + (reel.likes || 0), 0);
+        const totalComments = reelsArray.reduce((sum: number, reel: any) => sum + (reel.comments || 0), 0);
         const totalEngagement = totalLikes + totalComments;
 
         return {
@@ -81,9 +82,10 @@ const AnalyticsView = ({ campaigns = [] }: { campaigns: any[] }) => {
                                 </tr>
                             ) : (
                                 campaigns.map((campaign, index) => {
-                                    const totalEngagement = Array.isArray(campaign.reels) ? campaign.reels.reduce((sum: number, reel: any) => sum + (reel.likes || 0) + (reel.comments || 0), 0) : 0;
-                                    const lastUpdated = Array.isArray(campaign.reels) && campaign.reels.length > 0 ?
-                                        new Date(Math.max(...campaign.reels.map((r: any) => new Date(r.uploadedAt || 0).getTime()))).toLocaleDateString() : 'N/A';
+                                    const reelsArray = Array.isArray(campaign.reels) ? campaign.reels : [];
+                                    const totalEngagement = reelsArray.reduce((sum: number, reel: any) => sum + (reel.likes || 0) + (reel.comments || 0), 0);
+                                    const lastUpdated = reelsArray.length > 0 ?
+                                        new Date(Math.max(...reelsArray.map((r: any) => new Date(r.uploadedAt || 0).getTime()))).toLocaleDateString() : 'N/A';
                                     return (
                                         <tr key={`campaign-${index}`} className="border-b border-slate-300/70">
                                             <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{campaign.name}</th>
