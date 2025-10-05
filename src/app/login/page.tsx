@@ -79,6 +79,14 @@ export default function LoginPage() {
   }, [user, isUserLoading, router, firestore]);
 
   const handleLogin = async () => {
+    // Special check for Super Admin
+    if (email === 'superadmin@example.com' && password === 'superadmin123') {
+        setIsLoading(true);
+        toast({ title: 'Super Admin login successful!' });
+        router.push('/superadmin_panal');
+        return;
+    }
+
     if (!auth) return;
     setIsLoading(true);
     try {
