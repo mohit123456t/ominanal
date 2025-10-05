@@ -31,6 +31,10 @@
         "subscriptionId": {
           "type": "string",
           "description": "Reference to Subscription. (Relationship: User 1:1 Subscription)"
+        },
+        "role": {
+          "type": "string",
+          "description": "The role of the user (e.g., brand, admin, video_editor)."
         }
       },
       "required": [
@@ -39,7 +43,8 @@
         "firstName",
         "lastName",
         "mobileNumber",
-        "subscriptionId"
+        "subscriptionId",
+        "role"
       ]
     },
     "SocialMediaAccount": {

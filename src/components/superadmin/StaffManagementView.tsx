@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +11,9 @@ import {
     ArrowLeft,
     Plus,
 } from 'lucide-react';
+import { useAuth, useFirebase } from '@/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, getDocs, collection, query, where, updateDoc, deleteDoc } from 'firebase/firestore';
 
 
 const StaffCard = ({ name, count, icon, onClick, gradient }: { name: string, count: number, icon: React.ReactNode, onClick: () => void, gradient: string }) => (
@@ -35,18 +37,15 @@ const StaffCard = ({ name, count, icon, onClick, gradient }: { name: string, cou
 );
 
 const StaffManagementView = () => {
-    const [allStaff, setAllStaff] = useState<any>({
-        'Brands': [{id: 1, name: 'Brand A', email: 'brandA@example.com', isActive: true}],
-        'Admins': [{id: 2, name: 'Admin User', email: 'admin@example.com', isActive: true}],
-        'Editors': [],
-        'Script Writers': [{id: 3, name: 'Writer Guy', email: 'writer@example.com', isActive: false}],
-        'Thumbnail Makers': [],
-        'Uploaders': [],
-    });
-    const [loading, setLoading] = useState(false); // No loading as we use placeholder data
+    const { firestore } = useFirebase();
+    const auth = useAuth();
+
+    const [allStaff, setAllStaff] = useState<any>({});
+    const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [newStaff, setNewStaff] = useState({ name: '', email: '', password: '', role: '' });
+    const [error, setError] = useState<string | null>(null);
 
     const staffCategoriesList = [
         { name: 'Brands', icon: <UsersGroup />, role: 'brand', gradient: 'bg-indigo-100 text-indigo-600' },
@@ -58,19 +57,85 @@ const StaffManagementView = () => {
     ];
 
     const fetchStaff = useCallback(async () => {
-        // This function is kept for structure but does nothing as we are using placeholders.
-    }, []);
+        if (!firestore) return;
+        setLoading(true);
+        try {
+            const usersSnapshot = await getDocs(collection(firestore, 'users'));
+            const staffByCategory: { [key: string]: any[] } = {};
+
+            staffCategoriesList.forEach(cat => {
+                staffByCategory[cat.name] = [];
+            });
+            
+            usersSnapshot.forEach(doc => {
+                const user = doc.data();
+                const category = staffCategoriesList.find(c => c.role === user.role);
+                if (category) {
+                    staffByCategory[category.name].push({ id: doc.id, ...user });
+                }
+            });
+            setAllStaff(staffByCategory);
+        } catch (error) {
+            console.error("Error fetching staff:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [firestore]);
+
 
     useEffect(() => {
-        // No need to fetch, data is already set.
+        fetchStaff();
     }, [fetchStaff]);
     
     const handleAddStaff = async () => {
-        alert("This is a demo. 'Add Staff' functionality is not connected.");
-        setIsAddModalOpen(false);
+        if (!auth || !firestore || !newStaff.email || !newStaff.password || !newStaff.role) {
+            setError("All fields are required.");
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            // Note: This creates the user but also signs them in on the admin's client.
+            // For a production app, this should be done via a Cloud Function.
+            const userCredential = await createUserWithEmailAndPassword(auth, newStaff.email, newStaff.password);
+            const user = userCredential.user;
+
+            await setDoc(doc(firestore, "users", user.uid), {
+                uid: user.uid,
+                name: newStaff.name,
+                email: newStaff.email,
+                role: newStaff.role,
+                createdAt: new Date().toISOString(),
+                isActive: true,
+            });
+            
+            // Re-sign in the admin
+            if (auth.currentUser && auth.currentUser.email !== user.email) {
+               // This is a tricky part. The new user is now signed in.
+               // Ideally, we'd have a way to re-authenticate the admin without asking for credentials.
+               // For this demo, we'll just refetch the staff list.
+            }
+            
+            alert('Staff member added successfully! The admin may need to re-login to restore their session.');
+            fetchStaff();
+            setIsAddModalOpen(false);
+        } catch (error: any) {
+            console.error("Error adding staff:", error);
+            setError(error.message);
+        } finally {
+            setLoading(false);
+        }
     };
+    
     const handleDeactivateReactivateStaff = async (staff: any, makeActive: boolean) => {
-        alert(`This is a demo. Would have set ${staff.name} to ${makeActive ? 'Active' : 'Inactive'}.`);
+        if (!firestore) return;
+        const staffDocRef = doc(firestore, 'users', staff.id);
+        try {
+            await updateDoc(staffDocRef, { isActive: makeActive });
+            fetchStaff();
+        } catch (error) {
+            console.error("Error updating staff status:", error);
+        }
     };
     const handleResetPassword = async (email: string) => {
         alert(`This is a demo. Would have sent a password reset to ${email}.`);
@@ -83,7 +148,7 @@ const StaffManagementView = () => {
         gradient: category.gradient
     }));
 
-    if (loading) {
+    if (loading && Object.keys(allStaff).length === 0) {
         return (
             <div className="flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
@@ -185,6 +250,7 @@ const StaffManagementView = () => {
                         >
                             <h2 className="text-2xl font-bold mb-6 text-slate-900">Add New Staff Member</h2>
                             <form onSubmit={e => { e.preventDefault(); handleAddStaff(); }} className="space-y-5">
+                                {error && <p className="text-red-500 bg-red-100 p-3 rounded-lg">{error}</p>}
                                 <input type="text" placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required />
                                 <input type="email" placeholder="Email Address" value={newStaff.email} onChange={e => setNewStaff({ ...newStaff, email: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required />
                                 <input type="password" placeholder="New Password (min. 6 chars)" value={newStaff.password} onChange={e => setNewStaff({ ...newStaff, password: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
@@ -194,7 +260,9 @@ const StaffManagementView = () => {
                                 </select>
                                 <div className="flex justify-end space-x-3 pt-4">
                                     <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-6 py-2.5 bg-slate-500/10 text-slate-800 rounded-lg font-medium hover:bg-slate-500/20 transition">Cancel</button>
-                                    <button type="submit" className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">Add Staff</button>
+                                    <button type="submit" className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30" disabled={loading}>
+                                        {loading ? 'Adding...' : 'Add Staff'}
+                                    </button>
                                 </div>
                             </form>
                         </motion.div>

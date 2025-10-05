@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,7 +39,24 @@ export default function LoginPage() {
       });
       return;
     }
+
     setIsLoading(true);
+
+    // Hardcoded check for Super Admin
+    if (email === 'mohitmleena3@gmail.com') {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        toast({ title: 'Super Admin Login Successful!' });
+        window.location.href = '/superadmin_panal';
+        return; // Stop further execution
+      } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Authentication Error', description: error.message });
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    // Standard user login
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
@@ -47,61 +65,46 @@ export default function LoginPage() {
         title: 'Successfully logged in!',
         description: `Checking your role...`,
       });
-      
-      // SUPER ADMIN CHECK: Hardcode the super admin email for direct access.
-      if (loggedInUser.email === 'mohitmleena3@gmail.com') {
-        window.location.href = '/superadmin_panal';
-        return;
-      }
 
-      // Check for other roles
       const userDocRef = doc(firestore, 'users', loggedInUser.uid);
-      const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
 
-      const [userDocSnap, adminDocSnap] = await Promise.all([
-          getDoc(userDocRef),
-          getDoc(adminDocSnap),
-      ]);
-      
-      // Admin role check (non-superadmin)
-      if (adminDocSnap.exists()) {
-          window.location.href = '/admin_panel';
-          return;
-      }
-      
-      // Brand, staff, etc. role check
       if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          const role = userData.role;
-          switch (role) {
-              case 'admin':
-                window.location.href = '/admin_panel';
-                return;
-              case 'brand':
-                window.location.href = '/brand_panel';
-                return;
-              case 'video_editor':
-                window.location.href = '/video_editor_panel';
-                return;
-              case 'script_writer':
-                window.location.href = '/script_writer_panel';
-                return;
-              case 'thumbnail_maker':
-                window.location.href = '/thumbnail_maker_panel';
-                return;
-              case 'uploader':
-                window.location.href = '/uploader_panel';
-                return;
-          }
+        const userData = userDocSnap.data();
+        const role = userData.role;
+        switch (role) {
+          case 'admin':
+            window.location.href = '/admin_panel';
+            return;
+          case 'brand':
+            window.location.href = '/brand_panel';
+            return;
+          case 'video_editor':
+            window.location.href = '/video_editor_panel';
+            return;
+          case 'script_writer':
+            window.location.href = '/script_writer_panel';
+            return;
+          case 'thumbnail_maker':
+            window.location.href = '/thumbnail_maker_panel';
+            return;
+          case 'uploader':
+            window.location.href = '/uploader_panel';
+            return;
+          default:
+            toast({
+              variant: 'destructive',
+              title: 'Login Failed',
+              description: "Your user role is not recognized. Please contact support.",
+            });
+        }
+      } else {
+         toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: "Could not find user details. Please contact support.",
+        });
       }
-
-      // If no role is found after all checks
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: "Could not determine your user role. Please contact support.",
-      });
-
     } catch (error: any) {
       console.error(error);
       let description = 'An unexpected error occurred. Please try again.';
@@ -206,4 +209,3 @@ export default function LoginPage() {
     </div>
   );
 }
-    
