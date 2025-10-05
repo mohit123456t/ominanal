@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,8 +12,21 @@ import {
   Bell,
   LogOut,
   ArrowLeft,
+  PlayCircle,
+  Users,
+  Rocket,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 
 // --- Placeholder Views ---
@@ -26,7 +39,177 @@ const PlaceholderView = ({ name, onNavigate, onViewBrand }: { name: string; onNa
     </div>
 );
 
-const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void }) => <PlaceholderView name="Dashboard" onNavigate={onViewChange} />;
+// 🧩 StatCard Component — iOS स्टाइल फ्रॉस्टेड ग्लास
+const StatCard = ({ title, value, change, icon, color, size = 'normal' }: {title: string, value: string, change: string, icon: React.ReactNode, color: {bg: string, text: string}, size?: string}) => (
+  <motion.div
+    className={`bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 ${
+      size === 'large' ? 'md:col-span-2' : ''
+    }`}
+    variants={itemVariants}
+    whileHover={{ y: -5, scale: 1.02 }}
+    whileTap={{ scale: 0.98 }}
+  >
+    <div className="flex items-center justify-between mb-4">
+      <h3 className="text-md font-semibold text-slate-700">{title}</h3>
+      <div className={`p-3 rounded-lg ${color.bg} ${color.text}`}>{icon}</div>
+    </div>
+    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{value}</p> 
+    <p className="text-sm text-slate-500 flex items-center">{change}</p>
+  </motion.div>
+);
+
+// एनिमेशन वेरिएंट्स
+const itemVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    show: { 
+      opacity: 1, y: 0, scale: 1, 
+      transition: { type: 'spring', stiffness: 100, damping: 14 } 
+    },
+};
+
+const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08 },
+    },
+};
+
+// 🖥️ Main Dashboard — iOS फ्रॉस्टेड ग्लास थीम
+const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
+  const [showFinance, setShowFinance] = useState(false);
+  const [dashboardData, setDashboardData] = useState({
+    totalRevenue: 567890, netProfit: 397523, activeCampaigns: 42, totalTeamMembers: 15,
+    totalViews: 1250000, pendingApprovals: 8, accountIssues: 0,
+  });
+  const [revenueData, setRevenueData] = useState([
+      { name: 'Jan', revenue: 240000, expenses: 150000 },
+      { name: 'Feb', revenue: 310000, expenses: 180000 },
+      { name: 'Mar', revenue: 450000, expenses: 250000 },
+      { name: 'Apr', revenue: 420000, expenses: 280000 },
+      { name: 'May', revenue: 580000, expenses: 350000 },
+      { name: 'Jun', revenue: 567890, expenses: 397523 },
+  ]);
+  const [brands, setBrands] = useState([
+      { id: '1', name: 'Brand A', status: 'Active' },
+      { id: '2', name: 'Brand B', status: 'Active' },
+      { id: '3', name: 'Brand C', status: 'Pending' },
+  ]);
+  const [loading, setLoading] = useState(false);
+
+
+  return (
+    <div className="min-h-screen">
+      <motion.div
+        className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-slate-800 tracking-tighter">Dashboard</h1>
+          <p className="text-md text-slate-500 mt-1">Welcome back! Here's what's happening.</p>
+        </div>
+        <motion.button
+          onClick={() => onViewChange('finance')}
+          className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all duration-300 shadow-lg shadow-indigo-500/20 font-semibold"
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          {showFinance ? 'Back to Dashboard' : 'View Finance Details'}
+        </motion.button>
+      </motion.div>
+
+      <AnimatePresence mode="wait">
+        {showFinance ? (
+          <motion.div key="finance" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <FinanceView setView={onViewChange} />
+          </motion.div>
+        ) : (
+          <motion.div key="dashboard">
+            {loading ? (
+              <div className="flex justify-center items-center h-96">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : (
+              <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <StatCard
+                    title="Active Campaigns" value={dashboardData.activeCampaigns.toString()}
+                    change={`${dashboardData.pendingApprovals} pending`} icon={<PlayCircle />}
+                    color={{bg: "bg-purple-100", text: "text-purple-600"}}
+                  />
+                  <StatCard
+                    title="Team Members" value={dashboardData.totalTeamMembers.toString()}
+                    change="All active" icon={<Users />}
+                    color={{bg: "bg-orange-100", text: "text-orange-600"}}
+                  />
+                  <StatCard
+                    title="Total Views" value={dashboardData.totalViews.toLocaleString()}
+                    change="Across all campaigns" icon={<Rocket />}
+                    color={{bg: "bg-pink-100", text: "text-pink-600"}} size="large"
+                  />
+                  <StatCard
+                    title="Pending Approvals" value={dashboardData.pendingApprovals.toString()}
+                    change="Action required" icon={<CheckCircle />}
+                    color={{bg: "bg-yellow-100", text: "text-yellow-600"}} size="large"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                  <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" variants={itemVariants}>
+                    <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                          <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                          <Tooltip
+                            cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                            contentStyle={{ 
+                                backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                backdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(0, 0, 0, 0.1)', 
+                                borderRadius: '12px',
+                             }}
+                          />
+                          <Legend wrapperStyle={{ fontSize: '14px' }}/>
+                          <Bar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="expenses" fill="#f59e0b" name="Expenses" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </motion.div>
+
+                  <motion.div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" variants={itemVariants}>
+                    <h3 className="font-bold text-xl mb-6 text-slate-800">Recent Brands</h3>
+                    <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                       {brands.length > 0 ? brands.slice(0, 5).map((brand: any, index) => (
+                        <motion.div
+                          key={brand.id}
+                          className="p-4 bg-white/30 rounded-lg border border-slate-300/50 hover:bg-white/70 transition-colors"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <h4 className="font-semibold text-slate-800">{brand.name || 'Unknown Brand'}</h4>
+                          <p className="text-sm text-slate-500">Status: {brand.status || 'N/A'}</p>
+                        </motion.div>
+                      )) : <p className="text-slate-500">No brands available.</p>}
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+
 const ProfileView = () => <PlaceholderView name="Profile" />;
 const CampaignManagerView = () => <PlaceholderView name="Campaign Manager" />;
 const CampaignApprovalView = () => <PlaceholderView name="Campaign Approval" />;
