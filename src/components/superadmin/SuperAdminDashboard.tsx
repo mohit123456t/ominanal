@@ -1,6 +1,6 @@
 
 'use client';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   BarChart,
   Bar,
@@ -28,29 +28,28 @@ const formatNumber = (value: number) => {
     return value.toString();
 };
 
-const StatCard = ({ title, value, icon, color, size = 'normal' }: { title: string, value: string, icon: React.ReactNode, color: string, size?: 'normal' | 'large' }) => (
-  <motion.div
-    className={`bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 
-    ${size === 'large' ? 'p-6 text-base md:col-span-2' : 'p-4 text-sm'}`}
-    whileHover={{ y: -5, scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-  >
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="font-semibold text-slate-700">{title}</h3>
-      <div className={`text-xl p-2 rounded-lg ${color}`}>{icon}</div>
-    </div>
-    <p className={`font-bold ${size === 'large' ? 'text-3xl' : 'text-2xl'} text-slate-900 tracking-tight`}>
-      {value}
-    </p>
-  </motion.div>
-);
+const StatCard = ({ title, value, icon, colorClass, delay = 0 }: { title: string, value: string, icon: React.ReactNode, colorClass: string, delay?: number }) => (
+    <motion.div
+      className="bg-white/50 backdrop-blur-xl p-6 rounded-2xl border border-slate-200/80 shadow-lg shadow-slate-300/50 flex items-center space-x-4"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay }}
+      whileHover={{ y: -5, scale: 1.02 }}
+    >
+      <div className={`p-4 rounded-xl ${colorClass}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-slate-600">{title}</p>
+        <p className="text-2xl font-bold text-slate-900 tracking-tight">{value}</p>
+      </div>
+    </motion.div>
+  );
 
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white/70 backdrop-blur-lg border border-slate-200 rounded-xl p-3 shadow-lg">
+        <div className="bg-white/80 backdrop-blur-lg border border-slate-200 rounded-xl p-3 shadow-xl">
           <p className="font-bold text-slate-800">{`Earnings: ₹${formatNumber(payload[0].value)}`}</p>
         </div>
       );
@@ -90,37 +89,34 @@ const SuperAdminDashboard = ({ data }: { data: any }) => {
           <p className="text-md text-slate-500 mt-1">Comprehensive overview of all platform activities.</p>
         </div>
   
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title="Total Brands" value={safeFormat(userCounts.brands)}
-            icon={<Briefcase />} color="bg-blue-100 text-blue-600"
+            icon={<Briefcase className="text-blue-600"/>} colorClass="bg-blue-100" delay={0.1}
           />
           <StatCard
             title="Active Campaigns" value={safeFormat(dashboardData.totalActiveCampaigns)}
-            icon={<PlayCircle />} color="bg-green-100 text-green-600"
+            icon={<PlayCircle className="text-green-600"/>} colorClass="bg-green-100" delay={0.2}
           />
           <StatCard
             title="Live Campaigns" value={safeFormat(dashboardData.liveCampaigns)}
-            icon={<Rocket />} color="bg-purple-100 text-purple-600"
+            icon={<Rocket className="text-purple-600"/>} colorClass="bg-purple-100" delay={0.3}
           />
           <StatCard
             title="Pending Campaigns" value={safeFormat(dashboardData.pendingCampaigns)}
-            icon={<Clock />} color="bg-orange-100 text-orange-600"
+            icon={<Clock className="text-orange-600"/>} colorClass="bg-orange-100" delay={0.4}
           />
-        </div>
-  
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard
             title="Brands with Live Campaigns" value={safeFormat(dashboardData.brandsWithLiveCampaigns)}
-            icon={<CheckCircle />} color="bg-teal-100 text-teal-600" size="large"
+            icon={<CheckCircle className="text-teal-600"/>} colorClass="bg-teal-100" delay={0.5}
           />
-          <StatCard
+           <StatCard
             title="Brands without Campaigns" value={safeFormat(dashboardData.brandsWithoutCampaigns)}
-            icon={<Users />} color="bg-yellow-100 text-yellow-600" size="large"
+            icon={<Users className="text-yellow-600"/>} colorClass="bg-yellow-100" delay={0.6}
           />
-          <StatCard
+           <StatCard
             title="Total Campaign Earnings" value={`₹${safeFormat(dashboardData.totalCampaignEarnings)}`}
-            icon={<IndianRupee />} color="bg-pink-100 text-pink-600" size="large"
+            icon={<IndianRupee className="text-pink-600"/>} colorClass="bg-pink-100" delay={0.7}
           />
         </div>
   
