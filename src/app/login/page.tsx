@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirebase } from '@/firebase';
 import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
@@ -27,7 +27,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
-  const firestore = useFirestore();
+  const { firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
   
@@ -91,8 +91,6 @@ export default function LoginPage() {
             router.push('/uploader_panel');
             break;
         default:
-          // Fallback for any other user role, you might want to lead them to a generic page
-          // As /dashboard is removed, we can redirect to login or a generic user page if one exists.
           router.push('/login'); 
           break;
       }
@@ -110,7 +108,8 @@ export default function LoginPage() {
         title: 'Authentication Error',
         description: description,
       });
-      setIsLoading(false);
+    } finally {
+        setIsLoading(false);
     }
   };
 
