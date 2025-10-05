@@ -1,172 +1,161 @@
 /**
- * @file Firebase Security Rules for OmniPost AI Platform
+ * @fileoverview Firestore Security Rules for OmniPost AI Platform
  *
- * @core_philosophy This ruleset enforces a strict user-ownership model for user-generated content (social media accounts, posts, analytics).
- *   Administrative privileges are granted based on the existence of a document in the `/roles_admin/{userId}` collection.
- *   Data access follows a hierarchical structure, with user-specific data nested under `/users/{userId}`.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for data under the /users/{userId} collection.
+ * Only authenticated users can access their own data.
+ * Admins, identified via documents in the /roles_admin/{userId} collection, have broader access.
  *
- * @data_structure
- *   - `/users/{userId}`: Stores user profile information.  Only the user themselves can read/write this data.
- *   - `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}`: Stores social media accounts owned by a specific user.
- *   - `/users/{userId}/posts/{postId}`: Stores social media posts created by a specific user.
- *   - `/subscriptions/{subscriptionId}`: Stores subscription plan details. Publicly readable, but only writeable by backend.
- *   - `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}`: Stores analytics data for a user's social media account.
- *   - `/roles_admin/{userId}`: Indicates administrative privileges for a user. Document existence grants admin access.
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/socialMediaAccounts/{socialMediaAccountId}: Stores social media account information.
+ * - /users/{userId}/posts/{postId}: Stores posts created by users.
+ * - /subscriptions/{subscriptionId}: Stores subscription plan details (publicly readable).
+ * - /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}: Stores analytics data.
+ * - /roles_admin/{userId}: Used to denote admin users. The existence of a document with a user's ID grants admin rights.
  *
- * @key_security_decisions
- *   - **User Data Isolation**: Users can only access their own data, enforced through path-based rules.
- *   - **Admin Role**: Administrative privileges are determined by the existence of a document in the `/roles_admin` collection.
- *   - **Subscription Read Access**: Subscription data is publicly readable.
- *   - **No User Listing**: Listing of all users is explicitly denied.
+ * Key Security Decisions:
+ * - User listing is disabled for the /users collection to protect user privacy.
+ * - Subscription plans are publicly readable to allow all users to view available plans.
+ * - Admin privileges are determined by the existence of a document in the /roles_admin collection.
+ * - Data validation is minimized in this prototyping phase to allow flexible schema changes.
  *
- * @denormalization_for_authorization No denormalization is explicitly required in the data model. The Firestore structure is designed
- *   to support the OmniPost AI platform, focusing on user-owned data and administrative roles. User-specific data such as social media accounts and posts
- *   are nested under the `/users/{userId}` collection, enabling path-based ownership and simplified security rules.
- *   Subscription data is stored at the root level, with each user document referencing their subscription.
- *   To manage administrative privileges, a dedicated `/roles_admin/{uid}` collection is utilized, leveraging existence-based rules for authorization.
- *   This design ensures authorization independence by avoiding hierarchical `get()` calls, promoting atomic operations and easier debugging.
- *   The structure supports the required QAPs by segregating user-owned data under the `/users/{userId}` path and utilizing a separate collection for admin roles.
- *   This segregation allows for secure listing operations within each user's data scope and restricts access to admin-only functions.
+ * Denormalization for Authorization:
+ * - User ownership is enforced by nesting data under the /users/{userId} path.
+ * - Admin status is determined by the existence of a document in /roles_admin/{userId}, avoiding the need to store admin roles within the user document itself.
+ *
+ * Structural Segregation:
+ * - Private user data is stored under the /users/{userId} collection, while public subscription data is stored in a separate top-level collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is authenticated.
+     * @description Checks if the request is made by a signed-in user.
+     * @return {boolean} True if the user is signed in, false otherwise.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the authenticated user ID matches the provided user ID.
+     * @description Checks if the request is made by the owner of the resource.
+     * @param {string} userId - The user ID to compare with the request's authentication UID.
+     * @return {boolean} True if the user is the owner, false otherwise.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the authenticated user is an existing owner of the document.
-     *              This function combines the ownership check with the existence check (resource != null).
-     *              It improves readability and prevents accidental omissions, especially for update and delete operations.
+     * @description Checks if the request is made by an existing owner of the resource.
+     * @param {string} userId - The user ID to compare with the resource's owner ID and ensures resource exists.
+     * @return {boolean} True if the user is the owner and the resource exists, false otherwise.
      */
     function isExistingOwner(userId) {
-      return isOwner(userId) && resource.data.userId == userId;
+      return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Checks if the authenticated user is an admin.
-     *              Admin status is determined by the existence of a document in the `/roles_admin/{userId}` collection.
+     * @description Checks if the user is an administrator by verifying the existence of a document in the /roles_admin/{userId} collection.
+     * @return {boolean} True if the user is an administrator, false otherwise.
      */
     function isAdmin() {
       return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
     /**
-     * @description Defines custom claim: checks if the user has a "custom_claim".
-     */
-    function hasCustomClaim() {
-      return isSignedIn() && request.auth.token.custom_claim == true;
-    }
-
-    /**
-     * @description Security rules for user profiles.
+     * @description Rules for the /users/{userId} collection.
      * @path /users/{userId}
-     * @allow (create) - Authenticated user creates their own profile.
-     * @allow (get, update, delete) - Authenticated user accesses their own profile.
-     * @deny (list) - Prevents listing all user profiles.
-     * @deny (create, update, delete) - Unauthorized user attempts to modify another user's profile.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) - User with matching ID can create their own profile.
+     * @allow (get, update, delete) - User can access and modify their own profile.
+     * @deny (list) - Listing all users is not allowed.
+     * @deny (create) - User cannot create a profile with an ID that doesn't match their own.
+     * @principle Enforces document ownership for writes.  Restricts access to a user's own data tree.
      */
     match /users/{userId} {
-      // Access Control Pattern: Ownership
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.auth.uid == userId;
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == request.auth.uid;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Security rules for social media accounts.
+     * @description Rules for the /users/{userId}/socialMediaAccounts/{socialMediaAccountId} collection.
      * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}
-     * @allow (create) - Authenticated user creates a social media account under their profile.
-     * @allow (get, list, update, delete) - Authenticated user accesses their own social media accounts.
-     * @deny (create, update, delete) - Unauthorized user attempts to modify another user's social media accounts.
-     * @principle Enforces document ownership for writes.
+     * @allow (create, get, list, update, delete) - User can manage their own social media accounts.
+     * @deny (create, get, list, update, delete) - Other users cannot manage social media accounts of other users.
+     * @principle Enforces document ownership for writes.  Restricts access to a user's own data tree.
      */
     match /users/{userId}/socialMediaAccounts/{socialMediaAccountId} {
-      // Access Control Pattern: Ownership
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Security rules for social media posts.
+     * @description Rules for the /users/{userId}/posts/{postId} collection.
      * @path /users/{userId}/posts/{postId}
-     * @allow (create) - Authenticated user creates a post under their profile.
-     * @allow (get, list, update, delete) - Authenticated user accesses their own posts.
-     * @deny (create, update, delete) - Unauthorized user attempts to modify another user's posts.
-     * @principle Enforces document ownership for writes.
+     * @allow (create, get, list, update, delete) - User can manage their own posts.
+     * @deny (create, get, list, update, delete) - Other users cannot manage posts of other users.
+     * @principle Enforces document ownership for writes.  Restricts access to a user's own data tree.
      */
     match /users/{userId}/posts/{postId} {
-      // Access Control Pattern: Ownership
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Security rules for subscription plans.
+     * @description Rules for the /subscriptions/{subscriptionId} collection.
      * @path /subscriptions/{subscriptionId}
-     * @allow (get, list) - Publicly readable.
-     * @deny (create, update, delete) - Only backend can modify subscription plans.
-     * @principle Public read, restricted write access.
+     * @allow (get, list) - All users can read subscription plans.
+     * @deny (create, update, delete) - Only admins can manage subscription plans.
+     * @principle Public read, admin-only write.
      */
     match /subscriptions/{subscriptionId} {
-      // Access Control Pattern: Public Read with Owner-Only Writes (backend in this case)
       allow get, list: if true;
-      allow create, update, delete: if false; // TODO: Add backend validation once the backend user is setup.
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Security rules for analytics data.
+     * @description Rules for the /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId} collection.
      * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}
-     * @allow (create) - Authenticated user creates analytics data under their social media account.
-     * @allow (get, list, update, delete) - Authenticated user accesses their own analytics data.
-     * @deny (create, update, delete) - Unauthorized user attempts to modify another user's analytics data.
-     * @principle Enforces document ownership for writes.
+     * @allow (create, get, list, update, delete) - User can manage analytics data for their own social media accounts.
+     * @deny (create, get, list, update, delete) - Other users cannot manage analytics data of other users.
+     * @principle Enforces document ownership for writes.  Restricts access to a user's own data tree.
      */
     match /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId} {
-      // Access Control Pattern: Ownership
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Security rules for admin roles.  The existence of a document at this path grants admin privileges.
+     * @description Rules for the /roles_admin/{userId} collection.  The existence of a document grants admin privileges.
      * @path /roles_admin/{userId}
-     * @allow (get) - Only admin can read.
-     * @allow (list) - No listing.
-     * @allow (create, update, delete) -  Only admin can create.
-     * @principle Existence-based role assignment.
+     * @allow (create) - Only an existing admin can grant admin privileges to another user.
+     * @allow (get) - Only an existing admin can check if a user is an admin.
+     * @allow (delete) - Only an existing admin can revoke admin privileges.
+     * @deny (list) - Prevent listing of all admins.
+     * @principle Existence-based admin role.
      */
     match /roles_admin/{userId} {
-      // Access Control Pattern: Roles
-       allow get: if isAdmin();
-       allow list: if false;
-       allow create: if isAdmin();
-       allow update: if isAdmin();
-       allow delete: if isAdmin();
+        allow get: if isAdmin();
+        allow list: if false;
+        allow create: if isAdmin();
+        allow update: if false;
+        allow delete: if isAdmin() && resource != null;
     }
   }
 }
