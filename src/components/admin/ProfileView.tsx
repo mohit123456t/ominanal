@@ -1,6 +1,10 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { LoaderCircle } from 'lucide-react';
 
 const formatAdminUID = (uid?: string) => {
     if (!uid) return 'ADM000';
@@ -10,30 +14,50 @@ const formatAdminUID = (uid?: string) => {
 };
 
 const ProfileView = () => {
-    const [profile, setProfile] = useState<Partial<any>>({
-        uid: 'abc-123-xyz',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        mobileNumber: '9876543210',
-        role: 'Admin',
-        department: 'Administration',
-        createdAt: { seconds: Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60 },
-        photoURL: ''
-    });
+    const { user: authUser, isUserLoading } = useAuth();
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+
+    const userDocRef = useMemoFirebase(() => 
+        authUser && firestore ? doc(firestore, 'users', authUser.uid) : null
+    , [authUser, firestore]);
+
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+    const [profile, setProfile] = useState<Partial<any>>({});
     const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    
+    useEffect(() => {
+        if (userProfile) {
+            setProfile(userProfile);
+        }
+    }, [userProfile]);
 
     const handleUpdateProfile = async () => {
-        // This is a placeholder for the update logic.
-        alert('✅ Profile updated successfully! (This is a demo)');
-        setIsEditing(false);
+        if (!userDocRef) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User not authenticated.'});
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await setDoc(userDocRef, profile, { merge: true });
+            toast({ title: 'Success!', description: 'Your profile has been updated.' });
+            setIsEditing(false);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleInputChange = (field: string, value: string) => {
         setProfile(prev => ({ ...prev, [field]: value }));
     };
 
-    if (loading) {
+    const isLoading = isUserLoading || isProfileLoading;
+
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
@@ -89,7 +113,7 @@ const ProfileView = () => {
                         <div className="space-y-4">
                             <InfoField icon="📧" label="Email Address" value={profile.email} />
                             <InfoField icon="📱" label="Phone" value={profile.mobileNumber || '—'} />
-                            <InfoField icon="📅" label="Member Since" value={profile.createdAt ? new Date(profile.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'} />
+                            <InfoField icon="📅" label="Member Since" value={profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A'} />
                         </div>
                     </motion.div>
 
@@ -102,7 +126,7 @@ const ProfileView = () => {
                         <h3 className="text-xl font-bold text-slate-800 mb-6">Personal Information</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <EditableField label="Full Name" value={profile.name} isEditing={isEditing} onChange={(e) => handleInputChange('name', e.target.value)} />
-                            <EditableField label="Email Address" value={profile.email} isEditing={isEditing} type="email" onChange={(e) => handleInputChange('email', e.target.value)} />
+                            <EditableField label="Email Address" value={profile.email} isEditing={false} type="email" onChange={(e) => handleInputChange('email', e.target.value)} />
                             <EditableField label="Phone Number" value={profile.mobileNumber} isEditing={isEditing} type="tel" onChange={(e) => handleInputChange('mobileNumber', e.target.value)} placeholder="Enter phone number" />
                             <ReadOnlyField label="Department" value={profile.department || 'Administration'} />
                             <ReadOnlyField label="Role" value={profile.role} />
@@ -112,11 +136,12 @@ const ProfileView = () => {
                             <div className="mt-8 pt-6 border-t border-slate-300/70 flex justify-end">
                                 <motion.button 
                                     onClick={handleUpdateProfile} 
-                                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg shadow-green-500/20 transition-all"
-                                    whileHover={{ scale: 1.05 }}
+                                    disabled={isSaving}
+                                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg shadow-green-500/20 transition-all disabled:bg-green-400"
+                                    whileHover={{ scale: isSaving ? 1 : 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
-                                    💾 Save Changes
+                                    {isSaving ? <LoaderCircle className="animate-spin" /> : '💾 Save Changes'}
                                 </motion.button>
                             </div>
                         )}
