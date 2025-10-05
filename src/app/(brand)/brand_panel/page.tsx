@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { User } from 'firebase/auth';
+
 import {
     LayoutDashboard,
     Folder,
@@ -76,59 +76,6 @@ const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, labe
 const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: string; onBack?: () => void }) => {
     const router = useRouter();
     const isViewMode = !!propViewBrandId;
-    const [user, setUser] = useState<User | null>(null);
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [isLogin, setIsLogin] = useState(true);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const fbAuth = useAuth();
-
-    const [signupData, setSignupData] = useState({
-        name: '', brandName: '', brandId: '', phone: '', company: '', website: '', industry: '', budget: '', goals: ''
-    });
-
-    useEffect(() => {
-        if(!fbAuth) return;
-        const unsubscribe = onAuthStateChanged(fbAuth, (currentUser) => {
-            setUser(currentUser);
-        });
-        return () => unsubscribe();
-    }, [fbAuth]);
-
-    const handleAuth = async () => {
-        setLoading(true);
-        setError('');
-        try {
-            if (isLogin) {
-                if(fbAuth) await signInWithEmailAndPassword(fbAuth, email, password);
-            } else {
-                if(fbAuth) {
-                    await createUserWithEmailAndPassword(fbAuth, email, password);
-                    alert("Signup successful! (DB connection is disabled)");
-                }
-            }
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleLogout = async () => {
-        if (isViewMode) {
-            window.close(); // or router.push('/admin_panel')
-        } else {
-            try {
-                if(fbAuth) await signOut(fbAuth);
-                router.push('/');
-            } catch (error) {
-                console.error('Logout error:', error);
-                router.push('/');
-            }
-        }
-    };
-
 
     const [activeView, setActiveView] = useState(() => (typeof window !== 'undefined' && localStorage.getItem('brandActiveView')) || 'dashboard');
     const [selectedCampaign, setSelectedCampaign] = useState(() => {
@@ -136,6 +83,8 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
         const saved = localStorage.getItem('brandSelectedCampaign');
         return saved ? JSON.parse(saved) : null;
     });
+    
+    const [user, setUser] = useState<Partial<User>>({uid: 'brand-user-1', email: 'brand@example.com'});
 
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [campaigns, setCampaigns] = useState<any[]>([]);
@@ -165,6 +114,15 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
         ]);
         setOrders([ {id: 'order1', campaignName: 'Summer Sale', reels: 10, amount: 10000} ]);
     }, [user?.uid, propViewBrandId]);
+
+    const handleLogout = async () => {
+        if (isViewMode) {
+            window.close();
+        } else {
+            alert("Logout functionality is disabled in this demo.");
+            router.push('/');
+        }
+    };
 
     const handleSelectCampaign = (campaign: any) => {
         setSelectedCampaign(campaign);
@@ -236,42 +194,6 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
                 return <DashboardView campaigns={campaigns} profile={profile} onNewCampaign={() => setShowNewCampaignForm(true)} onNavigateToAnalytics={() => setActiveView('analytics')} onNavigateToCampaigns={() => setActiveView('campaigns')} />;
         }
     };
-
-    if (!user && !isViewMode) {
-        // LOGIN / SIGNUP UI (Not part of the main panel)
-         return (
-            <div className="flex h-screen items-center justify-center bg-slate-100">
-                <div className="w-full max-w-md">
-                     <div className="text-center mb-8"><Logo /></div>
-                    <div className="bg-white/50 backdrop-blur-lg p-8 rounded-2xl shadow-lg border border-white/50">
-                        <h2 className="text-2xl font-bold text-center text-slate-800 mb-4">{isLogin ? 'Brand Login' : 'Brand Signup'}</h2>
-                         {error && <p className="text-red-500 text-center text-sm mb-4">{error}</p>}
-                        
-                        {!isLogin && (
-                             <div className="space-y-4 mb-4">
-                                <input type="text" placeholder="Your Name" value={signupData.name} onChange={e => setSignupData({...signupData, name: e.target.value})} className="w-full p-3 rounded-lg border focus:ring-blue-500 focus:border-blue-500" />
-                                <input type="text" placeholder="Brand Name" value={signupData.brandName} onChange={e => setSignupData({...signupData, brandName: e.target.value})} className="w-full p-3 rounded-lg border focus:ring-blue-500 focus:border-blue-500" />
-                            </div>
-                        )}
-                        
-                        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="w-full p-3 mb-4 rounded-lg border focus:ring-blue-500 focus:border-blue-500" />
-                        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="w-full p-3 mb-4 rounded-lg border focus:ring-blue-500 focus:border-blue-500" />
-                        
-                        <button onClick={handleAuth} disabled={loading} className="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-blue-400">
-                            {loading ? 'Loading...' : (isLogin ? 'Login' : 'Sign Up')}
-                        </button>
-                        
-                        <p className="text-center text-sm mt-4">
-                            {isLogin ? "Don't have an account?" : "Already have an account?"}
-                            <button onClick={() => setIsLogin(!isLogin)} className="text-blue-600 font-semibold ml-1">
-                                {isLogin ? 'Sign Up' : 'Login'}
-                            </button>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="flex h-screen bg-slate-200 from-white/30 bg-gradient-to-br font-sans text-slate-800">
@@ -382,3 +304,5 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
 };
 
 export default BrandPanel;
+
+    
