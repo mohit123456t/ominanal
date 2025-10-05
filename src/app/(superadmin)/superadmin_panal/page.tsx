@@ -19,6 +19,7 @@ import {
   Plus,
   ChartBar,
   Clipboard,
+  UserCircle,
 } from 'lucide-react';
 import { useAuth } from '@/firebase';
 
@@ -31,6 +32,7 @@ import ThumbnailMakerManagerView from '@/components/superadmin/ThumbnailMakerMan
 import UploaderManagerView from '@/components/superadmin/UploaderManagerView';
 import ScriptWriterManagerView from '@/components/superadmin/ScriptWriterManagerView';
 import ReelsUploadedPage from '@/components/superadmin/ReelsUploadedPage';
+import SuperAdminProfileView from '@/components/superadmin/SuperAdminProfileView';
 
 
 const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
@@ -87,6 +89,7 @@ function SuperAdminPanel() {
             case 'reels_uploaded': return <ReelsUploadedPage />;
             case 'finance': return <SuperAdminFinance data={financeData} onNavigate={setActiveView} />;
             case 'pricing_management': return <PricingManagement />;
+            case 'profile': return <SuperAdminProfileView />;
             default: return <SuperAdminDashboard data={dashboardData} />;
         }
     };
@@ -100,6 +103,7 @@ function SuperAdminPanel() {
         { id: 'thumbnail_maker_manager', label: 'Thumbnail Maker Manager', icon: <ImageIcon size={18} /> },
         { id: 'video_editor_manager', label: 'Video Editor Manager', icon: <Video size={18} /> },
         { id: 'reels_uploaded', label: 'Reels Uploaded', icon: <FileText size={18} /> },
+        { id: 'profile', label: 'Profile', icon: <UserCircle size={18} /> },
     ];
 
     return (
