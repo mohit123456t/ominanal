@@ -1,9 +1,10 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type User } from 'firebase/auth';
+import AddFundsPanel from './AddFundsPanel';
+
 
 // Status colors for transaction history
 const statusColors = {
@@ -90,35 +91,25 @@ const BillingView = ({ user }: { user: User | null }) => {
             <h1 className="text-3xl font-bold text-slate-900 mb-6">Billing & Funds</h1>
 
             <div className="flex gap-4 mb-6">
-                {/* <button
+                <button
                     onClick={() => setShowAddFunds(!showAddFunds)}
                     className="font-semibold text-white bg-slate-800 hover:bg-slate-900 px-5 py-2.5 rounded-lg transition-colors shadow-md"
                 >
                     {showAddFunds ? 'Close Panel' : 'Add Funds'}
-                </button> */}
+                </button>
             </div>
 
             <AnimatePresence>
-                {/* {showAddFunds && (
+                {showAddFunds && (
                     <motion.div 
                         className="mb-8 bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg border border-white/30 p-6"
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, height: 0, padding: 0, margin: 0 }}
                     >
-                        <AddFundsPanel user={user} onComplete={() => setShowAddFunds(false)} />
+                        <AddFundsPanel onComplete={() => setShowAddFunds(false)} />
                     </motion.div>
-                )} */}
-                {/* {showWithdraw && (
-                    <motion.div 
-                        className="mb-8 bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg border border-white/30 p-6"
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0, padding: 0, margin: 0 }}
-                    >
-                        <WithdrawPanel user={user} currentBalance={currentBalance} onComplete={() => setShowWithdraw(false)} />
-                    </motion.div>
-                )} */}
+                )}
             </AnimatePresence>
 
             {renderKeyMetrics()}
