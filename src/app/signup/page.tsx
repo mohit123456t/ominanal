@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, useUser, useFirestore } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import {
   createUserWithEmailAndPassword,
   updateProfile,
@@ -31,7 +31,6 @@ export default function SignupPage() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
-  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -85,16 +84,6 @@ export default function SignupPage() {
     }
   };
 
-  // If the page is loading auth state, show a loader.
-  if (isUserLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // This is the main signup form render.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="mb-8 flex items-center gap-2">

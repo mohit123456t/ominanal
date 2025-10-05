@@ -46,13 +46,23 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
 
+      // Check for user role in the 'users' collection first
       const userDocRef = doc(firestore, 'users', loggedInUser.uid);
       const userDocSnap = await getDoc(userDocRef);
       
       let role = 'user'; // default role
+
       if (userDocSnap.exists()) {
         role = userDocSnap.data().role || 'user';
+      } else {
+        // If no user doc, check if they are an admin
+        const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
+        const adminDocSnap = await getDoc(adminDocRef);
+        if (adminDocSnap.exists()) {
+            role = 'superadmin';
+        }
       }
+
 
       toast({
         title: 'Successfully logged in!',
