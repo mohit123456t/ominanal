@@ -1,8 +1,9 @@
+
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, getDoc } from 'firebase/firestore';
 
 
 const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (campaign: any) => void; onCancel: () => void; }) => {
@@ -21,9 +22,8 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
     const [file, setFile] = useState<File | null>(null);
     
     // Fetch pricing settings from Firestore
-    const pricingCollection = useMemoFirebase(() => firestore ? collection(firestore, 'settings') : null, [firestore]);
-    const { data: settingsDocs, isLoading: loadingPricing } = useCollection(pricingCollection);
-    const priceSettings = settingsDocs?.find(doc => doc.id === 'pricing') || { pricePerReel: 150, discountTiers: [{reels: 10, discount: 5}, {reels: 20, discount: 10}] };
+    const pricingDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'pricing') : null, [firestore]);
+    const { data: priceSettings, isLoading: loadingPricing } = useDoc(pricingDocRef);
 
     const [totalBudget, setTotalBudget] = useState(0);
     const [couponCode, setCouponCode] = useState('');
@@ -33,15 +33,15 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
     const [error, setError] = useState('');
     
     // Fetch balance from Firestore
-    const userDoc = useMemoFirebase(() => user && firestore ? collection(firestore, `users/${user.uid}`) : null, [user, firestore]);
-    const { data: userData, isLoading: loadingBalance } = useCollection(userDoc as any);
+    const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+    const { data: userData, isLoading: loadingBalance } = useDoc(userDocRef);
     const balance = userData?.balance || 0;
 
 
     // Calculate total budget
     useEffect(() => {
         const reels = parseInt(campaignData.expectedReels, 10);
-        if (isNaN(reels) || reels <= 0 || loadingPricing) {
+        if (isNaN(reels) || reels <= 0 || loadingPricing || !priceSettings) {
             setTotalBudget(0);
             return;
         }
@@ -66,19 +66,28 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
     }, [campaignData.expectedReels, priceSettings, appliedCoupon, loadingPricing]);
 
     const handleApplyCoupon = async () => {
+        if (!firestore) return;
         setCouponError('');
         setCouponSuccess('');
         if (!couponCode) {
             setCouponError('Please enter a coupon code.');
             return;
         }
-        // Placeholder logic
-        if (couponCode.toUpperCase() === 'FIRST10') {
-             setAppliedCoupon({ code: 'FIRST10', discount: 10 });
-             setCouponSuccess(`Coupon "FIRST10" applied! You get 10% off.`);
+        const couponRef = doc(firestore, 'coupons', couponCode.toUpperCase());
+        const couponSnap = await getDoc(couponRef);
+
+        if (couponSnap.exists() && couponSnap.data().isActive) {
+            const coupon = couponSnap.data();
+            if (coupon.limit !== 'unlimited' && coupon.used >= coupon.limit) {
+                setCouponError('This coupon has reached its usage limit.');
+                setAppliedCoupon(null);
+            } else {
+                setAppliedCoupon({ code: couponSnap.id, ...coupon });
+                setCouponSuccess(`Coupon "${couponSnap.id}" applied! You get ${coupon.discount}% off.`);
+            }
         } else {
-             setCouponError('Invalid or expired coupon code.');
-             setAppliedCoupon(null);
+            setCouponError('Invalid or expired coupon code.');
+            setAppliedCoupon(null);
         }
     };
 
@@ -216,3 +225,5 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
 };
 
 export default NewCampaignForm;
+
+    
