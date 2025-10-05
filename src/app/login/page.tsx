@@ -54,7 +54,7 @@ export default function LoginPage() {
       if (userDocSnap.exists()) {
         role = userDocSnap.data().role || 'user';
       } else {
-        // If no user doc, check if they are an admin
+        // If no user doc, check if they are an admin in the dedicated admin roles collection
         const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
         const adminDocSnap = await getDoc(adminDocRef);
         if (adminDocSnap.exists()) {
