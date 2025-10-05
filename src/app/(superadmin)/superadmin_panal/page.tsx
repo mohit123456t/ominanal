@@ -21,7 +21,8 @@ import {
   Clipboard,
   UserCircle,
 } from 'lucide-react';
-import { useAuth } from '@/firebase';
+import { useAuth, useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, collectionGroup, query } from 'firebase/firestore';
 
 import SuperAdminDashboard from '@/components/superadmin/SuperAdminDashboard';
 import SuperAdminFinance from '@/components/superadmin/SuperAdminFinance';
@@ -56,11 +57,18 @@ const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNod
 
 function SuperAdminPanel() {
     const [activeView, setActiveView] = useState('dashboard');
-    const [isLoading, setIsLoading] = useState(false); // Not fetching data, so no loading state
-    const [dashboardData, setDashboardData] = useState({}); // Placeholder
-    const [financeData, setFinanceData] = useState({ totalRevenue: 680000, totalExpenses: 420000 }); // Placeholder
     const router = useRouter();
     const auth = useAuth();
+    const { firestore } = useFirebase();
+
+    // Fetching data for the dashboard
+    const usersCollection = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+    const { data: usersData, isLoading: usersLoading } = useCollection(usersCollection);
+
+    const postsCollectionGroup = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'posts')) : null, [firestore]);
+    const { data: postsData, isLoading: postsLoading } = useCollection(postsCollectionGroup);
+    
+    const isLoading = usersLoading || postsLoading;
 
     const handleLogout = async () => {
         try {
@@ -70,7 +78,6 @@ function SuperAdminPanel() {
             router.push('/login');
         } catch (error) {
             console.error('Logout error:', error);
-            // Even if signout fails, redirect to login
             router.push('/login');
         }
     };
@@ -80,17 +87,17 @@ function SuperAdminPanel() {
             return <div className="flex justify-center items-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div></div>;
         }
         switch (activeView) {
-            case 'dashboard': return <SuperAdminDashboard data={dashboardData} />;
+            case 'dashboard': return <SuperAdminDashboard users={usersData || []} posts={postsData || []} />;
             case 'staff_management': return <StaffManagementView />;
             case 'uploader_manager': return <UploaderManagerView />;
             case 'script_writer_manager': return <ScriptWriterManagerView />;
             case 'thumbnail_maker_manager': return <ThumbnailMakerManagerView />;
             case 'video_editor_manager': return <VideoEditorManagerView />;
             case 'reels_uploaded': return <ReelsUploadedPage />;
-            case 'finance': return <SuperAdminFinance data={financeData} onNavigate={setActiveView} />;
+            case 'finance': return <SuperAdminFinance posts={postsData || []} onNavigate={setActiveView} />;
             case 'pricing_management': return <PricingManagement />;
             case 'profile': return <SuperAdminProfileView />;
-            default: return <SuperAdminDashboard data={dashboardData} />;
+            default: return <SuperAdminDashboard users={usersData || []} posts={postsData || []} />;
         }
     };
 

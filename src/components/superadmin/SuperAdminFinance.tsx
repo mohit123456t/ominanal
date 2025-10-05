@@ -27,17 +27,24 @@ const FinanceStatCard = ({ title, value, icon, color }: { title: string, value: 
     </motion.div>
 );
 
-const SuperAdminFinance = ({ data, onNavigate }: { data: any, onNavigate: (view: string) => void }) => {
-    const financeData = data || {};
+const SuperAdminFinance = ({ posts, onNavigate }: { posts: any[], onNavigate: (view: string) => void }) => {
+    const totalRevenue = posts.reduce((sum, post) => sum + (post.budget || 0), 0);
+    const totalExpenses = 0; // Placeholder until expense data is available
+
     const safeFormat = (value: number) => formatNumber(value || 0);
-    const monthlyData = [
-        { month: 'Jan', revenue: 240000, expenses: 150000 },
-        { month: 'Feb', revenue: 310000, expenses: 180000 },
-        { month: 'Mar', revenue: 450000, expenses: 250000 },
-        { month: 'Apr', revenue: 420000, expenses: 280000 },
-        { month: 'May', revenue: 580000, expenses: 350000 },
-        { month: 'Jun', revenue: financeData.totalRevenue || 0, expenses: financeData.totalExpenses || 0 }, // Current month
-    ];
+
+    const monthlyData = posts.reduce((acc, post) => {
+        if (!post.createdAt) return acc;
+        const date = new Date(post.createdAt);
+        const month = date.toLocaleString('default', { month: 'short' });
+        if (!acc[month]) {
+            acc[month] = { month, revenue: 0, expenses: 0 };
+        }
+        acc[month].revenue += (post.budget || 0);
+        return acc;
+    }, {} as {[key: string]: {month: string, revenue: number, expenses: number}});
+
+    const chartData = Object.values(monthlyData);
 
     return (
         <motion.div 
@@ -63,13 +70,13 @@ const SuperAdminFinance = ({ data, onNavigate }: { data: any, onNavigate: (view:
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FinanceStatCard 
                     title="Total Revenue"
-                    value={safeFormat(financeData.totalRevenue)} 
+                    value={safeFormat(totalRevenue)} 
                     icon={<IndianRupee />}
                     color="bg-green-100 text-green-600"
                 />
                 <FinanceStatCard 
                     title="Total Expenses"
-                    value={safeFormat(financeData.totalExpenses)} 
+                    value={safeFormat(totalExpenses)} 
                     icon={<ChartBar />}
                     color="bg-red-100 text-red-600"
                 />
@@ -83,7 +90,7 @@ const SuperAdminFinance = ({ data, onNavigate }: { data: any, onNavigate: (view:
             >
                 <h2 className="text-xl font-bold mb-6 text-slate-800">Monthly Performance</h2>
                 <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={monthlyData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="month" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                         <YAxis stroke="#64748b" fontSize={12} tickFormatter={(value) => `₹${formatNumber(value)}`} tickLine={false} axisLine={false}/>

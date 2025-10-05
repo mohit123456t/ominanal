@@ -57,25 +57,32 @@ const CustomTooltip = ({ active, payload }: any) => {
     return null;
 };
   
-const SuperAdminDashboard = ({ data }: { data: any }) => {
-    const userCounts = { brands: 1254 };
-    const dashboardData = {
-      totalActiveCampaigns: 48,
-      liveCampaigns: 12,
-      pendingCampaigns: 5,
-      brandsWithLiveCampaigns: 8,
-      brandsWithoutCampaigns: 1246,
-      totalCampaignEarnings: 567890,
-      campaignEarnings: [
-          { name: 'Jan', earnings: 40000 },
-          { name: 'Feb', earnings: 30000 },
-          { name: 'Mar', earnings: 50000 },
-          { name: 'Apr', earnings: 45000 },
-          { name: 'May', earnings: 60000 },
-          { name: 'Jun', earnings: 75000 },
-      ]
-    };
-  
+const SuperAdminDashboard = ({ users, posts }: { users: any[], posts: any[] }) => {
+    
+    const brands = users.filter(u => u.role === 'brand');
+    const totalBrands = brands.length;
+
+    const totalCampaigns = posts.length;
+    const liveCampaigns = posts.filter(p => p.status === 'Published').length;
+    const pendingCampaigns = posts.filter(p => p.status === 'Scheduled').length; // Assuming pending means scheduled
+    const activeCampaigns = liveCampaigns + pendingCampaigns;
+
+    const brandsWithPosts = new Set(posts.map(p => p.userId));
+    const brandsWithLiveCampaigns = brands.filter(b => brandsWithPosts.has(b.id)).length;
+    const brandsWithoutCampaigns = totalBrands - brandsWithLiveCampaigns;
+    
+    const totalCampaignEarnings = posts.reduce((sum, post) => sum + (post.budget || 0), 0);
+
+    const campaignEarningsByMonth = posts.reduce((acc, post) => {
+        if (!post.createdAt) return acc;
+        const date = new Date(post.createdAt);
+        const month = date.toLocaleString('default', { month: 'short' });
+        acc[month] = (acc[month] || 0) + (post.budget || 0);
+        return acc;
+    }, {} as {[key: string]: number});
+    
+    const campaignEarningsChartData = Object.entries(campaignEarningsByMonth).map(([name, earnings]) => ({name, earnings}));
+
     const safeFormat = (value: number) => formatNumber(value || 0);
   
     return (
@@ -91,31 +98,31 @@ const SuperAdminDashboard = ({ data }: { data: any }) => {
   
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Total Brands" value={safeFormat(userCounts.brands)}
+            title="Total Brands" value={safeFormat(totalBrands)}
             icon={<Briefcase className="text-blue-600"/>} colorClass="bg-blue-100" delay={0.1}
           />
           <StatCard
-            title="Active Campaigns" value={safeFormat(dashboardData.totalActiveCampaigns)}
+            title="Active Campaigns" value={safeFormat(activeCampaigns)}
             icon={<PlayCircle className="text-green-600"/>} colorClass="bg-green-100" delay={0.2}
           />
           <StatCard
-            title="Live Campaigns" value={safeFormat(dashboardData.liveCampaigns)}
+            title="Live Campaigns" value={safeFormat(liveCampaigns)}
             icon={<Rocket className="text-purple-600"/>} colorClass="bg-purple-100" delay={0.3}
           />
           <StatCard
-            title="Pending Campaigns" value={safeFormat(dashboardData.pendingCampaigns)}
+            title="Pending Campaigns" value={safeFormat(pendingCampaigns)}
             icon={<Clock className="text-orange-600"/>} colorClass="bg-orange-100" delay={0.4}
           />
           <StatCard
-            title="Brands with Live Campaigns" value={safeFormat(dashboardData.brandsWithLiveCampaigns)}
+            title="Brands with Live Campaigns" value={safeFormat(brandsWithLiveCampaigns)}
             icon={<CheckCircle className="text-teal-600"/>} colorClass="bg-teal-100" delay={0.5}
           />
            <StatCard
-            title="Brands without Campaigns" value={safeFormat(dashboardData.brandsWithoutCampaigns)}
+            title="Brands without Campaigns" value={safeFormat(brandsWithoutCampaigns)}
             icon={<Users className="text-yellow-600"/>} colorClass="bg-yellow-100" delay={0.6}
           />
            <StatCard
-            title="Total Campaign Earnings" value={`₹${safeFormat(dashboardData.totalCampaignEarnings)}`}
+            title="Total Campaign Earnings" value={`₹${safeFormat(totalCampaignEarnings)}`}
             icon={<IndianRupee className="text-pink-600"/>} colorClass="bg-pink-100" delay={0.7}
           />
         </div>
@@ -129,13 +136,13 @@ const SuperAdminDashboard = ({ data }: { data: any }) => {
           <h3 className="font-bold text-xl mb-6 text-slate-800">Campaign Earnings Analytics</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dashboardData.campaignEarnings || []} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+              <BarChart data={campaignEarningsChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis 
                   stroke="#64748b" 
                   fontSize={12} 
-                  tickFormatter={(value) => formatNumber(value)}
+                  tickFormatter={(value) => `₹${formatNumber(value)}`}
                   tickLine={false} axisLine={false}
                 />
                 <Tooltip
