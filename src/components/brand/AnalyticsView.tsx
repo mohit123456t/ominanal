@@ -1,15 +1,106 @@
+
 'use client';
 
 import React from 'react';
-import { BarChart3 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const AnalyticsView = ({ campaigns }: { campaigns: any[] }) => {
+// A consistent, themed status badge component
+const StatusBadge = ({ status }: { status: string }) => {
+    const statusStyles: Record<string, { bg: string, text: string }> = {
+        "Active": { bg: 'bg-green-500/20', text: 'text-green-800' },
+        "Completed": { bg: 'bg-slate-500/20', text: 'text-slate-800' },
+        "Paused": { bg: 'bg-yellow-500/20', text: 'text-yellow-800' },
+        "Pending Approval": { bg: 'bg-orange-500/20', text: 'text-orange-800' },
+    };
+    const style = statusStyles[status] || { bg: 'bg-gray-500/20', text: 'text-gray-800' };
+    const baseClasses = "text-xs font-semibold px-2.5 py-0.5 rounded-full inline-block";
+
+    return <span className={`${baseClasses} ${style.bg} ${style.text}`}>{status}</span>;
+};
+
+const AnalyticsView = ({ campaigns = [] }: { campaigns: any[] }) => {
+    // Process data for the chart
+    const chartData = campaigns.map(campaign => {
+        const totalLikes = campaign.reels ? campaign.reels.reduce((sum, reel) => sum + (reel.likes || 0), 0) : 0;
+        const totalComments = campaign.reels ? campaign.reels.reduce((sum, reel) => sum + (reel.comments || 0), 0) : 0;
+        const totalEngagement = totalLikes + totalComments;
+
+        return {
+            name: campaign.name.length > 15 ? `${campaign.name.substring(0, 15)}...` : campaign.name,
+            views: campaign.views || 0,
+            engagement: totalEngagement,
+        };
+    });
+
     return (
-        <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 p-12 text-center">
-            <BarChart3 className="mx-auto h-12 w-12 text-primary" />
-            <h2 className="mt-4 text-2xl font-bold text-slate-800">Analytics</h2>
-            <p className="text-slate-500 mt-2">This is a placeholder for the brand analytics view.</p>
-             <p className="text-slate-400 text-sm mt-4">This section is under construction.</p>
+        <div className="animate-fade-in">
+            <h1 className="text-3xl font-bold text-slate-900 mb-8">Campaign Analytics</h1>
+
+            {/* Chart Card */}
+            <div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-300/70 mb-8">
+                <h3 className="font-bold text-xl mb-4 text-slate-800">Performance Comparison</h3>
+                <div className="h-96">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+                            <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                            <Tooltip
+                                cursor={{ fill: 'rgba(100, 116, 139, 0.1)' }}
+                                wrapperClassName="!bg-white/60 !backdrop-blur-sm !border-slate-300/70 !rounded-lg !shadow-lg"
+                            />
+                            <Legend wrapperStyle={{ fontSize: '14px' }} />
+                            <Bar dataKey="views" fill="#4338CA" name="Total Views" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="engagement" fill="#818CF8" name="Total Engagement" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+
+            {/* Table Card */}
+            <div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-300/70">
+                <h3 className="font-bold text-xl mb-4 text-slate-800">Detailed Campaign Metrics</h3>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-slate-700">
+                        <thead className="text-xs text-slate-800 uppercase bg-black/5">
+                            <tr>
+                                <th scope="col" className="px-6 py-3 rounded-l-lg">Campaign Name</th>
+                                <th scope="col" className="px-6 py-3">Status</th>
+                                <th scope="col" className="px-6 py-3">Total Views</th>
+                                <th scope="col" className="px-6 py-3">Reels Uploaded</th>
+                                <th scope="col" className="px-6 py-3">Total Engagement</th>
+                                <th scope="col" className="px-6 py-3 rounded-r-lg">Last Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {campaigns.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="text-center py-12 text-slate-600">
+                                        <p className="font-semibold">No campaign data available</p>
+                                        <p className="text-xs mt-1">Create new campaigns to start seeing your analytics.</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                campaigns.map((campaign, index) => {
+                                    const totalEngagement = Array.isArray(campaign.reels) ? campaign.reels.reduce((sum, reel) => sum + (reel.likes || 0) + (reel.comments || 0), 0) : 0;
+                                    const lastUpdated = Array.isArray(campaign.reels) && campaign.reels.length > 0 ?
+                                        new Date(Math.max(...campaign.reels.map(r => new Date(r.uploadedAt || 0)))).toLocaleDateString() : 'N/A';
+                                    return (
+                                        <tr key={`campaign-${index}`} className="border-b border-slate-300/70">
+                                            <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{campaign.name}</th>
+                                            <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
+                                            <td className="px-6 py-4">{(campaign.views || 0).toLocaleString()}</td>
+                                            <td className="px-6 py-4">{campaign.reelsCount || 0}</td>
+                                            <td className="px-6 py-4">{totalEngagement.toLocaleString()}</td>
+                                            <td className="px-6 py-4">{lastUpdated}</td>
+                                        </tr>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 };
