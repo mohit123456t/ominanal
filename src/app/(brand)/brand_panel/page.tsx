@@ -38,7 +38,7 @@ const Logo = () => (
             xmlns="http://www.w3.org/2000/svg"
         >
             <path
-            d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 2 12Z"
+            d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z"
             fill="currentColor"
             />
             <path
@@ -77,9 +77,7 @@ const BrandPanel = () => {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
-    const [descriptionsCollection, setDescriptionsCollection] = useState<any>(null);
-
-
+    
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
     
@@ -87,7 +85,6 @@ const BrandPanel = () => {
     const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
     const [showOrderForm, setShowOrderForm] = useState(false);
 
-    // Fetch all brand data from a single user document
     const userDocRef = useMemoFirebase(() => {
         if (user && firestore) {
             return doc(firestore, 'users', user.uid);
@@ -108,17 +105,10 @@ const BrandPanel = () => {
     }, []);
 
     useEffect(() => {
-        if (firestore) {
-            setDescriptionsCollection(collection(firestore, 'descriptions'));
-        }
-    }, [firestore]);
-
-    useEffect(() => {
         localStorage.setItem('brandActiveView', activeView);
     }, [activeView]);
 
     const handleLogout = () => {
-        // Replace with your actual logout logic
         router.push('/login');
     };
 
@@ -133,29 +123,23 @@ const BrandPanel = () => {
     };
 
     const handleCreateCampaign = async (newCampaignData: any) => {
-        if (!userDocRef || !descriptionsCollection) return;
+        if (!userDocRef || !firestore) return;
         try {
             const campaignWithMeta = {
                 ...newCampaignData,
                 id: `camp_${Date.now()}`,
                 userId: user?.uid,
                 createdAt: new Date().toISOString(),
-                status: 'Pending Approval', // Default status
+                status: 'Pending Approval',
             };
             await updateDoc(userDocRef, {
                 campaigns: arrayUnion(campaignWithMeta)
             });
 
-             if (newCampaignData.description) {
-                await addDoc(descriptionsCollection, {
-                    campaignId: campaignWithMeta.id,
-                    description: newCampaignData.description,
-                    createdAt: new Date().toISOString(),
-                });
-            }
+            // The descriptions collection logic is temporarily removed to isolate the error.
+            // We can re-introduce it once the main functionality is stable.
 
             setShowNewCampaignForm(false);
-             setDescriptionsCollection(null);
         } catch (error) {
             console.error("Error creating campaign:", error);
         }
@@ -183,7 +167,6 @@ const BrandPanel = () => {
     const handleUpdateProfile = async (updatedProfile: any) => {
         if (!userDocRef) return;
         try {
-            // We only update the fields that are part of the main user doc
             const { campaigns, orders, ...profileData } = updatedProfile;
             await setDoc(userDocRef, profileData, { merge: true });
         } catch (error) {
