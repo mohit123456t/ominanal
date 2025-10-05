@@ -26,8 +26,8 @@ import CampaignDetailView from '@/components/brand/CampaignDetailView';
 import NewCampaignForm from '@/components/brand/NewCampaignForm';
 import OrderForm from '@/components/brand/OrderForm';
 import PricingView from '@/components/brand/PricingView';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, updateDoc, arrayUnion, setDoc, collection, query, where } from 'firebase/firestore';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -94,7 +94,15 @@ const BrandPanel = () => {
 
     const { data: brandData, isLoading: isDataLoading } = useDoc(userDocRef);
 
-    const campaigns = useMemo(() => brandData?.campaigns || [], [brandData]);
+    const campaignsQuery = useMemoFirebase(() => {
+        if (user && firestore) {
+            return query(collection(firestore, 'campaigns'), where('brandId', '==', user.uid));
+        }
+        return null;
+    }, [user, firestore]);
+
+    const { data: campaigns, isLoading: campaignsLoading } = useCollection(campaignsQuery);
+
     const orders = useMemo(() => brandData?.orders || [], [brandData]);
     const profile = useMemo(() => brandData, [brandData]);
 
@@ -120,25 +128,6 @@ const BrandPanel = () => {
     const handleBackToCampaigns = () => {
         setSelectedCampaign(null);
         setActiveView('campaigns');
-    };
-
-    const handleCreateCampaign = async (newCampaignData: any) => {
-        if (!userDocRef) return;
-        try {
-            const campaignWithMeta = {
-                ...newCampaignData,
-                id: `camp_${Date.now()}`,
-                userId: user?.uid,
-                createdAt: new Date().toISOString(),
-                status: 'Pending Approval',
-            };
-            await updateDoc(userDocRef, {
-                campaigns: arrayUnion(campaignWithMeta)
-            });
-            setShowNewCampaignForm(false);
-        } catch (error) {
-            console.error("Error creating campaign:", error);
-        }
     };
 
     const handleCreateOrder = async (newOrderData: any) => {
@@ -193,7 +182,7 @@ const BrandPanel = () => {
     ];
 
     const renderView = () => {
-        const isLoading = isDataLoading || isUserLoading;
+        const isLoading = isDataLoading || isUserLoading || campaignsLoading;
 
         if (isLoading) {
             return <div className="text-center p-8">Loading...</div>;
@@ -204,15 +193,15 @@ const BrandPanel = () => {
         }
         switch (activeView) {
             case 'campaigns':
-                return <CampaignsView campaigns={campaigns} onSelectCampaign={handleSelectCampaign} onNewCampaign={() => setShowNewCampaignForm(true)} onCreateOrder={handleCreateOrderForCampaign} />;
+                return <CampaignsView campaigns={campaigns || []} onSelectCampaign={handleSelectCampaign} onNewCampaign={() => setShowNewCampaignForm(true)} onCreateOrder={handleCreateOrderForCampaign} />;
             case 'pricing': return <PricingView />;
-            case 'analytics': return <AnalyticsView campaigns={campaigns} />;
+            case 'analytics': return <AnalyticsView campaigns={campaigns || []} />;
             case 'billing': return <BillingView user={user} />;
-            case 'support': return <SupportView user={user} campaigns={campaigns} />;
+            case 'support': return <SupportView user={user} campaigns={campaigns || []} />;
             case 'profile': return <ProfileView user={user} profile={profile} onUpdateProfile={handleUpdateProfile} />;
             case 'dashboard':
             default:
-                return <DashboardView campaigns={campaigns} profile={profile} onNewCampaign={() => setShowNewCampaignForm(true)} onNavigateToAnalytics={() => setActiveView('analytics')} onNavigateToCampaigns={() => setActiveView('campaigns')} />;
+                return <DashboardView campaigns={campaigns || []} profile={profile} onNewCampaign={() => setShowNewCampaignForm(true)} onNavigateToAnalytics={() => setActiveView('analytics')} onNavigateToCampaigns={() => setActiveView('campaigns')} />;
         }
     };
 
@@ -292,7 +281,7 @@ const BrandPanel = () => {
                              exit={{ scale: 0.95 }}
                         >
                             <NewCampaignForm
-                                onCreateCampaign={handleCreateCampaign}
+                                onCampaignCreated={() => setShowNewCampaignForm(false)}
                                 onCancel={handleCancelNewCampaign}
                             />
                         </motion.div>

@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, addDoc, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
-
-const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (campaign: any) => void; onCancel: () => void; }) => {
+const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: () => void; onCancel: () => void; }) => {
     const { user } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
 
     const [campaignData, setCampaignData] = useState({
         name: '',
@@ -101,9 +102,14 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        if (!user || !firestore || !userDocRef) {
+            setError('User not authenticated.');
+            return;
+        }
 
         // Balance Check
         if (totalBudget > balance) {
@@ -132,11 +138,42 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
             expectedReels: parseInt(campaignData.expectedReels, 10),
             uploadOption,
             gdriveLink: uploadOption === 'gdrive' ? gdriveLink : '',
-            file: uploadOption === 'file' ? file : null,
-            coupon: appliedCoupon ? appliedCoupon.code : null
+            // file: uploadOption === 'file' ? file : null, // Cannot store file object directly
+            coupon: appliedCoupon ? appliedCoupon.code : null,
+            brandId: user.uid,
+            brandName: userData?.brandName || userData?.name || 'Unknown',
+            status: 'Pending Approval',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
         };
-        
-        onCreateCampaign(newCampaign);
+
+        try {
+            // Use a transaction to deduct balance and create campaign
+            await runTransaction(firestore, async (transaction) => {
+                const userDoc = await transaction.get(userDocRef);
+                if (!userDoc.exists() || (userDoc.data().balance || 0) < totalBudget) {
+                    throw new Error("Insufficient funds.");
+                }
+
+                // 1. Create the new campaign
+                const campaignsCollection = collection(firestore, 'campaigns');
+                transaction.set(doc(campaignsCollection), newCampaign);
+
+                // 2. Deduct the budget from the user's balance
+                const newBalance = (userDoc.data().balance || 0) - totalBudget;
+                transaction.update(userDocRef, { balance: newBalance });
+
+                // TODO: 3. Optionally increment coupon usage count
+            });
+
+            toast({ title: "Success!", description: "Campaign submitted for approval. The budget has been deducted from your balance." });
+            onCampaignCreated();
+
+        } catch (error: any) {
+            console.error("Error creating campaign:", error);
+            setError(error.message);
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        }
     };
 
     const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
