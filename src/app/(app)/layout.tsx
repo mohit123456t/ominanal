@@ -5,10 +5,12 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { AppHeader } from '@/components/layout/app-header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
 
-const unauthenticatedRoutes = ['/instagram-callback'];
+
+const unauthenticatedRoutes = ['/instagram-callback', '/youtube-callback'];
 
 export default function AppLayout({
   children,
@@ -18,14 +20,57 @@ export default function AppLayout({
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const firestore = useFirestore();
 
   useEffect(() => {
-    if (!isUserLoading && !user && !unauthenticatedRoutes.includes(pathname)) {
-      router.push('/login');
+    if (isUserLoading || !firestore) {
+      return; // Wait until user state and firestore are initialized
     }
-  }, [user, isUserLoading, router, pathname]);
+    
+    if (!user && !unauthenticatedRoutes.includes(pathname)) {
+      router.push('/login');
+      return;
+    }
+    
+    if (user) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        getDoc(userDocRef).then(userDocSnap => {
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                const role = userData.role;
+                // If user with a specific role tries to access the main app, redirect them
+                if (role && role !== 'brand' && !pathname.startsWith(`/${role}_panel`)) {
+                     switch (role) {
+                        case 'admin':
+                            router.push('/admin_panel');
+                            break;
+                        case 'superadmin':
+                            router.push('/superadmin_panal');
+                            break;
+                        case 'video_editor':
+                            router.push('/video_editor_panel');
+                            break;
+                        case 'script_writer':
+                            router.push('/script_writer_panel');
+                            break;
+                        case 'thumbnail_maker':
+                            router.push('/thumbnail_maker_panel');
+                            break;
+                        case 'uploader':
+                             router.push('/uploader_panel');
+                            break;
+                        default:
+                            // stay in the main app layout if role is brand or not defined
+                            break;
+                    }
+                }
+            }
+        });
+    }
+
+  }, [user, isUserLoading, router, pathname, firestore]);
   
-  if (unauthenticatedRoutes.includes(pathname) && pathname !== '/youtube-callback') {
+  if (unauthenticatedRoutes.includes(pathname)) {
     return <>{children}</>;
   }
 
