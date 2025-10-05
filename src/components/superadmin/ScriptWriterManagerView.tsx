@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users } from 'lucide-react';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 
 // --- इंटरफ़ेस परिभाषाएं ---
@@ -17,43 +19,38 @@ interface EnrichedStaffProfile extends UserProfile { stats: StaffStats; }
 
 // --- मुख्य कंपोनेंट ---
 const ScriptWriterManagerView = () => {
+    const { firestore } = useFirebase();
     const [scriptWriters, setScriptWriters] = useState<EnrichedStaffProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStaff, setSelectedStaff] = useState<EnrichedStaffProfile | null>(null);
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [staffCampaigns, setStaffCampaigns] = useState<any[]>([]);
-    const [campaigns, setCampaigns] = useState<any[]>([]);
+
+    const writersQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'users'), where('role', '==', 'script_writer')) : null
+    , [firestore]);
+    const { data: writerData, isLoading: writersLoading } = useCollection<UserProfile>(writersQuery);
+
+    const campaignsQuery = useMemoFirebase(() => 
+        firestore ? collection(firestore, 'posts') : null
+    , [firestore]);
+    const { data: campaigns, isLoading: campaignsLoading } = useCollection<any>(campaignsQuery);
     
-    // Placeholder Data
-    const placeholderScriptWriters: EnrichedStaffProfile[] = [
-        { uid: 'writer-1', name: 'Amit Desai', email: 'amit@example.com', stats: { assigned: 10, pending: 3, completed: 7 } },
-        { uid: 'writer-2', name: 'Pooja Joshi', email: 'pooja@example.com', stats: { assigned: 15, pending: 5, completed: 10 } },
-    ];
-    const placeholderCampaigns = [
-        { id: 'camp-1', name: 'Summer Sale Campaign' },
-        { id: 'camp-2', name: 'Diwali Special Promo' },
-    ];
-    const placeholderStaffCampaigns = [
-        { id: 'staff-camp-1', name: 'Write script for Summer Sale ad', status: 'Pending' },
-        { id: 'staff-camp-2', name: 'Diwali promo script', status: 'Completed' },
-    ];
-
-    const fetchStaffData = useCallback(async () => {
-        setLoading(true);
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setScriptWriters(placeholderScriptWriters);
-        setCampaigns(placeholderCampaigns);
-        setLoading(false);
-    }, []);
-
     useEffect(() => {
-        fetchStaffData();
-    }, [fetchStaffData]);
+        if (!writersLoading) {
+            if (writerData) {
+                const enrichedData = writerData.map(user => ({
+                    ...user,
+                    stats: { assigned: 0, pending: 0, completed: 0 } // Placeholder stats
+                }));
+                setScriptWriters(enrichedData);
+            }
+            setLoading(false);
+        }
+    }, [writerData, writersLoading]);
 
-
-    // NOTE: आपका ओरिजिनल लोडिंग स्टाइल रखा गया है
+    
     if (loading) {
         return (
             <div className="flex flex-col justify-center items-center h-64 w-full">
@@ -119,12 +116,12 @@ const ScriptWriterManagerView = () => {
                              <div className="flex space-x-3">
                                 <button onClick={() => {
                                   setSelectedStaff(writer);
-                                  setStaffCampaigns(placeholderStaffCampaigns);
+                                  setStaffCampaigns([]);
                                   setIsDetailsModalOpen(true);
                                 }} className="flex-1 px-4 py-2.5 bg-slate-500/10 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-500/20 transition-colors">View Details</button>
                                 <button onClick={() => {
                                   setSelectedStaff(writer);
-                                  setStaffCampaigns(placeholderStaffCampaigns);
+                                  setStaffCampaigns([]);
                                   setIsAssignModalOpen(true);
                                 }} className="flex-1 bg-indigo-600 text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">Assign Task</button>
                             </div>
@@ -145,7 +142,7 @@ const ScriptWriterManagerView = () => {
                             }}>
                                 <select name="campaignId" required className="w-full p-3 bg-white/50 border border-slate-300/70 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none">
                                     <option value="">Select Campaign</option>
-                                    {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    {campaigns && campaigns.map(c => <option key={c.id} value={c.id}>{c.content}</option>)}
                                 </select>
                                 <div className="mt-4">
                                     <h4 className="text-md font-semibold mb-2 text-slate-700">Current Campaigns</h4>
@@ -173,20 +170,7 @@ const ScriptWriterManagerView = () => {
                                     <h4 className="text-md font-semibold mb-2 text-slate-700">Profile Info</h4>
                                     <div className="text-sm text-slate-800 space-y-1">
                                         <p><strong>Email:</strong> {selectedStaff.email}</p>
-                                        <p><strong>Mobile:</strong> {selectedStaff.mobile || 'N/A'}</p>
-                                        {/* ...other details... */}
                                     </div>
-                                </div>
-                                <div className="bg-white/30 p-4 rounded-lg">
-                                    <h4 className="text-md font-semibold mb-2 text-slate-700">Update Profile</h4>
-                                    <form onSubmit={async (e) => {
-                                        e.preventDefault();
-                                        alert('Profile updated (demo)!');
-                                    }}>
-                                        <input name="mobile" placeholder="Mobile" defaultValue={selectedStaff.mobile} className="w-full p-2 bg-white/50 border border-slate-300/70 rounded mb-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                        <input type="date" name="dob" defaultValue={selectedStaff.dob} className="w-full p-2 bg-white/50 border border-slate-300/70 rounded mb-2 focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                        <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold shadow-lg shadow-indigo-500/20">Update</button>
-                                    </form>
                                 </div>
                                 <div className="bg-white/30 p-4 rounded-lg">
                                     <h4 className="text-md font-semibold mb-2 text-slate-700">Campaigns</h4>
