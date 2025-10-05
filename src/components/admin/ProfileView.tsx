@@ -1,8 +1,8 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, collection } from 'firebase/firestore';
+import { useAuth, useFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 
@@ -13,30 +13,24 @@ const formatAdminUID = (uid?: string) => {
     return `ADM${num.toString().padStart(3, '0')}`;
 };
 
-const ProfileView = () => {
-    const { user: authUser, isUserLoading: isAuthUserLoading } = useAuth();
+const ProfileView = ({ profile: initialProfile }: { profile: any | null }) => {
+    const { user: authUser } = useAuth();
     const { firestore } = useFirebase();
     const { toast } = useToast();
-
-    // Fetch all users to find the admin profile
-    const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
-    const { data: users, isLoading: isUsersLoading } = useCollection(usersQuery);
 
     const [profile, setProfile] = useState<Partial<any>>({});
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-
-    // Find the specific admin profile from the users list
-    const adminProfile = useMemo(() => {
-        if (!users || !authUser) return null;
-        return users.find(u => u.id === authUser.uid);
-    }, [users, authUser]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (adminProfile) {
-            setProfile(adminProfile);
+        if (initialProfile) {
+            setProfile(initialProfile);
+            setIsLoading(false);
+        } else {
+            setIsLoading(true);
         }
-    }, [adminProfile]);
+    }, [initialProfile]);
 
     const handleUpdateProfile = useCallback(async () => {
         if (!authUser || !firestore) {
@@ -60,8 +54,6 @@ const ProfileView = () => {
         setProfile(prev => ({ ...prev, [field]: value }));
     };
 
-    const isLoading = isAuthUserLoading || isUsersLoading;
-
     if (isLoading) {
         return (
             <div className="flex justify-center items-center h-full">
@@ -70,7 +62,7 @@ const ProfileView = () => {
         );
     }
     
-    if (!adminProfile) {
+    if (!profile || Object.keys(profile).length === 0) {
         return (
              <div className="text-center p-8 bg-white/40 backdrop-blur-lg rounded-xl shadow-md border">
                 <h3 className="text-xl font-bold text-red-600">Profile Not Found</h3>

@@ -156,7 +156,7 @@ function AdminPanel() {
         }
         
         switch (activeView) {
-            case 'profile': return <ProfileView />;
+            case 'profile': return <ProfileView profile={adminProfile} />;
             case 'campaigns': return <CampaignManagerView campaigns={campaigns || []} users={users || []} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-approval': return <CampaignApprovalView campaigns={campaigns || []} />;
             case 'users': return <UserManagementView brands={brands || []} onViewBrand={(brandId: any) => { setSelectedBrandId(brandId); setActiveView('brand_view'); }} />;
