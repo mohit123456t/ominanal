@@ -4,9 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CampaignDetailView from './CampaignDetailView';
+import NewCampaignForm from './NewCampaignForm';
 
 
-// THEME UPDATE: StatusBadge को थीम के हिसाब से स्टाइल किया गया है
 const StatusBadgeComponent = ({ status }: { status: string }) => {
     const statusClasses: { [key: string]: string } = {
         "Active": "bg-green-500/10 text-green-700 font-semibold",
@@ -18,7 +18,7 @@ const StatusBadgeComponent = ({ status }: { status: string }) => {
     return <span className={`text-xs px-2.5 py-1 rounded-full ${statusClasses[status] || 'bg-gray-100 text-gray-800'}`}>{status}</span>;
 };
 
-const CampaignManagerView = ({ onSelectCampaign }: { onSelectCampaign: (id: string) => void }) => {
+const CampaignManagerView = () => {
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
@@ -51,23 +51,33 @@ const CampaignManagerView = ({ onSelectCampaign }: { onSelectCampaign: (id: stri
     const filteredCampaigns = campaigns.filter(campaign =>
         (campaign.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (brandNames[campaign.brandId] || campaign.brandName)?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (filter === 'All' || campaign.status === filter)
+        (filter === 'All' || filter === 'All Statuses' || campaign.status === filter)
     );
 
     return (
         <div className="space-y-6">
             <AnimatePresence>
                 {selectedCampaign && <CampaignDetailView campaignId={selectedCampaign.id} onClose={() => setSelectedCampaign(null)} />}
-                {/* {showNewCampaignForm && <NewCampaignForm onCreateCampaign={() => setShowNewCampaignForm(false)} onCancel={() => setShowNewCampaignForm(false)} />} */}
+                {showNewCampaignForm && <NewCampaignForm onCreateCampaign={(newCampaign) => {
+                     setCampaigns(prev => [newCampaign, ...prev]);
+                     setShowNewCampaignForm(false)
+                }} onCancel={() => setShowNewCampaignForm(false)} />}
             </AnimatePresence>
 
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                 <div className="flex justify-between items-center">
                     <h1 className="text-3xl font-bold text-slate-800 tracking-tighter">Campaign Manager</h1>
+                    <motion.button 
+                        onClick={() => setShowNewCampaignForm(true)} 
+                        className="flex items-center bg-indigo-600 text-white font-semibold py-2.5 px-5 rounded-xl text-sm shadow-lg shadow-indigo-500/30"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <span className="mr-2"><Plus /></span> New Campaign
+                    </motion.button>
                 </div>
             </motion.div>
 
-            {/* THEME UPDATE: फ़िल्टर और सर्च बार को ग्लास पैनल में डाला गया है */}
             <motion.div 
                 className="bg-white/40 backdrop-blur-xl p-4 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 flex items-center justify-between gap-4"
                 initial={{ opacity: 0, y: 20 }}
@@ -82,7 +92,7 @@ const CampaignManagerView = ({ onSelectCampaign }: { onSelectCampaign: (id: stri
                     className="w-full px-4 py-2.5 bg-white/50 border border-slate-300/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow placeholder:text-slate-500"
                 />
                 <select onChange={(e) => setFilter(e.target.value)} value={filter} className="px-4 py-2.5 bg-white/50 border border-slate-300/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow">
-                    <option value="All">All Statuses</option>
+                    <option>All Statuses</option>
                     <option>Active</option>
                     <option>Pending Approval</option>
                     <option>Completed</option>
@@ -92,7 +102,6 @@ const CampaignManagerView = ({ onSelectCampaign }: { onSelectCampaign: (id: stri
             </motion.div>
 
             {loading ? <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div> : (
-                // THEME UPDATE: टेबल को ग्लास पैनल में डाला गया है
                 <motion.div 
                     className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 overflow-hidden"
                     initial={{ opacity: 0, y: 20 }}
@@ -117,7 +126,7 @@ const CampaignManagerView = ({ onSelectCampaign }: { onSelectCampaign: (id: stri
                                     <td className="px-6 py-4 whitespace-nowrap"><StatusBadgeComponent status={campaign.status} /></td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">₹{campaign.budget?.toLocaleString() || 'N/A'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button onClick={() => onSelectCampaign(campaign.id)} className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-500/10 rounded-full hover:bg-indigo-500/20">View Details</button>
+                                        <button onClick={() => setSelectedCampaign(campaign)} className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-500/10 rounded-full hover:bg-indigo-500/20">View Details</button>
                                     </td>
                                 </tr>
                             ))}
