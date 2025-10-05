@@ -34,6 +34,8 @@ const getPageTitle = (pathname: string): string => {
       return 'API Keys & Connections';
     case '/superadmin_panal':
       return 'Super Admin Dashboard';
+    case '/admin_panel':
+      return 'Admin Dashboard';
     default:
       return 'OmniPost AI';
   }
