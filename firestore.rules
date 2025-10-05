@@ -1,42 +1,38 @@
 /**
- * @file Firestore Security Rules for OmniPost AI Platform
+ * @fileoverview Firestore Security Rules for OmniPost AI Platform
  *
- * @core_philosophy This ruleset enforces a strict user-ownership model for data stored under the /users/{userId} path.
- *  Administrative privileges are granted based on the existence of a document in the /roles_admin/{userId} collection.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for most data, ensuring users can only access their own information.
+ * Administrative privileges are granted based on the existence of a document in the `/roles_admin/{userId}` collection.
  *
- * @data_structure
+ * Data Structure:
  * - User profiles are stored in `/users/{userId}`.
- * - Social media accounts are stored in `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}`.
- * - Posts are stored in `/users/{userId}/posts/{postId}`.
- * - Analytics data is stored in `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}`.
+ * - Social media accounts and posts are nested under `/users/{userId}`.
  * - Subscription plans are stored in `/subscriptions/{subscriptionId}`.
- * - Administrator roles are determined by documents in `/roles_admin/{userId}`.
+ * - Analytics data are nested under `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}`
+ * - Admin roles are determined by the existence of documents in `/roles_admin/{userId}`.
  *
- * @key_security_decisions
- * - Listing of users is disallowed.
- * - Public read access is not granted to any user-specific data.
+ * Key Security Decisions:
+ * - User listing is generally disallowed except for admins.
  * - All write operations require authentication.
- * - Data consistency is enforced by validating the userId within documents against the path.
+ * - Subscription data is publicly readable but not writable by clients.
+ * - Admin privileges are granted based on document existence in `/roles_admin/{userId}`.
  *
- * @denormalization_for_authorization
- * - User ownership is enforced via path-based rules, avoiding the need for `get()` calls to parent documents.
- * - Admin privileges are determined by the existence of a document in the `/roles_admin/{userId}` collection.
- *
- * @structural_segregation
- * - Private user data is stored under `/users/{userId}`, while subscription plans are stored in a separate top-level collection.
+ * Denormalization for Authorization:
+ * - User documents are intended to include a `subscriptionId` to avoid needing a `get()` call to the `/subscriptions` collection for authorization.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures user profile data. Only the user can read, update, or delete their own profile. Allows self-creation.
+     * @description Secure user profiles.  Users can only read/write their own profile.
      * @path /users/{userId}
-     * @allow (create) - User 'abc' can create their profile if request.auth.uid == 'abc'.
-     * @allow (get, update, delete) - User 'abc' can read, update, or delete their profile if request.auth.uid == 'abc'.
-     * @deny (create) - User 'def' cannot create a profile for user 'abc'.
-     * @deny (update, delete) - User 'def' cannot update or delete the profile for user 'abc'.
-     * @principle Enforces document ownership for reads and writes. Allows self-creation.
+     * @allow (create) - User with ID 'user123' can create their own profile if authenticated as 'user123'.
+     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete their own profile if authenticated as 'user123'.
+     * @deny (create) - User with ID 'user456' cannot create a profile for 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete the profile for 'user123'.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
       function isOwner(userId) {
@@ -44,24 +40,25 @@ service cloud.firestore {
       }
 
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow list: if false; // User listing is disallowed
+
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures social media account data. Only the owning user can create, read, update, or delete accounts under their profile.
+     * @description Secure social media accounts associated with a user. Users can only manage their own accounts.
      * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}
-     * @allow (create) - User 'abc' can create a social media account under their profile.
-     * @allow (get, update, delete) - User 'abc' can read, update, or delete a social media account under their profile.
-     * @deny (create) - User 'def' cannot create a social media account under user 'abc''s profile.
-     * @deny (update, delete) - User 'def' cannot update or delete a social media account under user 'abc''s profile.
-     * @principle Enforces document ownership for reads and writes in a nested collection.
+     * @allow (create) - User with ID 'user123' can create a social media account under their profile.
+     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete a social media account under their profile.
+     * @deny (create) - User with ID 'user456' cannot create a social media account under 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete a social media account under 'user123'.
+     * @principle Enforces document ownership for writes within a user's data tree.
      */
     match /users/{userId}/socialMediaAccounts/{socialMediaAccountId} {
       function isOwner(userId) {
@@ -69,24 +66,25 @@ service cloud.firestore {
       }
 
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures post data. Only the owning user can create, read, update, or delete posts under their profile.
+     * @description Secure posts created by a user. Users can only manage their own posts.
      * @path /users/{userId}/posts/{postId}
-     * @allow (create) - User 'abc' can create a post under their profile.
-     * @allow (get, update, delete) - User 'abc' can read, update, or delete a post under their profile.
-     * @deny (create) - User 'def' cannot create a post under user 'abc''s profile.
-     * @deny (update, delete) - User 'def' cannot update or delete a post under user 'abc''s profile.
-     * @principle Enforces document ownership for reads and writes in a nested collection.
+     * @allow (create) - User with ID 'user123' can create a post under their profile.
+     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete a post under their profile.
+     * @deny (create) - User with ID 'user456' cannot create a post under 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete a post under 'user123'.
+     * @principle Enforces document ownership for writes within a user's data tree.
      */
     match /users/{userId}/posts/{postId} {
       function isOwner(userId) {
@@ -94,43 +92,41 @@ service cloud.firestore {
       }
 
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Secures subscription plan data.  Anyone can read subscription plans, but only an admin can create, update, or delete them.
+     * @description Allow public read access to subscription plans, but prevent client-side writes.
      * @path /subscriptions/{subscriptionId}
-     * @allow (get, list) - Any user can read the subscription plans.
-     * @allow (create, update, delete) - Only an admin user can create, update, or delete subscription plans.
-     * @deny (create, update, delete) - Non-admin users cannot create, update, or delete subscription plans.
-     * @principle Public read access with admin-only writes.
+     * @allow (get, list) - Any user can read subscription plans.
+     * @deny (create, update, delete) - No user can create, update, or delete a subscription plan.  These operations should be handled by backend services.
+     * @principle Public read access with restricted writes.
      */
     match /subscriptions/{subscriptionId} {
-      function isAdmin() {
-        return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-      }
+      allow get: if true;
+      allow list: if true;
 
-      allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Secures analytics data. Only the owning user can create, read, update, or delete analytics data under their profile.
+     * @description Secure analytics data associated with a user's social media account.  Users can only access their own analytics data.
      * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}
-     * @allow (create) - User 'abc' can create analytics data under their social media account.
-     * @allow (get, update, delete) - User 'abc' can read, update, or delete analytics data under their social media account.
-     * @deny (create) - User 'def' cannot create analytics data under user 'abc''s social media account.
-     * @deny (update, delete) - User 'def' cannot update or delete analytics data under user 'abc''s social media account.
-     * @principle Enforces document ownership for reads and writes in a deeply nested collection.
+     * @allow (create) - User with ID 'user123' can create analytics data under their social media account.
+     * @allow (get, update, delete) - User with ID 'user123' can read, update, or delete analytics data under their social media account.
+     * @deny (create) - User with ID 'user456' cannot create analytics data under 'user123'.
+     * @deny (get, update, delete) - User with ID 'user456' cannot read, update, or delete analytics data under 'user123'.
+     * @principle Enforces document ownership for writes within a user's data tree.
      */
     match /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId} {
       function isOwner(userId) {
@@ -138,38 +134,35 @@ service cloud.firestore {
       }
 
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isOwner(userId);
-      allow list: if false;
+      allow list: if isOwner(userId);
+
       allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Determines admin privileges based on the existence of a document.
+     * @description Grants admin privileges based on the existence of a document in this collection.
      * @path /roles_admin/{userId}
-     * @allow (create) - Anyone can create their own admin document, effectively granting themselves admin rights.
      * @allow (get) - Any authenticated user can check if they are an admin.
-     * @allow (delete) - Admin can revoke the role from themself.
-     * @deny (create, update, delete) - Non-admin users cannot grant or revoke admin privileges for other users.
+     * @allow (create, update, delete) - Only existing admins can manage admin roles.  This requires a custom token or backend service.
+     * @deny (create, update, delete) - Non-admins cannot grant themselves admin privileges.
+     * @principle Existence-based role assignment for admins.
      */
     match /roles_admin/{userId} {
        function isAdmin() {
-            return request.auth != null && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+            return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
         }
+      allow get: if request.auth != null; // Any signed-in user can check for admin status.
+      allow list: if false; // No client-side listing.
 
-        function isOwner(userId) {
-            return request.auth != null && request.auth.uid == userId;
-        }
-
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) ;
-      allow update: if false;
-      allow delete: if isOwner(userId);
+      allow create: if isAdmin(); // Only existing admins can create new admins.  Requires custom auth or backend.
+      allow update: if isAdmin() && resource != null; // Only existing admins can update admin records.
+      allow delete: if isAdmin() && resource != null; // Only existing admins can remove admin roles.
     }
   }
 }
