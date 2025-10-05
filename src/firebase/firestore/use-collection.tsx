@@ -74,10 +74,11 @@ export function useCollection<T = any>(
       (err: FirestoreError) => {
         let path = "unknown/path";
         try {
-            if (memoizedTargetRefOrQuery instanceof CollectionReference) {
-                path = memoizedTargetRefOrQuery.path;
-            } else if (memoizedTargetRefOrQuery instanceof Query) {
-                path = memoizedTargetRefOrQuery.ref.path;
+            // This is a more robust way to get the path from either a CollectionReference or a Query.
+            // Firestore's internal `_query` property holds the path information.
+            const internalQuery = (memoizedTargetRefOrQuery as any)._query;
+            if (internalQuery && internalQuery.path && internalQuery.path.segments) {
+                path = internalQuery.path.segments.join('/');
             }
         } catch (e) {
             console.error("Could not extract path for error reporting:", e);
