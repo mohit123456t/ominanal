@@ -27,7 +27,7 @@ import NewCampaignForm from '@/components/brand/NewCampaignForm';
 import OrderForm from '@/components/brand/OrderForm';
 import PricingView from '@/components/brand/PricingView';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, doc, addDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
