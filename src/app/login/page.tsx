@@ -91,7 +91,9 @@ export default function LoginPage() {
             router.push('/uploader_panel');
             break;
         default:
-          router.push('/dashboard');
+          // Fallback for any other user role, you might want to lead them to a generic page
+          // As /dashboard is removed, we can redirect to login or a generic user page if one exists.
+          router.push('/login'); 
           break;
       }
 
