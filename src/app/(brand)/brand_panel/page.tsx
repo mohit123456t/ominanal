@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
@@ -27,7 +27,7 @@ import NewCampaignForm from '@/components/brand/NewCampaignForm';
 import OrderForm from '@/components/brand/OrderForm';
 import PricingView from '@/components/brand/PricingView';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, arrayUnion, setDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -94,9 +94,9 @@ const BrandPanel = () => {
 
     const { data: brandData, isLoading: isDataLoading } = useDoc(userDocRef);
 
-    const campaigns = brandData?.campaigns || [];
-    const orders = brandData?.orders || [];
-    const profile = brandData;
+    const campaigns = useMemo(() => brandData?.campaigns || [], [brandData]);
+    const orders = useMemo(() => brandData?.orders || [], [brandData]);
+    const profile = useMemo(() => brandData, [brandData]);
 
 
     useEffect(() => {
@@ -123,7 +123,7 @@ const BrandPanel = () => {
     };
 
     const handleCreateCampaign = async (newCampaignData: any) => {
-        if (!userDocRef || !firestore) return;
+        if (!userDocRef) return;
         try {
             const campaignWithMeta = {
                 ...newCampaignData,
@@ -135,10 +135,6 @@ const BrandPanel = () => {
             await updateDoc(userDocRef, {
                 campaigns: arrayUnion(campaignWithMeta)
             });
-
-            // The descriptions collection logic is temporarily removed to isolate the error.
-            // We can re-introduce it once the main functionality is stable.
-
             setShowNewCampaignForm(false);
         } catch (error) {
             console.error("Error creating campaign:", error);
@@ -167,6 +163,7 @@ const BrandPanel = () => {
     const handleUpdateProfile = async (updatedProfile: any) => {
         if (!userDocRef) return;
         try {
+            // Exclude arrays from the top-level setDoc to avoid replacing them
             const { campaigns, orders, ...profileData } = updatedProfile;
             await setDoc(userDocRef, profileData, { merge: true });
         } catch (error) {
@@ -207,15 +204,15 @@ const BrandPanel = () => {
         }
         switch (activeView) {
             case 'campaigns':
-                return <CampaignsView campaigns={campaigns || []} onSelectCampaign={handleSelectCampaign} onNewCampaign={() => setShowNewCampaignForm(true)} onCreateOrder={handleCreateOrderForCampaign} />;
+                return <CampaignsView campaigns={campaigns} onSelectCampaign={handleSelectCampaign} onNewCampaign={() => setShowNewCampaignForm(true)} onCreateOrder={handleCreateOrderForCampaign} />;
             case 'pricing': return <PricingView />;
-            case 'analytics': return <AnalyticsView campaigns={campaigns || []} />;
+            case 'analytics': return <AnalyticsView campaigns={campaigns} />;
             case 'billing': return <BillingView user={user} />;
-            case 'support': return <SupportView user={user} campaigns={campaigns || []} />;
+            case 'support': return <SupportView user={user} campaigns={campaigns} />;
             case 'profile': return <ProfileView user={user} profile={profile} onUpdateProfile={handleUpdateProfile} />;
             case 'dashboard':
             default:
-                return <DashboardView campaigns={campaigns || []} profile={profile} onNewCampaign={() => setShowNewCampaignForm(true)} onNavigateToAnalytics={() => setActiveView('analytics')} onNavigateToCampaigns={() => setActiveView('campaigns')} />;
+                return <DashboardView campaigns={campaigns} profile={profile} onNewCampaign={() => setShowNewCampaignForm(true)} onNavigateToAnalytics={() => setActiveView('analytics')} onNavigateToCampaigns={() => setActiveView('campaigns')} />;
         }
     };
 

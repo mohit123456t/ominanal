@@ -46,7 +46,7 @@ const ProfileView = ({ user, profile: initialProfile, onUpdateProfile }: { user:
     const handleSave = () => {
         onUpdateProfile({
             ...profile,
-            lastUpdated: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
         });
         setEditMode(false);
         setSecurityMsg({ type: 'success', text: 'Profile updated successfully!' });
@@ -88,18 +88,18 @@ const ProfileView = ({ user, profile: initialProfile, onUpdateProfile }: { user:
                     <EditableField label="Brand Name" name="brandName" value={profile.brandName} onChange={handleChange} editable={editMode} />
                     <EditableField label="Brand ID" name="brandId" value={profile.brandId || `BRND${user?.uid.slice(-4).toUpperCase()}`} onChange={handleChange} editable={false} />
                     <EditableField label="Contact Email" name="email" value={profile.email} onChange={handleChange} editable={false} />
-                    <EditableField label="Phone Number" name="phone" value={profile.phone} onChange={handleChange} editable={editMode} />
+                    <EditableField label="Phone Number" name="mobileNumber" value={profile.mobileNumber} onChange={handleChange} editable={editMode} />
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-6 pt-6">
                      <h2 className="text-xl font-semibold text-slate-800 col-span-full border-b border-slate-300/70 pb-3">Owner Details</h2>
                     <EditableField label="Owner Name" name="name" value={profile.name} onChange={handleChange} editable={editMode} />
-                    <EditableField label="Company Address" name="address" value={profile.address} onChange={handleChange} editable={editMode} />
+                    <EditableField label="Company Address" name="address" value={profile.address || ''} onChange={handleChange} editable={editMode} />
                 </div>
             </div>
 
             <div className="text-sm text-slate-500 text-center">
-                Last updated: {profile.lastUpdated ? new Date(profile.lastUpdated).toLocaleString() : 'Never'}
+                Last updated: {profile.updatedAt ? new Date(profile.updatedAt).toLocaleString() : 'Never'}
             </div>
         </div>
     );

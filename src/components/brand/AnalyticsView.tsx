@@ -1,7 +1,6 @@
-
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 // A consistent, themed status badge component
@@ -20,9 +19,9 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 const AnalyticsView = ({ campaigns = [] }: { campaigns: any[] }) => {
     // Process data for the chart
-    const chartData = campaigns.map(campaign => {
-        const totalLikes = campaign.reels ? campaign.reels.reduce((sum, reel) => sum + (reel.likes || 0), 0) : 0;
-        const totalComments = campaign.reels ? campaign.reels.reduce((sum, reel) => sum + (reel.comments || 0), 0) : 0;
+    const chartData = useMemo(() => campaigns.map(campaign => {
+        const totalLikes = campaign.reels ? campaign.reels.reduce((sum: number, reel: any) => sum + (reel.likes || 0), 0) : 0;
+        const totalComments = campaign.reels ? campaign.reels.reduce((sum: number, reel: any) => sum + (reel.comments || 0), 0) : 0;
         const totalEngagement = totalLikes + totalComments;
 
         return {
@@ -30,7 +29,7 @@ const AnalyticsView = ({ campaigns = [] }: { campaigns: any[] }) => {
             views: campaign.views || 0,
             engagement: totalEngagement,
         };
-    });
+    }), [campaigns]);
 
     return (
         <div className="animate-fade-in">
@@ -82,15 +81,15 @@ const AnalyticsView = ({ campaigns = [] }: { campaigns: any[] }) => {
                                 </tr>
                             ) : (
                                 campaigns.map((campaign, index) => {
-                                    const totalEngagement = Array.isArray(campaign.reels) ? campaign.reels.reduce((sum, reel) => sum + (reel.likes || 0) + (reel.comments || 0), 0) : 0;
+                                    const totalEngagement = Array.isArray(campaign.reels) ? campaign.reels.reduce((sum: number, reel: any) => sum + (reel.likes || 0) + (reel.comments || 0), 0) : 0;
                                     const lastUpdated = Array.isArray(campaign.reels) && campaign.reels.length > 0 ?
-                                        new Date(Math.max(...campaign.reels.map(r => new Date(r.uploadedAt || 0)))).toLocaleDateString() : 'N/A';
+                                        new Date(Math.max(...campaign.reels.map((r: any) => new Date(r.uploadedAt || 0).getTime()))).toLocaleDateString() : 'N/A';
                                     return (
                                         <tr key={`campaign-${index}`} className="border-b border-slate-300/70">
                                             <th scope="row" className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">{campaign.name}</th>
                                             <td className="px-6 py-4"><StatusBadge status={campaign.status} /></td>
                                             <td className="px-6 py-4">{(campaign.views || 0).toLocaleString()}</td>
-                                            <td className="px-6 py-4">{campaign.reelsCount || 0}</td>
+                                            <td className="px-6 py-4">{campaign.expectedReels || 0}</td>
                                             <td className="px-6 py-4">{totalEngagement.toLocaleString()}</td>
                                             <td className="px-6 py-4">{lastUpdated}</td>
                                         </tr>

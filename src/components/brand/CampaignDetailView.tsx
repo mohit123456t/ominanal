@@ -1,7 +1,9 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
+import { useDoc, useFirebase, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 // Themed StatusBadge
 const StatusBadge = ({ status }: { status: string }) => {
@@ -78,61 +80,40 @@ const AnalyticsInsights = ({ totalReels, totalViews, totalReach, expectedReels }
 
 // Main Component
 const CampaignDetailView = ({ campaignId, onClose, onCreateOrder }: { campaignId: string, onClose: () => void, onCreateOrder: (campaign: any) => void }) => {
-    const [campaign, setCampaign] = useState<any>(null);
-    const [reels, setReels] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [totalReels, setTotalReels] = useState(0);
-    const [totalViews, setTotalViews] = useState(0);
-    const [totalReach, setTotalReach] = useState(0);
+    const { user, firestore } = useFirebase();
 
+    // Directly fetch the user document which contains the campaigns array
+    const userDocRef = useMemoFirebase(() => {
+        if (user && firestore) {
+            return doc(firestore, 'users', user.uid);
+        }
+        return null;
+    }, [user, firestore]);
+
+    const { data: userData, isLoading: loading, error } = useDoc<any>(userDocRef);
+
+    // Find the specific campaign from the user's campaigns array
+    const campaign = useMemo(() => {
+        if (userData && userData.campaigns) {
+            return userData.campaigns.find((c: any) => c.id === campaignId);
+        }
+        return null;
+    }, [userData, campaignId]);
+
+    const reels = useMemo(() => campaign?.reels || [], [campaign]);
+    const totalReels = reels.length;
+    const totalViews = reels.reduce((sum: number, r: any) => sum + (r.views || 0), 0);
+    const totalReach = reels.reduce((sum: number, r: any) => sum + (r.reach || 0), 0);
+    
     const engagementData = [
         { day: 'Day 1', engagement: 120 }, { day: 'Day 2', engagement: 180 },
         { day: 'Day 3', engagement: 220 }, { day: 'Day 4', engagement: 190 },
         { day: 'Day 5', engagement: 250 }, { day: 'Day 6', engagement: 300 },
         { day: 'Day 7', engagement: 280 },
     ];
-
-    useEffect(() => {
-        if (!campaignId) {
-            setLoading(false);
-            return;
-        }
-
-        const fetchCampaign = async () => {
-            setLoading(true);
-            // Placeholder Data
-            const placeholderCampaign = {
-                id: campaignId,
-                name: 'Summer Kick-off',
-                status: 'Active',
-                brandName: 'CoolBrand',
-                budget: 50000,
-                expectedReels: 20,
-                deadline: new Date().toISOString(),
-                description: 'A campaign to kick off summer.',
-                rejectionReason: null,
-            };
-            const placeholderReels = [
-                {id: '1', views: 1200, reach: 1100},
-                {id: '2', views: 2500, reach: 2300},
-            ];
-            setCampaign(placeholderCampaign);
-            setReels(placeholderReels);
-            setLoading(false);
-        };
-
-        fetchCampaign();
-    }, [campaignId]);
-
-    useEffect(() => {
-        if (reels.length > 0) {
-            setTotalReels(reels.length);
-            setTotalViews(reels.reduce((sum, r) => sum + (r.views || 0), 0));
-            setTotalReach(reels.reduce((sum, r) => sum + (r.reach || 0), 0));
-        }
-    }, [reels]);
-
+    
     if (loading) return <div className="p-8 text-center text-slate-700">Loading campaign details...</div>;
+    if (error) return <div className="p-8 text-center text-red-600">Error: {error.message}</div>;
 
     if (!campaign) {
         return (
@@ -193,7 +174,7 @@ const CampaignDetailView = ({ campaignId, onClose, onCreateOrder }: { campaignId
                     <div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-slate-300/70">
                         <h3 className="font-bold text-lg text-slate-800 mb-4">📋 Campaign Info</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                            <div className="text-slate-800"><strong>Brand:</strong> {campaign.brandName}</div>
+                            <div className="text-slate-800"><strong>Brand:</strong> {userData?.brandName || 'N/A'}</div>
                             <div className="text-slate-800"><strong>Budget:</strong> ₹{campaign.budget?.toLocaleString()}</div>
                             <div className="text-slate-800"><strong>Target Reels:</strong> {campaign.expectedReels}</div>
                             <div className="text-slate-800"><strong>Deadline:</strong> {new Date(campaign.deadline).toLocaleDateString()}</div>

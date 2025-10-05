@@ -22,7 +22,10 @@ const StatusBadge = ({ status }: { status: string }) => {
 // CampaignCard Component — Themed for Glassmorphism
 const CampaignCard = ({ campaign, onSelectCampaign, onCreateOrder }: { campaign: any, onSelectCampaign: (campaign: any) => void, onCreateOrder: (campaign: any) => void }) => {
     const handleSelect = () => onSelectCampaign && onSelectCampaign(campaign);
-    const handleCreateOrder = () => onCreateOrder && onCreateOrder(campaign);
+    const handleCreateOrder = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent card click when clicking button
+        onCreateOrder && onCreateOrder(campaign);
+    };
 
     const engagementRate = campaign.engagementRate || '0.00%';
     const lastUpdated = campaign.lastUpdated ? new Date(campaign.lastUpdated).toLocaleDateString() : 'N/A';
@@ -31,10 +34,11 @@ const CampaignCard = ({ campaign, onSelectCampaign, onCreateOrder }: { campaign:
 
     return (
         <motion.div
+            onClick={handleSelect}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-300/70 p-6 hover:shadow-xl transition-shadow duration-300 flex flex-col"
+            className="bg-white/40 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-300/70 p-6 hover:shadow-xl transition-shadow duration-300 flex flex-col cursor-pointer"
         >
             <div className="flex-grow">
                 {/* Campaign Name & Status */}
@@ -65,13 +69,7 @@ const CampaignCard = ({ campaign, onSelectCampaign, onCreateOrder }: { campaign:
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between items-center mt-4 border-t border-slate-300/70 pt-4">
-                <button
-                    onClick={handleSelect}
-                    className="text-blue-700 font-semibold hover:underline text-sm"
-                >
-                    View Details
-                </button>
+            <div className="flex justify-end items-center mt-4 border-t border-slate-300/70 pt-4">
                 <button
                     onClick={handleCreateOrder}
                     className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-900 transition-colors shadow-sm"

@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Folder, Eye, Sparkles, Upload } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -53,32 +53,32 @@ const Card = ({ title, value, change = null, icon, subtitle = null, delay = 0 }:
 
 const DashboardView = ({ campaigns = [], profile, onNewCampaign, onNavigateToAnalytics, onNavigateToCampaigns }: { campaigns: any[], profile: any, onNewCampaign: () => void, onNavigateToAnalytics: () => void, onNavigateToCampaigns: () => void }) => {
     
-    const totalCampaigns = campaigns.length;
-    const activeCampaigns = campaigns.filter((c) => c.status === 'Active').length;
-    const completedCampaigns = campaigns.filter((c) => c.status === 'Completed').length;
-    const pendingCampaigns = campaigns.filter((c) => c.status === 'Paused' || c.status === 'Pending').length;
-    const totalViews = campaigns.reduce((sum, campaign) => sum + (campaign.views || 0), 0);
-    const totalReels = campaigns.reduce((sum, campaign) => sum + (campaign.reelsCount || 0), 0);
-    const uploadedReels = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.filter((r: any) => r.status === 'Live').length : 0), 0);
-    const pendingReels = totalReels - uploadedReels;
-    const totalLikes = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.likes || 0), 0) : 0), 0);
-    const totalComments = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.comments || 0), 0) : 0), 0);
-    const totalShares = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.shares || 0), 0) : 0), 0);
-    const totalSaves = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.saves || 0), 0) : 0), 0);
-    const engagementRate = totalViews > 0 ? ((totalLikes + totalComments + totalShares + totalSaves) / totalViews * 100).toFixed(1) : 0;
-    const promisedViews = totalCampaigns * 50000;
-    const viewsProgress = promisedViews > 0 ? (totalViews / promisedViews * 100).toFixed(1) : 0;
-    const engagementBreakdown = [
-        { name: 'Likes', value: totalLikes, color: '#10b981' },
-        { name: 'Comments', value: totalComments, color: '#3b82f6' },
-        { name: 'Shares', value: totalShares, color: '#f59e0b' },
-        { name: 'Saves', value: totalSaves, color: '#ef4444' },
-    ].filter((item) => item.value > 0);
-    const campaignStatusData = [
-        { name: 'Active', value: activeCampaigns, color: 'text-green-600', bgColor: 'from-green-500 to-green-600' },
-        { name: 'Completed', value: completedCampaigns, color: 'text-blue-600', bgColor: 'from-blue-500 to-blue-600' },
-        { name: 'Pending', value: pendingCampaigns, color: 'text-yellow-600', bgColor: 'from-yellow-500 to-yellow-600' },
-    ];
+    const stats = useMemo(() => {
+        const totalCampaigns = campaigns.length;
+        const activeCampaigns = campaigns.filter((c) => c.status === 'Active').length;
+        const totalViews = campaigns.reduce((sum, campaign) => sum + (campaign.views || 0), 0);
+        const totalReels = campaigns.reduce((sum, campaign) => sum + (campaign.expectedReels || 0), 0);
+        const uploadedReels = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.length : 0), 0);
+        const totalLikes = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.likes || 0), 0) : 0), 0);
+        const totalComments = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.comments || 0), 0) : 0), 0);
+        const totalShares = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.shares || 0), 0) : 0), 0);
+        const totalSaves = campaigns.reduce((sum, campaign) => sum + (Array.isArray(campaign.reels) ? campaign.reels.reduce((rSum, reel: any) => rSum + (reel.saves || 0), 0) : 0), 0);
+        const engagementRate = totalViews > 0 ? ((totalLikes + totalComments + totalShares + totalSaves) / totalViews * 100).toFixed(1) : 0;
+        
+        return {
+            totalCampaigns,
+            activeCampaigns,
+            totalViews,
+            totalReels,
+            uploadedReels,
+            engagementRate,
+            totalLikes,
+            totalComments,
+            totalShares,
+            totalSaves
+        };
+    }, [campaigns]);
+
     const performanceData = [
         { period: 'Mon', views: 12000, engagement: 480 },
         { period: 'Tue', views: 15000, engagement: 600 },
@@ -135,71 +135,11 @@ const DashboardView = ({ campaigns = [], profile, onNewCampaign, onNavigateToAna
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card title="Total Campaigns" value={totalCampaigns} subtitle={`${activeCampaigns} Active`} icon={<Folder />} delay={100} />
-                <Card title="Views Generated" value={totalViews} subtitle={`${viewsProgress}% goal`} icon={<Eye />} delay={200} />
-                <Card title="Engagement Rate" value={`${engagementRate}%`} subtitle={`${(totalLikes + totalComments + totalShares + totalSaves).toLocaleString()} eng.`} icon={<Sparkles />} delay={300} />
-                <Card title="Reel Upload" value={`${uploadedReels}/${totalReels}`} subtitle={`${pendingReels} left`} icon={<Upload />} delay={400} />
+                <Card title="Total Campaigns" value={stats.totalCampaigns} subtitle={`${stats.activeCampaigns} Active`} icon={<Folder />} delay={100} />
+                <Card title="Views Generated" value={stats.totalViews} subtitle="Across all campaigns" icon={<Eye />} delay={200} />
+                <Card title="Engagement Rate" value={`${stats.engagementRate}%`} subtitle="Avg. engagement" icon={<Sparkles />} delay={300} />
+                <Card title="Reel Upload" value={`${stats.uploadedReels}/${stats.totalReels}`} subtitle={`${stats.totalReels - stats.uploadedReels} left`} icon={<Upload />} delay={400} />
             </div>
-
-            <motion.div 
-                className="bg-white/40 backdrop-blur-xl p-5 sm:p-6 rounded-2xl shadow-lg border border-slate-300/70"
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-            >
-                <h3 className="font-bold text-lg mb-4 text-slate-800">📊 Engagement Statistics</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {/* Placeholder for engagement stats */}
-                </div>
-            </motion.div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 {/* Placeholder for charts */}
-            </div>
-
-            <motion.div 
-                className="bg-white/40 backdrop-blur-xl p-5 sm:p-6 rounded-2xl shadow-lg border border-slate-300/70"
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
-            >
-                <h3 className="font-bold text-lg mb-4 text-slate-800">🎯 Campaign Status</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    {campaignStatusData.map((status, index) => (
-                        <div key={index} className="text-center">
-                            <div className="relative w-28 h-28 mx-auto mb-3">
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className={`w-24 h-24 rounded-full bg-gradient-to-r ${status.bgColor} opacity-20`}></div>
-                                </div>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-2xl font-bold text-slate-800">
-                                        <AnimatedNumber value={status.value} />
-                                    </span>
-                                </div>
-                                <svg className="w-full h-full" viewBox="0 0 100 100">
-                                    <circle
-                                        cx="50"
-                                        cy="50"
-                                        r="45"
-                                        fill="none"
-                                        stroke="#e2e8f0"
-                                        strokeWidth="8"
-                                    />
-                                    <circle
-                                        cx="50"
-                                        cy="50"
-                                        r="45"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="8"
-                                        strokeDasharray={`${(status.value / Math.max(totalCampaigns, 1)) * 283}, 283`}
-                                        className={`${status.color} text-opacity-80`}
-                                        strokeLinecap="round"
-                                        transform="rotate(-90 50 50)"
-                                    />
-                                </svg>
-                            </div>
-                            <p className="text-sm font-medium text-slate-600">{status.name}</p>
-                        </div>
-                    ))}
-                </div>
-            </motion.div>
         </motion.div>
     );
 };

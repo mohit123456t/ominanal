@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type User } from 'firebase/auth';
 import AddFundsPanel from './AddFundsPanel';
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 
 // Status colors for transaction history
@@ -14,23 +16,41 @@ const statusColors = {
 };
 
 const BillingView = ({ user }: { user: User | null }) => {
+    const firestore = useFirestore();
     const [showAddFunds, setShowAddFunds] = useState(false);
-    const [showWithdraw, setShowWithdraw] = useState(false);
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [currentBalance, setCurrentBalance] = useState(12500); // Placeholder
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    
+    // Fetch user data including balance
+    const userDocRef = useMemoFirebase(() => user && firestore ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+    const { data: userData, isLoading: isUserLoading, error: userError } = useDoc(userDocRef);
+    const currentBalance = userData?.balance || 0;
+    
+    // Fetch transactions
+    const transactionsCollectionRef = useMemoFirebase(() => user && firestore ? collection(firestore, `users/${user.uid}/transactions`) : null, [user, firestore]);
+    const { data: transactions, isLoading: isTransactionsLoading, error: transactionsError } = useCollection(transactionsCollectionRef);
 
-    useEffect(() => {
-        // Placeholder data since DB is disconnected
-        const placeholderTransactions = [
-            { id: 'txn1', timestamp: { seconds: Date.now() / 1000 - 86400 }, type: 'DEPOSIT', amount: 5000, status: 'Completed' },
-            { id: 'txn2', timestamp: { seconds: Date.now() / 1000 - 172800 }, type: 'WITHDRAWAL', amount: 1000, status: 'Completed' },
-            { id: 'txn3', timestamp: { seconds: Date.now() / 1000 - 259200 }, type: 'CAMPAIGN_PAYMENT', amount: 2500, status: 'Completed' },
-        ];
-        setTransactions(placeholderTransactions);
-    }, []);
 
+    const handleAddFunds = async () => {
+        if (!transactionsCollectionRef) return;
+        // This is a demo. In a real app, this would be handled after a successful payment gateway response.
+        const newTransaction = {
+            type: 'DEPOSIT',
+            amount: 5000, // Example amount
+            status: 'Pending', // Status is pending until admin approval
+            timestamp: serverTimestamp(),
+            brandId: user?.uid,
+        };
+        try {
+            await addDoc(transactionsCollectionRef, newTransaction);
+            alert('Your request to add funds has been submitted for admin approval.');
+            setShowAddFunds(false);
+        } catch (error) {
+            console.error("Error adding funds request:", error);
+            alert('Failed to submit funds request.');
+        }
+    };
+    
+    const error = userError || transactionsError;
+    const isLoading = isUserLoading || isTransactionsLoading;
 
     const renderKeyMetrics = () => (
         <div className="bg-white/50 backdrop-blur-xl p-6 rounded-2xl shadow-lg border border-white/30">
@@ -60,15 +80,15 @@ const BillingView = ({ user }: { user: User | null }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {loading ? (
+                        {isLoading ? (
                             <tr><td colSpan={4} className="text-center py-8 text-slate-500">Loading history...</td></tr>
-                        ) : transactions.length === 0 ? (
+                        ) : !transactions || transactions.length === 0 ? (
                             <tr><td colSpan={4} className="text-center py-8 text-slate-500">No transactions found.</td></tr>
                         ) : (
                             transactions.map((tx) => (
                                 <tr key={tx.id} className="border-b border-white/30">
                                     <td className="px-6 py-4 font-medium">{tx.timestamp ? new Date(tx.timestamp.seconds * 1000).toLocaleString() : 'N/A'}</td>
-                                    <td className="px-6 py-4 font-mono text-xs">{tx.type || 'Deposit'}</td>
+                                    <td className="px-6 py-4 font-mono text-xs">{tx.type || 'N/A'}</td>
                                     <td className="px-6 py-4 font-semibold">₹{tx.amount.toLocaleString('en-IN')}</td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`text-xs px-2.5 py-1 rounded-full ${statusColors[tx.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>{tx.status}</span>
@@ -83,7 +103,7 @@ const BillingView = ({ user }: { user: User | null }) => {
     );
 
     if (error) {
-        return <div className="text-center p-8 text-red-600 bg-red-500/10 rounded-lg">{error}</div>;
+        return <div className="text-center p-8 text-red-600 bg-red-500/10 rounded-lg">{error.message}</div>;
     }
 
     return (
@@ -107,7 +127,7 @@ const BillingView = ({ user }: { user: User | null }) => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, height: 0, padding: 0, margin: 0 }}
                     >
-                        <AddFundsPanel onComplete={() => setShowAddFunds(false)} />
+                        <AddFundsPanel onComplete={handleAddFunds} />
                     </motion.div>
                 )}
             </AnimatePresence>

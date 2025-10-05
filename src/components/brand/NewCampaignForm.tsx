@@ -1,8 +1,7 @@
-
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, getDoc } from 'firebase/firestore';
 
 
@@ -130,7 +129,7 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
         const newCampaign = {
             ...restOfCampaignData,
             budget: totalBudget,
-            reels: parseInt(campaignData.expectedReels, 10),
+            expectedReels: parseInt(campaignData.expectedReels, 10),
             uploadOption,
             gdriveLink: uploadOption === 'gdrive' ? gdriveLink : '',
             file: uploadOption === 'file' ? file : null,
@@ -225,5 +224,3 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
 };
 
 export default NewCampaignForm;
-
-    
