@@ -1,10 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { AppSidebar } from '@/components/layout/app-sidebar';
 import { AppHeader } from '@/components/layout/app-header';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { useUser } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
 
@@ -51,12 +48,9 @@ export default function AppLayout({
 
   // For authenticated users on main app routes, show the standard layout
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
+    <div>
         <AppHeader />
         <div className="p-4 sm:p-6 lg:p-8">{children}</div>
-      </SidebarInset>
-    </SidebarProvider>
+    </div>
   );
 }
