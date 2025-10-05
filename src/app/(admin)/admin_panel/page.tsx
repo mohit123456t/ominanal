@@ -27,6 +27,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 
 
 // --- Placeholder Views ---
@@ -212,7 +213,6 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
 
 const ProfileView = () => <PlaceholderView name="Profile" />;
 const CampaignManagerView = () => <PlaceholderView name="Campaign Manager" />;
-const CampaignApprovalView = () => <PlaceholderView name="Campaign Approval" />;
 const UserManagementView = ({ onViewBrand }: { onViewBrand: (brandId: string) => void }) => <PlaceholderView name="User Management" onViewBrand={onViewBrand} />;
 const FinanceView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Finance" onNavigate={setView} />;
 const EarningsView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Earnings" onNavigate={setView} />;
