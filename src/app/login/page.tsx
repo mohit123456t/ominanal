@@ -46,7 +46,6 @@ export default function LoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
 
-      // Immediately fetch the user's role from Firestore
       const userDocRef = doc(firestore, 'users', loggedInUser.uid);
       const userDocSnap = await getDoc(userDocRef);
       
@@ -60,7 +59,6 @@ export default function LoginPage() {
         description: `Redirecting you to your panel...`,
       });
 
-      // Direct redirection based on the fetched role
       switch (role) {
         case 'superadmin':
           router.push('/superadmin_panal');
@@ -90,17 +88,21 @@ export default function LoginPage() {
 
     } catch (error: any) {
       console.error(error);
+      let description = 'An unexpected error occurred. Please try again.';
+      if (error.code === 'auth/invalid-credential') {
+        description = 'Invalid email or password. Please try again.';
+      } else {
+        description = error.message;
+      }
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
-        description: error.message,
+        description: description,
       });
       setIsLoading(false);
     }
   };
 
-
-  // Show a loader while checking auth state. If user is already logged in, they'll be handled by AppLayout.
   if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
