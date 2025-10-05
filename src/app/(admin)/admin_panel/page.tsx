@@ -296,7 +296,7 @@ function AdminPanel() {
                         Logout
                     </motion.button>
                      <motion.button
-                        onClick={() => router.push('/dashboard')}
+                        onClick={() => router.push('/login')}
                         className="mt-2 flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 hover:bg-white/20 transition-all"
                         whileHover={{ x: 5 }}
                         whileTap={{ scale: 0.98 }}
@@ -354,6 +354,3 @@ function AdminPanel() {
 export default function AdminPanelPage() {
     return <AdminPanel />;
 }
-
-
-    

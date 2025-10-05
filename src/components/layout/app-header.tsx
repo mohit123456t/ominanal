@@ -15,8 +15,6 @@ const getPageTitle = (pathname: string): string => {
     }
   }
   switch (pathname) {
-    case '/dashboard':
-      return 'Dashboard';
     case '/analytics':
       return 'Advanced Analytics';
     case '/posts':
