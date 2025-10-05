@@ -34,7 +34,6 @@ const navItems = [
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/posts', icon: FileText, label: 'Posts' },
   { href: '/campaign-ideas', icon: Lightbulb, label: 'Campaign Ideas' },
-  { href: '/pricing', icon: DollarSign, label: 'Pricing' },
 ];
 
 export function AppSidebar() {
@@ -109,16 +108,6 @@ export function AppSidebar() {
             </SidebarMenuItem>
           ))}
           <Separator className="my-2" />
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith('/settings')}
-              icon={<Settings />}
-              tooltip={{ children: 'Settings' }}
-            >
-              <Link href="/settings">Team Settings</Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
            <SidebarMenuItem>
               <SidebarMenuButton
                 onClick={handleLogout}
