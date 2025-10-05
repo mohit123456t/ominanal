@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Sparkles, ShieldCheck, Zap, LoaderCircle } from 'lucide-react';
+import { TrendingUp, Sparkles, ShieldCheck, Zap, LoaderCircle, Eye } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
@@ -12,12 +12,14 @@ const PricingView = () => {
     const [expectedReels, setExpectedReels] = useState(50);
     const [totalCost, setTotalCost] = useState(0);
     const [discountAmount, setDiscountAmount] = useState(0);
+    const [expectedViews, setExpectedViews] = useState(0);
     
     // Fetch pricing settings from Firestore
     const pricingDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'pricing') : null, [firestore]);
     const { data: priceSettings, isLoading: loading, error } = useDoc(pricingDocRef);
 
     const pricePerReel = priceSettings?.pricePerReel || 150;
+    const avgViewsPerReel = priceSettings?.avgViewsPerReel || 5000;
     const discountTiers = priceSettings?.discountTiers || [];
 
     // Calculate cost and views when inputs change
@@ -26,6 +28,7 @@ const PricingView = () => {
         if (isNaN(reels) || reels <= 0 || !priceSettings) {
             setTotalCost(0);
             setDiscountAmount(0);
+            setExpectedViews(0);
             return;
         }
 
@@ -42,11 +45,18 @@ const PricingView = () => {
 
         setTotalCost(finalCost);
         setDiscountAmount(discount);
+        setExpectedViews(reels * avgViewsPerReel);
 
-    }, [expectedReels, pricePerReel, discountTiers, priceSettings]);
+    }, [expectedReels, pricePerReel, avgViewsPerReel, discountTiers, priceSettings]);
 
 
     const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatViews = (views: number) => {
+        if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`;
+        if (views >= 1000) return `${(views / 1000).toFixed(1)}K`;
+        return views.toLocaleString('en-IN');
+    };
+
 
     if (loading) {
         return (
@@ -119,28 +129,37 @@ const PricingView = () => {
                         </div>
                     </div>
                     
-                    <div className="bg-slate-900/5 rounded-2xl p-6 border border-slate-900/10 space-y-4">
-                        <h3 className="text-xl font-bold text-slate-800 text-center">Your Estimated Cost</h3>
+                    <div className="bg-slate-900/5 rounded-2xl p-6 border border-slate-900/10 space-y-6">
+                        <div>
+                            <h3 className="text-xl font-bold text-slate-800 text-center mb-4">Your Estimate</h3>
+                            <motion.div
+                                 key={totalCost}
+                                 initial={{ opacity: 0, y: 10 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 exit={{ opacity: 0, y: -10 }}
+                                 className="text-center"
+                            >
+                                <div className="text-5xl font-extrabold text-green-700 tracking-tight">{formatCurrency(totalCost)}</div>
+                                {discountAmount > 0 && (
+                                    <p className="text-green-800 font-semibold mt-1">You saved {formatCurrency(discountAmount)}!</p>
+                                )}
+                            </motion.div>
+                        </div>
                         
-                        <motion.div
-                             key={totalCost}
-                             initial={{ opacity: 0, y: 10 }}
-                             animate={{ opacity: 1, y: 0 }}
-                             exit={{ opacity: 0, y: -10 }}
-                             className="text-center"
-                        >
-                             <div className="text-5xl font-extrabold text-green-700 tracking-tight">{formatCurrency(totalCost)}</div>
-                             {discountAmount > 0 && (
-                                <p className="text-green-800 font-semibold mt-1">You saved {formatCurrency(discountAmount)}!</p>
-                             )}
-                        </motion.div>
-
-                        <ul className="text-sm text-slate-600 space-y-2 pt-4 border-t border-slate-900/10">
-                            <li className="flex justify-between"><span>Base Price:</span> <span className="font-medium text-slate-700">{formatCurrency(expectedReels * pricePerReel)}</span></li>
-                            <li className="flex justify-between"><span>Volume Discount:</span> <span className="font-medium text-green-700">- {formatCurrency(discountAmount)}</span></li>
-                        </ul>
+                         <div className="text-center border-t border-slate-900/10 pt-4">
+                            <h4 className="flex items-center justify-center text-lg font-bold text-slate-800 mb-2"><Eye className="mr-2"/>Estimated Views</h4>
+                             <motion.div
+                                 key={expectedViews}
+                                 initial={{ opacity: 0, y: 10 }}
+                                 animate={{ opacity: 1, y: 0 }}
+                                 exit={{ opacity: 0, y: -10 }}
+                                 className="text-4xl font-extrabold text-blue-700 tracking-tight"
+                            >
+                                {formatViews(expectedViews)}
+                            </motion.div>
+                         </div>
                         
-                        <button className="mt-4 w-full bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30">
+                        <button className="w-full bg-indigo-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30">
                             Start Campaign
                         </button>
                     </div>
