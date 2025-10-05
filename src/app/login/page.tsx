@@ -14,10 +14,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import {
   signInWithEmailAndPassword,
 } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, LogIn } from 'lucide-react';
 
@@ -26,28 +27,103 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
-
+  
+  // This effect handles redirecting a user who is already logged in
   useEffect(() => {
-    // This effect now only handles redirecting an already logged-in user.
-    // The role-based redirection is now handled by the main AppLayout.
-    if (!isUserLoading && user) {
-      router.push('/dashboard'); // Always go to dashboard first, AppLayout will handle the rest.
+    if (!isUserLoading && user && firestore) {
+        const userDocRef = doc(firestore, 'users', user.uid);
+        getDoc(userDocRef).then(userDocSnap => {
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                const role = userData.role;
+                 if (role === 'superadmin') {
+                    router.push('/superadmin_panel');
+                } else if (role === 'admin') {
+                    router.push('/admin_panel');
+                } else if (role === 'brand') {
+                    router.push('/brand_panel');
+                } else if (role === 'video_editor') {
+                    router.push('/video_editor_panel');
+                } else if (role === 'script_writer') {
+                    router.push('/script_writer_panel');
+                } else if (role === 'thumbnail_maker') {
+                    router.push('/thumbnail_maker_panel');
+                } else if (role === 'uploader') {
+                    router.push('/uploader_panel');
+                }
+                else {
+                    router.push('/dashboard');
+                }
+            } else {
+                 router.push('/dashboard'); // Default fallback
+            }
+        });
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, firestore]);
+
 
   const handleLogin = async () => {
-    if (!auth) return;
+    if (!auth || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Initialization Error',
+        description: 'Services are not ready. Please try again in a moment.',
+      });
+      return;
+    }
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const loggedInUser = userCredential.user;
+
       toast({
         title: 'Successfully logged in!',
-        description: 'Redirecting to your dashboard...',
+        description: 'Checking your role and redirecting...',
       });
-      // The useEffect hook will handle redirection after the user state updates.
+
+      // Fetch user role from Firestore and redirect
+      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const role = userData.role;
+        
+        switch (role) {
+            case 'superadmin':
+                router.push('/superadmin_panel');
+                break;
+            case 'admin':
+                router.push('/admin_panel');
+                break;
+            case 'brand':
+                router.push('/brand_panel');
+                break;
+            case 'video_editor':
+                router.push('/video_editor_panel');
+                break;
+            case 'script_writer':
+                router.push('/script_writer_panel');
+                break;
+            case 'thumbnail_maker':
+                router.push('/thumbnail_maker_panel');
+                break;
+            case 'uploader':
+                router.push('/uploader_panel');
+                break;
+            default:
+                router.push('/dashboard');
+                break;
+        }
+      } else {
+        // Fallback if user document doesn't exist for some reason
+        router.push('/dashboard');
+      }
+
     } catch (error: any) {
       console.error(error);
       toast({
@@ -55,7 +131,7 @@ export default function LoginPage() {
         title: 'Authentication Error',
         description: error.message,
       });
-      setIsLoading(false); // Only set loading to false on error
+      setIsLoading(false);
     }
   };
 

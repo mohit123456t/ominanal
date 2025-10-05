@@ -5,12 +5,17 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { AppHeader } from '@/components/layout/app-header';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
 
 
 const unauthenticatedRoutes = ['/login', '/signup', '/instagram-callback', '/youtube-callback'];
+const panelRoutes = [
+    '/admin_panel', '/superadmin_panel', '/brand_panel', 
+    '/video_editor_panel', '/script_writer_panel', 
+    '/thumbnail_maker_panel', '/uploader_panel'
+];
+
 
 export default function AppLayout({
   children,
@@ -20,60 +25,29 @@ export default function AppLayout({
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const firestore = useFirestore();
 
   useEffect(() => {
-    if (isUserLoading || !firestore) {
-      return; // Wait until user state and firestore are initialized
+    if (isUserLoading) {
+      return; // Wait until user state is initialized
     }
     
+    // If user is not logged in and not on an allowed unauthenticated route, redirect to login
     if (!user && !unauthenticatedRoutes.includes(pathname)) {
       router.push('/login');
       return;
     }
     
-    if (user) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        getDoc(userDocRef).then(userDocSnap => {
-            if (userDocSnap.exists()) {
-                const userData = userDocSnap.data();
-                const role = userData.role;
-                // If user with a specific role tries to access the main app, redirect them
-                if (role && role !== 'user' && !pathname.startsWith(`/${role}_panel`)) {
-                     switch (role) {
-                        case 'admin':
-                            router.push('/admin_panel');
-                            break;
-                        case 'superadmin':
-                            router.push('/superadmin_panel');
-                            break;
-                        case 'video_editor':
-                            router.push('/video_editor_panel');
-                            break;
-                        case 'script_writer':
-                            router.push('/script_writer_panel');
-                            break;
-                        case 'thumbnail_maker':
-                            router.push('/thumbnail_maker_panel');
-                            break;
-                        case 'uploader':
-                             router.push('/uploader_panel');
-                            break;
-                        case 'brand':
-                             router.push('/brand_panel');
-                            break;
-                        default:
-                            // stay in the main app layout if role is user or not defined
-                            break;
-                    }
-                }
-            }
-        });
+    // If the user is logged in, but trying to access a login/signup page, redirect them away
+    if (user && (pathname === '/login' || pathname === '/signup')) {
+        // A direct redirect to a specific panel is handled on the login page itself.
+        // Here, we just need a sensible default if they land on login/signup while already logged in.
+        router.push('/dashboard');
     }
 
-  }, [user, isUserLoading, router, pathname, firestore]);
+  }, [user, isUserLoading, router, pathname]);
   
-  if (unauthenticatedRoutes.includes(pathname)) {
+  // If the route is one of the panels or an auth page, render it directly without the main app layout
+  if (unauthenticatedRoutes.includes(pathname) || panelRoutes.some(p => pathname.startsWith(p))) {
     return <>{children}</>;
   }
 
@@ -86,6 +60,7 @@ export default function AppLayout({
     );
   }
 
+  // For authenticated users on main app routes, show the standard layout
   return (
     <SidebarProvider>
       <AppSidebar />
