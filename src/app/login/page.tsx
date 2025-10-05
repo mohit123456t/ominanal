@@ -45,72 +45,72 @@ export default function LoginPage() {
 
       toast({
         title: 'Successfully logged in!',
-        description: `Redirecting you to your panel...`,
+        description: `Checking your role...`,
       });
-
-      // Check for user role in the 'users' collection first
-      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
       
-      let role = 'user'; // default role
-      let redirected = false;
+      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+      const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
 
+      // Fetch both documents concurrently
+      const [userDocSnap, adminDocSnap] = await Promise.all([
+          getDoc(userDocRef),
+          getDoc(adminDocRef),
+      ]);
+
+      // Priority 1: Check if user is a Super Admin
+      if (adminDocSnap.exists()) {
+          window.location.href = '/superadmin_panal';
+          return;
+      }
+      
+      // Priority 2: Check if user is in the main users collection with a role
       if (userDocSnap.exists()) {
-        role = userDocSnap.data().role || 'user';
-        redirected = true;
-        switch (role) {
-            case 'admin':
-              window.location.href = '/admin_panel';
-              break;
-            case 'brand':
-              window.location.href = '/brand_panel';
-              break;
-            case 'video_editor':
-              window.location.href = '/video_editor_panel';
-              break;
-            case 'script_writer':
-              window.location.href = '/script_writer_panel';
-              break;
-            case 'thumbnail_maker':
-              window.location.href = '/thumbnail_maker_panel';
-              break;
-            case 'uploader':
-              window.location.href = '/uploader_panel';
-              break;
-            default:
-               // Fallback for users with a doc but unknown role
-               toast({
-                variant: 'destructive',
-                title: 'Login Failed',
-                description: "Your user role is not configured correctly. Please contact support.",
-              });
-              setIsLoading(false);
-              return; // Stop execution
-        }
-      } else {
-        // If no user doc, check if they are an admin in the dedicated admin roles collection
-        const adminDocRef = doc(firestore, 'roles_admin', loggedInUser.uid);
-        const adminDocSnap = await getDoc(adminDocRef);
-        if (adminDocSnap.exists()) {
-            redirected = true;
-            window.location.href = '/superadmin_panal';
-        }
+          const userData = userDocSnap.data();
+          const role = userData.role;
+          switch (role) {
+              case 'admin':
+                window.location.href = '/admin_panel';
+                return;
+              case 'brand':
+                window.location.href = '/brand_panel';
+                return;
+              case 'video_editor':
+                window.location.href = '/video_editor_panel';
+                return;
+              case 'script_writer':
+                window.location.href = '/script_writer_panel';
+                return;
+              case 'thumbnail_maker':
+                window.location.href = '/thumbnail_maker_panel';
+                return;
+              case 'uploader':
+                window.location.href = '/uploader_panel';
+                return;
+              default:
+                 // This case handles users who have a doc but an unknown or missing role.
+                 toast({
+                  variant: 'destructive',
+                  title: 'Login Failed',
+                  description: "Your user role is not configured correctly. Please contact support.",
+                });
+                setIsLoading(false);
+                return;
+          }
       }
 
-      if (!redirected) {
-          // Fallback if no role is found in either collection
-          toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: "Could not determine your user role. Please contact support.",
-          });
-          setIsLoading(false);
-      }
+      // If user is not found in either collection
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: "Could not determine your user role. Please contact support.",
+      });
+      setIsLoading(false);
+
 
     } catch (error: any) {
       console.error(error);
       let description = 'An unexpected error occurred. Please try again.';
-      if (error.code === 'auth/invalid-credential') {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         description = 'Invalid email or password. Please try again.';
       } else {
         description = error.message;
@@ -210,3 +210,4 @@ export default function LoginPage() {
     </div>
   );
 }
+    
