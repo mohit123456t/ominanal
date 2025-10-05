@@ -1,7 +1,11 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Download } from 'lucide-react';
+import { AlertTriangle, Download, LoaderCircle } from 'lucide-react';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, getDocs, collectionGroup, orderBy } from 'firebase/firestore';
+import { Post } from '@/lib/types';
+import { isThisWeek, isThisMonth, isToday } from 'date-fns';
 
 
 // 🧩 Reusable Stat Card Component
@@ -16,19 +20,63 @@ const StatCard = ({ title, value, color }: {title: string, value: string | numbe
 );
 
 const ReelsUploadedPage = () => {
-  // Filters and search states
+  const { firestore } = useFirebase();
   const [filters, setFilters] = useState({ campaign: '', uploader: '', dateRange: '', status: '', search: '' });
+  
   // Data states
-  const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState({ today: 12, week: 89, month: 340, allTime: 1250, successRate: 98 });
+  const postsQuery = useMemoFirebase(() => 
+      firestore ? query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc')) : null
+  , [firestore]);
+
+  const { data: posts, isLoading: loading } = useCollection<Post>(postsQuery);
+
+  const [users, setUsers] = useState<Record<string, string>>({});
+  
+  useEffect(() => {
+    async function fetchUsers() {
+      if (firestore) {
+        const usersSnapshot = await getDocs(collection(firestore, 'users'));
+        const usersMap: Record<string, string> = {};
+        usersSnapshot.forEach(doc => {
+          usersMap[doc.id] = doc.data().name || 'Unknown User';
+        });
+        setUsers(usersMap);
+      }
+    }
+    fetchUsers();
+  }, [firestore]);
+
+  const summary = useMemo(() => {
+    if (!posts) return { today: 0, week: 0, month: 0, allTime: 0, successRate: 100 };
+    const now = new Date();
+    const successfulUploads = posts.filter(p => p.status === 'Published').length;
+
+    return {
+      today: posts.filter(p => isToday(new Date(p.createdAt))).length,
+      week: posts.filter(p => isThisWeek(new Date(p.createdAt), { weekStartsOn: 1 })).length,
+      month: posts.filter(p => isThisMonth(new Date(p.createdAt))).length,
+      allTime: posts.length,
+      successRate: posts.length > 0 ? Math.round((successfulUploads / posts.length) * 100) : 100,
+    };
+  }, [posts]);
+
+  // Dummy alerts
   const [alerts, setAlerts] = useState([{type: 'error', message: 'Upload failed for Reel ID: 45AB-12_C. Please review.'}]);
 
-  // Dummy data, as we are not connecting to DB
-  const filteredReels = [
-      { id: '123-ABC', campaignName: 'Summer Sale', uploaderName: 'Ravi Kumar', uploadDate: new Date().toISOString(), status: 'approved' },
-      { id: '456-DEF', campaignName: 'Diwali Dhamaka', uploaderName: 'Sunita Sharma', uploadDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), status: 'pending' },
-      { id: '789-GHI', campaignName: 'New Launch', uploaderName: 'Ravi Kumar', uploadDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), status: 'rejected' },
-  ];
+  const filteredReels = useMemo(() => {
+    if (!posts) return [];
+    return posts.filter(reel => {
+        const uploaderName = users[reel.userId] || '';
+        return (
+            (filters.search === '' || reel.id.toLowerCase().includes(filters.search.toLowerCase()) || uploaderName.toLowerCase().includes(filters.search.toLowerCase())) &&
+            (filters.campaign === '' || (reel.content && reel.content.toLowerCase().includes(filters.campaign.toLowerCase()))) &&
+            (filters.uploader === '' || uploaderName.toLowerCase().includes(filters.uploader.toLowerCase())) &&
+            (filters.status === '' || (reel.status && reel.status.toLowerCase() === filters.status.toLowerCase())) &&
+            (filters.dateRange === '' || new Date(reel.createdAt).toISOString().slice(0, 10) === filters.dateRange)
+        );
+    });
+  }, [posts, filters, users]);
+
 
   const inputStyle = "w-full p-3 bg-white/50 border border-slate-300/70 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow placeholder:text-slate-500";
 
@@ -79,14 +127,14 @@ const ReelsUploadedPage = () => {
         <div className="pb-6">
             <h2 className="text-lg font-semibold text-slate-800 mb-4">Filters</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <input type="text" placeholder="Search Reel ID / Account" className={inputStyle} value={filters.search} onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}/>
+                <input type="text" placeholder="Search Reel ID / Uploader" className={inputStyle} value={filters.search} onChange={(e) => setFilters(f => ({ ...f, search: e.target.value }))}/>
                 <input type="text" placeholder="Filter by Campaign" className={inputStyle} value={filters.campaign} onChange={(e) => setFilters(f => ({ ...f, campaign: e.target.value }))}/>
                 <input type="text" placeholder="Filter by Uploader" className={inputStyle} value={filters.uploader} onChange={(e) => setFilters(f => ({ ...f, uploader: e.target.value }))}/>
                 <input type="date" className={inputStyle} value={filters.dateRange} onChange={(e) => setFilters(f => ({ ...f, dateRange: e.target.value }))}/>
                 <select className={inputStyle} value={filters.status} onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}>
                     <option value="">All Status</option>
-                    <option value="pending">Pending Review</option>
-                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="published">Published</option>
                     <option value="rejected">Rejected</option>
                 </select>
             </div>
@@ -117,20 +165,20 @@ const ReelsUploadedPage = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-300/50">
                   {loading ? (
-                    <tr><td colSpan={8} className="text-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600 mx-auto"></div></td></tr>
+                    <tr><td colSpan={8} className="text-center py-12"><LoaderCircle className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /></td></tr>
                   ) : filteredReels.length === 0 ? (
                     <tr><td colSpan={8} className="text-center py-12 text-slate-500">No reels match your filters.</td></tr>
                   ) : (
                     filteredReels.map((reel) => (
                       <tr key={reel.id} className="hover:bg-white/30 transition-colors">
                         <td className="p-3 font-mono text-xs text-slate-800">{reel.id.slice(0, 8)}...</td>
-                        <td className="p-3 text-slate-700">{reel.campaignName || '—'}</td>
-                        <td className="p-3 text-slate-700">{reel.uploaderName || '—'}</td>
-                        <td className="p-3 text-slate-700">{reel.uploadDate ? new Date(reel.uploadDate).toLocaleString('en-IN') : '—'}</td>
+                        <td className="p-3 text-slate-700">{reel.content || '—'}</td>
+                        <td className="p-3 text-slate-700">{users[reel.userId] || '—'}</td>
+                        <td className="p-3 text-slate-700">{reel.createdAt ? new Date(reel.createdAt).toLocaleString('en-IN') : '—'}</td>
                         <td className="p-3">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              ['success', 'approved'].includes(reel.status) ? 'bg-green-500/10 text-green-700' :
-                              ['failed', 'error', 'rejected'].includes(reel.status) ? 'bg-red-500/10 text-red-700' : 'bg-yellow-500/10 text-yellow-700'
+                              ['published'].includes(reel.status.toLowerCase()) ? 'bg-green-500/10 text-green-700' :
+                              ['failed', 'error', 'rejected'].includes(reel.status.toLowerCase()) ? 'bg-red-500/10 text-red-700' : 'bg-yellow-500/10 text-yellow-700'
                           }`}>{reel.status || 'pending'}</span>
                         </td>
                         <td className="p-3"><button className="text-indigo-600 hover:underline text-sm font-medium">View Details</button></td>

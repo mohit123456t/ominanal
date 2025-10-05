@@ -1,31 +1,70 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { LoaderCircle } from 'lucide-react';
 
 const SuperAdminProfileView = () => {
     const auth = useAuth();
+    const { firestore } = useFirebase();
     const currentUser = auth?.currentUser;
+    const { toast } = useToast();
 
-    // Initialize state with current user's data or placeholders
+    const userDocRef = useMemoFirebase(() => 
+        currentUser && firestore ? doc(firestore, 'users', currentUser.uid) : null
+    , [currentUser, firestore]);
+
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
     const [profile, setProfile] = useState({
-        name: currentUser?.displayName || 'Super Admin',
-        email: currentUser?.email || 'superadmin@example.com',
+        name: '',
+        email: '',
     });
 
     const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (userProfile) {
+            setProfile({
+                name: userProfile.name || currentUser?.displayName || 'Super Admin',
+                email: userProfile.email || currentUser?.email || '',
+            });
+        } else if (currentUser) {
+            setProfile({
+                name: currentUser.displayName || 'Super Admin',
+                email: currentUser.email || '',
+            });
+        }
+    }, [userProfile, currentUser]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setProfile({ ...profile, [e.target.name]: e.target.value });
     };
 
-    const handleSaveChanges = () => {
-        // Placeholder for update logic
-        console.log('Saving profile:', profile);
-        alert('Profile updated successfully! (This is a demo)');
-        setIsEditing(false);
+    const handleSaveChanges = async () => {
+        if (!userDocRef) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User not authenticated.' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await setDoc(userDocRef, { name: profile.name }, { merge: true });
+            toast({ title: 'Success!', description: 'Your profile has been updated.' });
+            setIsEditing(false);
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
     };
     
+    if (isProfileLoading) {
+        return <div className="flex justify-center items-center h-full"><LoaderCircle className="w-12 h-12 animate-spin text-indigo-600"/></div>;
+    }
+
     return (
          <motion.div 
             className="max-w-3xl mx-auto space-y-8"
@@ -88,12 +127,13 @@ const SuperAdminProfileView = () => {
                 {isEditing && (
                     <div className="mt-8 pt-6 border-t border-slate-300/70 flex justify-end">
                          <motion.button 
-                            onClick={handleSaveChanges} 
-                            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg shadow-green-500/20 transition-all"
-                            whileHover={{ scale: 1.05 }}
+                            onClick={handleSaveChanges}
+                            disabled={isSaving}
+                            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg shadow-green-500/20 transition-all disabled:bg-green-400"
+                            whileHover={{ scale: isSaving ? 1 : 1.05 }}
                             whileTap={{ scale: 0.95 }}
                         >
-                            Save Changes
+                            {isSaving ? <LoaderCircle className="animate-spin" /> : 'Save Changes'}
                         </motion.button>
                     </div>
                 )}
