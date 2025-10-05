@@ -9,9 +9,9 @@ import { useUser, useFirestore } from '@/firebase';
 import { LoaderCircle } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 
-const unauthenticatedRoutes = ['/login', '/signup', '/instagram-callback', '/youtube-callback'];
+const unauthenticatedRoutes = ['/login', '/signup', '/forgot-password', '/instagram-callback', '/youtube-callback'];
 const panelRoutes = [
-    '/admin_panel', '/superadmin_panel', '/brand_panel',
+    '/admin_panel', '/superadmin_panal', '/brand_panel',
     '/video_editor_panel', '/script_writer_panel',
     '/thumbnail_maker_panel', '/uploader_panel'
 ];
@@ -53,8 +53,8 @@ export default function AppLayout({
                 }
             } else {
                  // Default redirection if user doc doesn't exist but they are authenticated
-                if (!pathname.startsWith('/dashboard')) {
-                   // router.push('/dashboard');
+                if (!pathname.startsWith('/dashboard') && !unauthenticatedRoutes.includes(pathname) && !panelRoutes.some(p => pathname.startsWith(p))) {
+                   router.push('/dashboard');
                 }
             }
         });

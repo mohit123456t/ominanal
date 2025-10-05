@@ -21,7 +21,7 @@ import {
 } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, UserPlus } from 'lucide-react';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -34,26 +34,6 @@ export default function SignupPage() {
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-
-  useEffect(() => {
-    // If user is already logged in, redirect them away from signup
-    if (!isUserLoading && user) {
-      // Fetch role and redirect
-      if (firestore) {
-        const userDocRef = doc(firestore, 'users', user.uid);
-        getDoc(userDocRef).then(userDocSnap => {
-          if (userDocSnap.exists()) {
-            const role = userDocSnap.data().role || 'brand';
-            router.push(`/${role}_panel`);
-          } else {
-            router.push('/brand_panel');
-          }
-        });
-      } else {
-        router.push('/brand_panel');
-      }
-    }
-  }, [user, isUserLoading, router, firestore]);
 
   const handleSignup = async () => {
     if (!auth || !firestore) return;
@@ -86,9 +66,12 @@ export default function SignupPage() {
 
       toast({
         title: 'Account Created!',
-        description: "You've been successfully signed up.",
+        description: "You've been successfully signed up. Redirecting to your Brand Panel...",
       });
-      // The useEffect will handle redirection to the brand_panel after state update
+      
+      // Explicitly redirect to brand_panel after successful signup
+      router.push('/brand_panel');
+
     } catch (error: any) {
       console.error(error);
       toast({
@@ -96,12 +79,12 @@ export default function SignupPage() {
         title: 'Signup Error',
         description: error.message,
       });
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Only set loading to false on error
     }
   };
 
-  if (isUserLoading || user) {
+  // If the page is loading auth state, show a loader.
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
@@ -109,6 +92,7 @@ export default function SignupPage() {
     );
   }
 
+  // This is the main signup form render.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="mb-8 flex items-center gap-2">
@@ -156,6 +140,7 @@ export default function SignupPage() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isLoading}
+              required
             />
           </div>
            <div className="space-y-2">
@@ -167,6 +152,7 @@ export default function SignupPage() {
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
               disabled={isLoading}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -178,6 +164,7 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
+              required
             />
           </div>
           <div className="space-y-2">
@@ -188,6 +175,7 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
+              required
             />
           </div>
         </CardContent>
