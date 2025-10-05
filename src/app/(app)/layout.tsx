@@ -45,7 +45,7 @@ export default function AppLayout({
                             router.push('/admin_panel');
                             break;
                         case 'superadmin':
-                            router.push('/superadmin_panal');
+                            router.push('/superadmin_panel');
                             break;
                         case 'video_editor':
                             router.push('/video_editor_panel');
