@@ -78,8 +78,14 @@ export default function LoginPage() {
               window.location.href = '/uploader_panel';
               break;
             default:
-              window.location.href = '/login'; 
-              break;
+               // Fallback for users with a doc but unknown role
+               toast({
+                variant: 'destructive',
+                title: 'Login Failed',
+                description: "Your user role is not configured correctly. Please contact support.",
+              });
+              setIsLoading(false);
+              return; // Stop execution
         }
       } else {
         // If no user doc, check if they are an admin in the dedicated admin roles collection
@@ -92,7 +98,7 @@ export default function LoginPage() {
       }
 
       if (!redirected) {
-          // Fallback if no role is found
+          // Fallback if no role is found in either collection
           toast({
             variant: 'destructive',
             title: 'Login Failed',
