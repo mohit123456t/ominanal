@@ -32,7 +32,6 @@ import { useAuth } from '@/firebase';
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { href: '/create-post', icon: MessageSquarePlus, label: 'Create Post' },
   { href: '/posts', icon: FileText, label: 'Posts' },
   { href: '/campaign-ideas', icon: Lightbulb, label: 'Campaign Ideas' },
   { href: '/connected-accounts', icon: Link2, label: 'Connected Accounts' },

@@ -20,8 +20,6 @@ const getPageTitle = (pathname: string): string => {
       return 'Dashboard';
     case '/analytics':
       return 'Advanced Analytics';
-    case '/create-post':
-      return 'Create Post';
     case '/posts':
       return 'Recent Posts';
     case '/campaign-ideas':
@@ -54,6 +52,4 @@ export function AppHeader() {
         </h1>
       </div>
       <UserNav />
-    </header>
-  );
-}
+    </

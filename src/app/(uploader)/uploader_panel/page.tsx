@@ -11,6 +11,7 @@ import {
     LogOut,
     Menu,
     X,
+    FilePlus,
 } from 'lucide-react';
 
 import DashboardView from '@/components/uploader/DashboardView';
@@ -18,6 +19,7 @@ import UploadHistoryView from '@/components/uploader/UploadHistoryView';
 import PaymentsView from '@/components/uploader/PaymentsView';
 import CommunicationView from '@/components/uploader/CommunicationView';
 import ProfileView from '@/components/uploader/ProfileView';
+import UploadView from '@/components/uploader/UploadView';
 
 
 const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void, collapsed: boolean }) => (
@@ -62,6 +64,8 @@ const UploaderPanel = () => {
         switch (activeView) {
             case 'dashboard':
                 return <DashboardView userProfile={userProfile} onNavigate={(view) => setActiveView(view)} />;
+            case 'create-upload':
+                return <UploadView />;
             case 'upload-history':
                 return <UploadHistoryView userProfile={userProfile} />;
             case 'payments':
@@ -74,6 +78,15 @@ const UploaderPanel = () => {
                 return <DashboardView userProfile={userProfile} onNavigate={(view) => setActiveView(view)} />;
         }
     };
+
+    const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
+        { id: 'create-upload', label: 'Create Upload', icon: <FilePlus /> },
+        { id: 'upload-history', label: 'Upload History', icon: <Upload /> },
+        { id: 'payments', label: 'Payments', icon: <IndianRupee /> },
+        { id: 'communication', label: 'Communication', icon: <MessageSquare /> },
+        { id: 'profile', label: 'Profile', icon: <UserCircle /> },
+    ];
 
     return (
         <div className="flex h-screen bg-gray-50 font-sans">
@@ -97,13 +110,7 @@ const UploaderPanel = () => {
 
                 {/* Navigation */}
                 <nav className="flex-1 p-4 space-y-2">
-                    {[
-                        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
-                        { id: 'upload-history', label: 'Upload History', icon: <Upload /> },
-                        { id: 'payments', label: 'Payments', icon: <IndianRupee /> },
-                        { id: 'communication', label: 'Communication', icon: <MessageSquare /> },
-                        { id: 'profile', label: 'Profile', icon: <UserCircle /> },
-                    ].map(item => (
+                    {navItems.map(item => (
                         <NavItem
                             key={item.id}
                             icon={item.icon}
