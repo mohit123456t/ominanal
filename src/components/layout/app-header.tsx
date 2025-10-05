@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
-import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 
 const getPageTitle = (pathname: string): string => {
@@ -46,7 +45,6 @@ export function AppHeader() {
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm sm:px-6">
       <div className="flex items-center gap-2">
-        <SidebarTrigger className="md:hidden" />
         <h1 className="text-xl font-headline font-semibold text-foreground">
           {title}
         </h1>
