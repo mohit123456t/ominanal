@@ -17,16 +17,14 @@ import { useAuth } from '@/firebase';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
-import PlaceholderView from '@/components/admin/PlaceholderView';
 import CampaignManagerView from '@/components/admin/CampaignManagerView';
 import ProfileView from '@/components/admin/ProfileView';
 import UserManagementView from '@/components/admin/UserManagementView';
+import PlaceholderView from '@/components/admin/PlaceholderView';
+import FinanceView from '@/components/admin/FinanceView';
+import EarningsView from '@/components/admin/EarningsView';
 
 
-// --- Placeholder Views ---
-const FinanceView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Finance" onNavigate={setView} />;
-const EarningsView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Earnings" onNavigate={setView} />;
-const CommunicationView = () => <PlaceholderView name="Communication" />;
 const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBack: () => void; }) => (
     <div>
         <button onClick={onBack} className="flex items-center mb-4 text-slate-600 hover:text-slate-900">
@@ -36,42 +34,6 @@ const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBac
     </div>
 );
 
-
-// 🧩 StatCard Component — iOS स्टाइल फ्रॉस्टेड ग्लास
-const StatCard = ({ title, value, change, icon, color, size = 'normal' }: {title: string, value: string, change: string, icon: React.ReactNode, color: {bg: string, text: string}, size?: string}) => (
-  <motion.div
-    className={`bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 ${
-      size === 'large' ? 'md:col-span-2' : ''
-    }`}
-    variants={itemVariants}
-    whileHover={{ y: -5, scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-  >
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="text-md font-semibold text-slate-700">{title}</h3>
-      <div className={`p-3 rounded-lg ${color.bg} ${color.text}`}>{icon}</div>
-    </div>
-    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{value}</p> 
-    <p className="text-sm text-slate-500 flex items-center">{change}</p>
-  </motion.div>
-);
-
-// एनिमेशन वेरिएंट्स
-const itemVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
-    show: { 
-      opacity: 1, y: 0, scale: 1, 
-      transition: { type: 'spring', stiffness: 100, damping: 14 } 
-    },
-};
-
-const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 },
-    },
-};
 
 // 🖥️ Main Dashboard — iOS फ्रॉस्टेड ग्लास थीम
 const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
@@ -130,39 +92,68 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
                 <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
               </div>
             ) : (
-              <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8">
+              <motion.div  initial="hidden" animate="show" className="space-y-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  <StatCard
-                    title="Active Campaigns" value={dashboardData.activeCampaigns.toString()}
-                    change={`${dashboardData.pendingApprovals} pending`} icon={<LayoutDashboard />}
-                    color={{bg: "bg-purple-100", text: "text-purple-600"}}
-                  />
-                  <StatCard
-                    title="Team Members" value={dashboardData.totalTeamMembers.toString()}
-                    change="All active" icon={<UsersGroup />}
-                    color={{bg: "bg-orange-100", text: "text-orange-600"}}
-                  />
-                  <StatCard
-                    title="Total Views" value={dashboardData.totalViews.toLocaleString()}
-                    change="Across all campaigns" icon={<LayoutDashboard />}
-                    color={{bg: "bg-pink-100", text: "text-pink-600"}} size="large"
-                  />
-                  <StatCard
-                    title="Pending Approvals" value={dashboardData.pendingApprovals.toString()}
-                    change="Action required" icon={<CheckCircle />}
-                    color={{bg: "bg-yellow-100", text: "text-yellow-600"}} size="large"
-                  />
+                  <motion.div
+                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 "
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-md font-semibold text-slate-700">Active Campaigns</h3>
+                      <div className={`p-3 rounded-lg bg-purple-100 text-purple-600`}><LayoutDashboard /></div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.activeCampaigns}</p> 
+                    <p className="text-sm text-slate-500 flex items-center">{dashboardData.pendingApprovals} pending</p>
+                  </motion.div>
+                  <motion.div
+                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 "
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-md font-semibold text-slate-700">Team Members</h3>
+                      <div className={`p-3 rounded-lg bg-orange-100 text-orange-600`}><UsersGroup /></div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.totalTeamMembers}</p> 
+                    <p className="text-sm text-slate-500 flex items-center">All active</p>
+                  </motion.div>
+                  <motion.div
+                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 md:col-span-2"
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-md font-semibold text-slate-700">Total Views</h3>
+                      <div className={`p-3 rounded-lg bg-pink-100 text-pink-600`}><LayoutDashboard /></div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.totalViews.toLocaleString()}</p> 
+                    <p className="text-sm text-slate-500 flex items-center">Across all campaigns</p>
+                  </motion.div>
+                   <motion.div
+                      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 md:col-span-2"
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-md font-semibold text-slate-700">Pending Approvals</h3>
+                      <div className={`p-3 rounded-lg bg-yellow-100 text-yellow-600`}><CheckCircle /></div>
+                    </div>
+                    <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{dashboardData.pendingApprovals}</p> 
+                    <p className="text-sm text-slate-500 flex items-center">Action required</p>
+                  </motion.div>
+
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                  <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" variants={itemVariants}>
+                  <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
                     <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
                     <div className="h-80">
                       <p>Chart coming soon...</p>
                     </div>
                   </motion.div>
 
-                  <motion.div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" variants={itemVariants}>
+                  <motion.div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
                     <h3 className="font-bold text-xl mb-6 text-slate-800">Recent Brands</h3>
                     <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                        {brands.length > 0 ? brands.slice(0, 5).map((brand: any, index) => (
@@ -286,7 +277,7 @@ function AdminPanel() {
             case 'users': return <UserManagementView onViewBrand={(brandId: any) => { setSelectedBrandId(brandId); setActiveView('brand_view'); }} />;
             case 'finance': return <FinanceView setView={setActiveView} />;
             case 'earnings': return <EarningsView setView={setActiveView} />; 
-            case 'communication': return <CommunicationView />;
+            case 'communication': return <PlaceholderView name="Communication" />;
             case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
             case 'dashboard':
             default:
