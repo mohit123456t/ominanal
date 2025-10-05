@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -24,6 +24,9 @@ import ProfileView from '@/components/uploader/ProfileView';
 import UploadView from '@/components/uploader/UploadView';
 import ApiKeysView from '@/components/uploader/ApiKeysView';
 import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
 
 
 const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void, collapsed: boolean }) => (
@@ -45,9 +48,26 @@ const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.Reac
 
 const UploaderPanel = () => {
     const router = useRouter();
+    const { user } = useUser();
+    const firestore = useFirestore();
     const [userProfile, setUserProfile] = useState({ name: 'Uploader User', role: 'uploader' });
     const [activeView, setActiveView] = useState('dashboard');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    const credsCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'platformCredentials');
+    }, [user, firestore]);
+    
+    const { data: credentialsList, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credsCollectionRef);
+
+    const accountsCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, `users/${user.uid}/socialMediaAccounts`);
+    }, [user, firestore]);
+
+    const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
+
 
     useEffect(() => {
         const savedView = localStorage.getItem('uploaderActiveView');
@@ -73,9 +93,9 @@ const UploaderPanel = () => {
             case 'upload-history':
                 return <UploadHistoryView userProfile={userProfile} />;
             case 'api-keys':
-                return <ApiKeysView />;
+                return <ApiKeysView credentialsList={credentialsList || []} isLoadingCreds={isLoadingCreds} />;
             case 'connected-accounts':
-                return <ConnectedAccountsView />;
+                return <ConnectedAccountsView accounts={accounts || []} credentialsList={credentialsList || []} isLoading={isLoadingAccounts || isLoadingCreds} />;
             case 'payments':
                 return <PaymentsView userProfile={userProfile} />;
             case 'communication':

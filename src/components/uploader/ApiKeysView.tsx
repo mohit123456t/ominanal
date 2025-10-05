@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { KeyRound, LoaderCircle, Youtube, Instagram, Save, Twitter, Info, Facebook, Unlink, Link2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useMemoFirebase, useCollection } from '@/firebase';
+import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
 import { Label } from '@/components/ui/label';
@@ -146,7 +146,7 @@ function OAuthForm({
 }
 
 
-export default function ApiKeysView() {
+export default function ApiKeysView({ credentialsList, isLoadingCreds }: { credentialsList: PlatformCredentials[], isLoadingCreds: boolean }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>();
@@ -154,18 +154,10 @@ export default function ApiKeysView() {
 
   const { toast } = useToast();
 
-  const credsCollectionRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'platformCredentials');
-  }, [user, firestore]);
-  
-  const { data: credentialsList, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credsCollectionRef);
-  
   const accountsCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
   }, [user, firestore]);
-
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
 
   const credentials = useMemo(() => {
@@ -194,7 +186,8 @@ export default function ApiKeysView() {
   }, [isLoadingCreds, instagramCreds, youtubeCreds, twitterCreds]);
 
   const handleSaveCredentials = async (platform: PlatformCredentials['platform'], data: Partial<PlatformCredentials>) => {
-    if (!user || !credsCollectionRef) return;
+    if (!user || !firestore) return;
+    const credsCollectionRef = collection(firestore, 'users', user.uid, 'platformCredentials');
     
     try {
       const docRef = doc(credsCollectionRef, platform);

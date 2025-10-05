@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
 import { collection, doc, deleteDoc } from 'firebase/firestore';
 import { SocialMediaAccount, PlatformCredentials } from '@/lib/types';
 import { getYoutubeAuthUrl } from '@/ai/flows/youtube-auth';
@@ -38,7 +38,7 @@ const platformIcons: { [key: string]: React.ElementType } = {
   Twitter,
 };
 
-export default function ConnectedAccountsView() {
+export default function ConnectedAccountsView({ accounts, credentialsList, isLoading }: { accounts: SocialMediaAccount[], credentialsList: PlatformCredentials[], isLoading: boolean }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -49,15 +49,7 @@ export default function ConnectedAccountsView() {
     if (!user || !firestore) return null;
     return collection(firestore, `users/${user.uid}/socialMediaAccounts`);
   }, [user, firestore]);
-
-  const credsCollectionRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'platformCredentials');
-  }, [user, firestore]);
-
-  const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
-  const { data: credentialsList, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credsCollectionRef);
-
+  
   const credentials = useMemo(() => {
     if (!credentialsList) return {};
     return credentialsList.reduce((acc, cred) => {
@@ -107,8 +99,6 @@ export default function ConnectedAccountsView() {
         setIsConnecting(null);
     }
   }
-  
-  const isLoading = isLoadingAccounts || isLoadingCreds;
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
