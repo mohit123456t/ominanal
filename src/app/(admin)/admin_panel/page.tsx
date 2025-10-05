@@ -28,17 +28,24 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
+import PlaceholderView from '@/components/admin/PlaceholderView';
 
 
 // --- Placeholder Views ---
-const PlaceholderView = ({ name, onNavigate, onViewBrand }: { name: string; onNavigate?: (view: string) => void; onViewBrand?: (brandId: string) => void; }) => (
-    <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 p-12 text-center">
-        <h2 className="text-2xl font-bold text-slate-800">{name}</h2>
-        <p className="text-slate-500 mt-2">This is a placeholder for the {name} view.</p>
-        {onNavigate && <button onClick={() => onNavigate('earnings')} className="mt-4 px-4 py-2 bg-indigo-500 text-white rounded">Go to Earnings (Demo)</button>}
-        {onViewBrand && <button onClick={() => onViewBrand('brand-123')} className="mt-4 px-4 py-2 bg-indigo-500 text-white rounded">View Brand (Demo)</button>}
+const CampaignManagerView = () => <PlaceholderView name="Campaign Manager" />;
+const UserManagementView = ({ onViewBrand }: { onViewBrand: (brandId: string) => void }) => <PlaceholderView name="User Management" onViewBrand={onViewBrand} />;
+const FinanceView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Finance" onNavigate={setView} />;
+const EarningsView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Earnings" onNavigate={setView} />;
+const CommunicationView = () => <PlaceholderView name="Communication" />;
+const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBack: () => void; }) => (
+    <div>
+        <button onClick={onBack} className="flex items-center mb-4 text-slate-600 hover:text-slate-900">
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to User Management
+        </button>
+        <PlaceholderView name={`Brand Panel (ID: ${viewBrandId})`} />
     </div>
 );
+
 
 // 🧩 StatCard Component — iOS स्टाइल फ्रॉस्टेड ग्लास
 const StatCard = ({ title, value, change, icon, color, size = 'normal' }: {title: string, value: string, change: string, icon: React.ReactNode, color: {bg: string, text: string}, size?: string}) => (
@@ -210,21 +217,8 @@ const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void 
   );
 };
 
-
 const ProfileView = () => <PlaceholderView name="Profile" />;
-const CampaignManagerView = () => <PlaceholderView name="Campaign Manager" />;
-const UserManagementView = ({ onViewBrand }: { onViewBrand: (brandId: string) => void }) => <PlaceholderView name="User Management" onViewBrand={onViewBrand} />;
-const FinanceView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Finance" onNavigate={setView} />;
-const EarningsView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Earnings" onNavigate={setView} />;
-const CommunicationView = () => <PlaceholderView name="Communication" />;
-const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBack: () => void; }) => (
-    <div>
-        <button onClick={onBack} className="flex items-center mb-4 text-slate-600 hover:text-slate-900">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to User Management
-        </button>
-        <PlaceholderView name={`Brand Panel (ID: ${viewBrandId})`} />
-    </div>
-);
+
 const Logo = () => (
     <div className="flex items-center gap-2">
         <svg
