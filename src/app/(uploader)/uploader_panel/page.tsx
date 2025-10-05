@@ -12,6 +12,8 @@ import {
     Menu,
     X,
     FilePlus,
+    KeyRound,
+    Link2,
 } from 'lucide-react';
 
 import DashboardView from '@/components/uploader/DashboardView';
@@ -20,6 +22,8 @@ import PaymentsView from '@/components/uploader/PaymentsView';
 import CommunicationView from '@/components/uploader/CommunicationView';
 import ProfileView from '@/components/uploader/ProfileView';
 import UploadView from '@/components/uploader/UploadView';
+import ApiKeysView from '@/components/uploader/ApiKeysView';
+import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
 
 
 const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void, collapsed: boolean }) => (
@@ -68,6 +72,10 @@ const UploaderPanel = () => {
                 return <UploadView />;
             case 'upload-history':
                 return <UploadHistoryView userProfile={userProfile} />;
+            case 'api-keys':
+                return <ApiKeysView />;
+            case 'connected-accounts':
+                return <ConnectedAccountsView />;
             case 'payments':
                 return <PaymentsView userProfile={userProfile} />;
             case 'communication':
@@ -83,6 +91,8 @@ const UploaderPanel = () => {
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'create-upload', label: 'Create Upload', icon: <FilePlus /> },
         { id: 'upload-history', label: 'Upload History', icon: <Upload /> },
+        { id: 'api-keys', label: 'API Keys', icon: <KeyRound /> },
+        { id: 'connected-accounts', label: 'Connected Accounts', icon: <Link2 /> },
         { id: 'payments', label: 'Payments', icon: <IndianRupee /> },
         { id: 'communication', label: 'Communication', icon: <MessageSquare /> },
         { id: 'profile', label: 'Profile', icon: <UserCircle /> },
@@ -142,7 +152,7 @@ const UploaderPanel = () => {
                 <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
                     <div className="flex items-center space-x-4">
                         <h1 className="text-xl font-bold text-slate-800 capitalize">
-                            {activeView.replace('-', ' ')}
+                            {activeView.replace(/_/g, ' ').replace(/-/g, ' ')}
                         </h1>
                     </div>
                     <div className="flex items-center space-x-4">

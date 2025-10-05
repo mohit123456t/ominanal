@@ -38,7 +38,7 @@ const platformIcons: { [key: string]: React.ElementType } = {
   Twitter,
 };
 
-export default function ConnectedAccountsPage() {
+export default function ConnectedAccountsView() {
   const { user } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -112,16 +112,6 @@ export default function ConnectedAccountsPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-       <div className="text-center">
-        <Link2 className="mx-auto h-12 w-12 text-primary" />
-        <h1 className="mt-4 text-3xl font-headline font-bold tracking-tight text-foreground sm:text-4xl">
-          Connected Accounts
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Manage your connected social media accounts to streamline your posting process.
-        </p>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle>Your Accounts</CardTitle>

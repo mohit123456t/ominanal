@@ -146,7 +146,7 @@ function OAuthForm({
 }
 
 
-export default function ApiKeysPage() {
+export default function ApiKeysView() {
   const { user } = useUser();
   const firestore = useFirestore();
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>();
@@ -270,16 +270,6 @@ export default function ApiKeysPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <div className="text-center">
-        <KeyRound className="mx-auto h-12 w-12 text-primary" />
-        <h1 className="mt-4 text-3xl font-headline font-bold tracking-tight text-foreground sm:text-4xl">
-          API Credentials & Connections
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground">
-          Manage your app-level credentials and connect multiple social media accounts for each platform.
-        </p>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle>Platform Setup</CardTitle>
@@ -356,5 +346,3 @@ export default function ApiKeysPage() {
     </div>
   );
 }
-
-    

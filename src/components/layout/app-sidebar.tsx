@@ -34,7 +34,6 @@ const navItems = [
   { href: '/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/posts', icon: FileText, label: 'Posts' },
   { href: '/campaign-ideas', icon: Lightbulb, label: 'Campaign Ideas' },
-  { href: '/connected-accounts', icon: Link2, label: 'Connected Accounts' },
   { href: '/pricing', icon: DollarSign, label: 'Pricing' },
 ];
 
@@ -118,16 +117,6 @@ export function AppSidebar() {
               tooltip={{ children: 'Settings' }}
             >
               <Link href="/settings">Team Settings</Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === '/api-keys'}
-              icon={<KeyRound />}
-              tooltip={{ children: 'API Credentials' }}
-            >
-              <Link href="/api-keys">API Credentials</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
