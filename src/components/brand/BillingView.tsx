@@ -30,14 +30,18 @@ const BillingView = ({ user }: { user: User | null }) => {
 
 
     const handleAddFunds = async () => {
-        if (!transactionsCollectionRef) return;
-        // This is a demo. In a real app, this would be handled after a successful payment gateway response.
+        if (!transactionsCollectionRef || !user) return;
+        
+        // In a real app, this amount would come from the AddFundsPanel form.
+        // For this demo, we'll use a fixed amount to prove the connection.
+        const amountToAdd = 5000; 
+
         const newTransaction = {
             type: 'DEPOSIT',
-            amount: 5000, // Example amount
-            status: 'Pending', // Status is pending until admin approval
+            amount: amountToAdd,
+            status: 'Pending',
             timestamp: serverTimestamp(),
-            brandId: user?.uid,
+            brandId: user.uid, // Add brandId to the transaction document
         };
         try {
             await addDoc(transactionsCollectionRef, newTransaction);
