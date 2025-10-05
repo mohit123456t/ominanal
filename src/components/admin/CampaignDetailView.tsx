@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, DollarSign, Video, Calendar, X, LoaderCircle } from 'lucide-react';
 import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
