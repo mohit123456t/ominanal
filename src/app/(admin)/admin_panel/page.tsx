@@ -20,10 +20,10 @@ import CampaignDetailView from '@/components/admin/CampaignDetailView';
 import PlaceholderView from '@/components/admin/PlaceholderView';
 import CampaignManagerView from '@/components/admin/CampaignManagerView';
 import ProfileView from '@/components/admin/ProfileView';
+import UserManagementView from '@/components/admin/UserManagementView';
 
 
 // --- Placeholder Views ---
-const UserManagementView = ({ onViewBrand }: { onViewBrand: (brandId: string) => void }) => <PlaceholderView name="User Management" onViewBrand={onViewBrand} />;
 const FinanceView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Finance" onNavigate={setView} />;
 const EarningsView = ({ setView }: { setView: (view: string) => void }) => <PlaceholderView name="Earnings" onNavigate={setView} />;
 const CommunicationView = () => <PlaceholderView name="Communication" />;
