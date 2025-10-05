@@ -77,12 +77,8 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
     const router = useRouter();
     const isViewMode = !!propViewBrandId;
 
-    const [activeView, setActiveView] = useState(() => (typeof window !== 'undefined' && localStorage.getItem('brandActiveView')) || 'dashboard');
-    const [selectedCampaign, setSelectedCampaign] = useState(() => {
-        if (typeof window === 'undefined') return null;
-        const saved = localStorage.getItem('brandSelectedCampaign');
-        return saved ? JSON.parse(saved) : null;
-    });
+    const [activeView, setActiveView] = useState('dashboard');
+    const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
     
     const [user, setUser] = useState<Partial<User>>({uid: 'brand-user-1', email: 'brand@example.com'});
 
@@ -94,15 +90,27 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
     const [profile, setProfile] = useState<any>({});
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('brandActiveView', activeView);
+        const savedView = localStorage.getItem('brandActiveView');
+        if (savedView) {
+            setActiveView(savedView);
         }
+        const savedCampaign = localStorage.getItem('brandSelectedCampaign');
+        if (savedCampaign) {
+            try {
+                setSelectedCampaign(JSON.parse(savedCampaign));
+            } catch (e) {
+                setSelectedCampaign(null);
+            }
+        }
+    }, []);
+
+
+    useEffect(() => {
+        localStorage.setItem('brandActiveView', activeView);
     }, [activeView]);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('brandSelectedCampaign', JSON.stringify(selectedCampaign));
-        }
+        localStorage.setItem('brandSelectedCampaign', JSON.stringify(selectedCampaign));
     }, [selectedCampaign]);
     
     useEffect(() => {
@@ -304,5 +312,3 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
 };
 
 export default BrandPanel;
-
-    
