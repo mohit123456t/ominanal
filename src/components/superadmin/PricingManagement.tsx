@@ -1,8 +1,10 @@
-
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trash, Plus } from 'lucide-react';
+import { Trash, Plus, LoaderCircle } from 'lucide-react';
+import { useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, addDoc, deleteDoc, collection } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 
 const ManagementCard = ({ title, children }: {title: string, children: React.ReactNode}) => (
@@ -33,19 +35,39 @@ const InputField = ({ label, type = 'number', value, onChange, placeholder }: {l
 );
 
 const PricingManagement = () => {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    // Firestore References
+    const pricingDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'pricing') : null, [firestore]);
+    const couponsCollectionRef = useMemoFirebase(() => firestore ? collection(firestore, 'coupons') : null, [firestore]);
+
+    // Firestore Data Hooks
+    const { data: pricingData, isLoading: pricingLoading } = useDoc(pricingDocRef);
+    const { data: couponsData, isLoading: couponsLoading } = useCollection(couponsCollectionRef);
+
+    // Component State
     const [pricePerReel, setPricePerReel] = useState(150);
     const [avgViewsPerReel, setAvgViewsPerReel] = useState(5000);
-    const [discountTiers, setDiscountTiers] = useState([
-      { reels: 10, discount: 5 },
-      { reels: 20, discount: 10 },
-    ]);
-    const [coupons, setCoupons] = useState([
-        { id: 'LAUNCH20', discount: 20, limit: 100, used: 25, isActive: true },
-        { id: 'NEWYEAR', discount: 15, limit: 'unlimited' as 'unlimited' | number, used: 150, isActive: true },
-    ]);
+    const [discountTiers, setDiscountTiers] = useState<{ reels: number; discount: number }[]>([]);
+    const [coupons, setCoupons] = useState<any[]>([]);
     const [newCoupon, setNewCoupon] = useState({ code: '', discount: '', limit: '' });
-    const [loading, setLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    // Effect to update local state when Firestore data loads
+    useEffect(() => {
+        if (pricingData) {
+            setPricePerReel(pricingData.pricePerReel || 150);
+            setAvgViewsPerReel(pricingData.avgViewsPerReel || 5000);
+            setDiscountTiers(pricingData.discountTiers || []);
+        }
+    }, [pricingData]);
+
+    useEffect(() => {
+        if (couponsData) {
+            setCoupons(couponsData);
+        }
+    }, [couponsData]);
 
 
     const handleAddTier = () => {
@@ -62,34 +84,58 @@ const PricingManagement = () => {
         setDiscountTiers(discountTiers.filter((_, i) => i !== index));
     };
     
-    const handleAddCoupon = (e: React.FormEvent) => {
+    const handleAddCoupon = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newCoupon.code || !newCoupon.discount) return;
+        if (!newCoupon.code || !newCoupon.discount || !couponsCollectionRef) return;
+        
+        const couponId = newCoupon.code.toUpperCase();
         const newCouponData = {
-            id: newCoupon.code.toUpperCase(),
             discount: Number(newCoupon.discount),
-            limit: newCoupon.limit ? Number(newCoupon.limit) : 'unlimited' as 'unlimited' | number,
+            limit: newCoupon.limit ? Number(newCoupon.limit) : 'unlimited',
             used: 0,
             isActive: true,
         };
-        setCoupons(prev => [...prev, newCouponData]);
-        setNewCoupon({ code: '', discount: '', limit: '' });
+        
+        try {
+            await setDoc(doc(couponsCollectionRef, couponId), newCouponData);
+            toast({ title: "Coupon Created!", description: `Coupon "${couponId}" has been added.` });
+            setNewCoupon({ code: '', discount: '', limit: '' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        }
     };
 
-    const handleDeleteCoupon = (couponId: string) => {
-        setCoupons(coupons.filter(c => c.id !== couponId));
+    const handleDeleteCoupon = async (couponId: string) => {
+        if (!firestore) return;
+        try {
+            await deleteDoc(doc(firestore, 'coupons', couponId));
+            toast({ title: "Coupon Deleted", description: `Coupon "${couponId}" has been removed.` });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: error.message });
+        }
     };
 
     const handleSaveChanges = async () => {
+        if (!pricingDocRef) return;
         setIsSaving(true);
-        console.log("Saving pricing changes:", { pricePerReel, avgViewsPerReel, discountTiers });
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setIsSaving(false);
+        try {
+            await setDoc(pricingDocRef, {
+                pricePerReel,
+                avgViewsPerReel,
+                discountTiers
+            }, { merge: true });
+            toast({ title: "Success!", description: "Pricing settings have been updated." });
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: "Save Failed", description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
+    const loading = pricingLoading || couponsLoading;
+
     if (loading) {
-        return <div className="flex justify-center items-center h-full"><p>Loading pricing settings...</p></div>;
+        return <div className="flex justify-center items-center h-full"><LoaderCircle className="w-12 h-12 animate-spin text-indigo-600"/></div>;
     }
 
     return (
@@ -137,7 +183,7 @@ const PricingManagement = () => {
                             className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/30 disabled:bg-indigo-400"
                             whileHover={{ scale: isSaving ? 1 : 1.05 }}
                         >
-                            {isSaving ? 'Saving...' : 'Save All Pricing Changes'}
+                            {isSaving ? <LoaderCircle className="animate-spin" /> : 'Save All Pricing Changes'}
                         </motion.button>
                     </div>
                 </div>
@@ -162,7 +208,7 @@ const PricingManagement = () => {
                                 label="Usage Limit (optional)"
                                 value={newCoupon.limit}
                                 onChange={e => setNewCoupon({...newCoupon, limit: e.target.value})}
-                                placeholder="e.g., 100"
+                                placeholder="Leave blank for unlimited"
                             />
                             <button type="submit" className="w-full bg-slate-800 text-white font-bold py-2.5 rounded-lg hover:bg-slate-900 transition-colors shadow-md">
                                 Create Coupon
