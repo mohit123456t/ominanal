@@ -72,6 +72,8 @@ const StaffManagementView = () => {
                 const category = staffCategoriesList.find(c => c.role === user.role);
                 if (category) {
                     staffByCategory[category.name].push({ id: doc.id, ...user });
+                } else {
+                     // If user has no role, maybe put them in a default category or ignore
                 }
             });
             setAllStaff(staffByCategory);
@@ -88,8 +90,8 @@ const StaffManagementView = () => {
     }, [fetchStaff]);
     
     const handleAddStaff = async () => {
-        if (!auth || !firestore || !newStaff.email || !newStaff.password || !newStaff.role) {
-            setError("All fields are required.");
+        if (!auth || !firestore || !newStaff.email || !newStaff.password) {
+            setError("Email and password are required.");
             return;
         }
         setLoading(true);
@@ -104,7 +106,7 @@ const StaffManagementView = () => {
                 uid: user.uid,
                 name: newStaff.name,
                 email: newStaff.email,
-                role: newStaff.role,
+                role: newStaff.role || null, // Save role as null if not selected
                 createdAt: new Date().toISOString(),
                 isActive: true,
             });
@@ -119,6 +121,7 @@ const StaffManagementView = () => {
             alert('Staff member added successfully! The admin may need to re-login to restore their session.');
             fetchStaff();
             setIsAddModalOpen(false);
+            setNewStaff({ name: '', email: '', password: '', role: '' });
         } catch (error: any) {
             console.error("Error adding staff:", error);
             setError(error.message);
@@ -254,8 +257,8 @@ const StaffManagementView = () => {
                                 <input type="text" placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({ ...newStaff, name: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required />
                                 <input type="email" placeholder="Email Address" value={newStaff.email} onChange={e => setNewStaff({ ...newStaff, email: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" required />
                                 <input type="password" placeholder="New Password (min. 6 chars)" value={newStaff.password} onChange={e => setNewStaff({ ...newStaff, password: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
-                                <select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 outline-none" required>
-                                    <option value="" disabled>Select a role for the staff member</option>
+                                <select value={newStaff.role} onChange={e => setNewStaff({ ...newStaff, role: e.target.value })} className="w-full p-4 bg-white/50 border border-slate-300/70 rounded-lg appearance-none focus:ring-2 focus:ring-indigo-500 outline-none">
+                                    <option value="" disabled>Select a role (optional)</option>
                                     {staffCategoriesList.map(cat => <option key={cat.role} value={cat.role}>{cat.name}</option>)}
                                 </select>
                                 <div className="flex justify-end space-x-3 pt-4">

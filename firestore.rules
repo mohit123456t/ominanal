@@ -1,186 +1,169 @@
 /**
- * @fileoverview Firestore Security Rules for OmniPost AI Platform.
+ * @file Firebase Security Rules for OmniPost AI Platform
  *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for user-generated content (social media accounts, posts, analytics).
- * Users can only access their own data.
- * Administrative privileges are granted based on the existence of a document in the `/roles_admin/{userId}` collection.
- *
- * Data Structure:
- * - `/users/{userId}`: Stores user profiles.
- * - `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}`: Stores social media accounts owned by a user.
- * - `/users/{userId}/posts/{postId}`: Stores posts created by a user.
- * - `/subscriptions/{subscriptionId}`: Stores subscription plans (public read).
- * - `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}`: Stores analytics data for social media accounts owned by a user.
- * - `/roles_admin/{userId}`: Indicates administrator privileges.
- *
- * Key Security Decisions:
- * - Users can only create, read, update, and delete their own social media accounts, posts, and analytics.
- * - Listing of user subcollections is allowed only for the owner.
- * - Subscription plans are publicly readable.
- * - Administrative privileges are granted based on the existence of a document in `/roles_admin/{userId}`.
- * - No listing of users is allowed.
- *
- * Denormalization for Authorization:
- *  - User ownership is enforced through hierarchical data structure (`/users/{userId}/...`).
- *  - Admin privileges are determined by the existence of a document in `/roles_admin/{userId}`.
- *  - Subscriptions are public
- *
- * Structural Segregation:
- *  - Private user data is stored under `/users/{userId}`, while public subscription data is stored at the root level.
+ * @core_philosophy This ruleset enforces a strict user-ownership model for most data, with administrative privileges granted via a dedicated 'roles_admin' collection. Data is nested under `/users/{userId}` to simplify authorization checks based on the user's UID.
+ * @data_structure
+ *   - `/users/{userId}`: Stores user profiles, with the userId used for ownership checks.
+ *   - `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}`: Stores social media accounts owned by the user.
+ *   - `/users/{userId}/posts/{postId}`: Stores social media posts created by the user.
+ *   - `/subscriptions/{subscriptionId}`: Stores subscription plans (public read).
+ *   - `/users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}`: Stores analytics data owned by the user.
+ *   - `/roles_admin/{userId}`: Documents in this collection grant admin privileges to the corresponding user.
+ * @key_security_decisions
+ *   - User listing is disallowed for privacy.
+ *   - The 'subscriptions' collection is publicly readable.
+ *   - Admin privileges are determined by the existence of a document in `/roles_admin/{userId}`.
+ *   - All write operations (create, update, delete) require authorization.
+ * @denormalization_for_authorization: User ownership is enforced by nesting data under /users/{userId} and using the userId as the document ID. Admin privileges are granted by the existence of a document in /roles_admin/{userId}.
+ * @structural_segregation User-owned data is segregated under /users/{userId} to simplify authorization. Admin roles are stored in a separate collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile documents. Only the user can read and write their own profile.
+     * @description Checks if the request is made by a signed-in user.
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the user ID matches the authenticated user's ID.
+     * @param {string} userId The user ID to check.
+     * @return {boolean} True if the user ID matches the authenticated user's ID, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is an existing owner (signed in, owner, and resource exists).
+     * @param {string} userId The user ID to check.
+     * @return {boolean} True if the user is an existing owner, false otherwise.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the user is an admin based on the existence of a document in `/roles_admin/{userId}`.
+     * @return {boolean} True if the user is an admin, false otherwise.
+     */
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /****************** User Profile Rules ******************/
+
+    /**
+     * @description Manages access to user profile documents.
      * @path /users/{userId}
-     * @allow (create) User with ID 'user123' can create their profile if request.auth.uid == 'user123'.
-     * @deny (create) User with ID 'user123' cannot create a profile with a different ID (e.g., 'user456').
-     * @allow (get, update, delete) User with ID 'user123' can get, update, and delete their own profile.
-     * @deny (get, update, delete) User with ID 'user123' cannot get, update, or delete another user's profile (e.g., 'user456').
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) Signed-in user creates their own profile.
+     * @allow (get, update, delete) Signed-in user accesses their own profile.
+     * @deny (create) Signed-in user attempts to create a profile with a mismatched ID.
+     * @deny (get, update, delete) Signed-in user attempts to access another user's profile.
+     * @principle Enforces document ownership for reads and writes.
      */
     match /users/{userId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is disallowed for privacy.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
+    /****************** Social Media Account Rules ******************/
+
     /**
-     * @description Controls access to social media accounts associated with a user. Only the user can manage their own social media accounts.
+     * @description Manages access to social media accounts associated with a user.
      * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}
-     * @allow (create) User with ID 'user123' can create a social media account under their profile.
-     * @deny (create) User with ID 'user123' cannot create a social media account under another user's profile (e.g., 'user456').
-     * @allow (get, list, update, delete) User with ID 'user123' can get, list, update, and delete their own social media accounts.
-     * @deny (get, list, update, delete) User with ID 'user123' cannot get, list, update, or delete another user's social media accounts.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) Signed-in user creates a social media account under their profile.
+     * @allow (get, update, delete) Signed-in user accesses their own social media accounts.
+     * @deny (create) Signed-in user attempts to create a social media account with a mismatched userId in the path.
+     * @deny (get, update, delete) Signed-in user attempts to access another user's social media accounts.
+     * @principle Enforces document ownership for reads and writes.
      */
     match /users/{userId}/socialMediaAccounts/{socialMediaAccountId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId) && isOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId) && isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
+    /****************** Post Rules ******************/
+
     /**
-     * @description Controls access to posts created by a user. Only the user can manage their own posts.
+     * @description Manages access to posts created by a user.
      * @path /users/{userId}/posts/{postId}
-     * @allow (create) User with ID 'user123' can create a post under their profile.
-     * @deny (create) User with ID 'user123' cannot create a post under another user's profile (e.g., 'user456').
-     * @allow (get, list, update, delete) User with ID 'user123' can get, list, update, and delete their own posts.
-     * @deny (get, list, update, delete) User with ID 'user123' cannot get, list, update, or delete another user's posts.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) Signed-in user creates a post under their profile.
+     * @allow (get, update, delete) Signed-in user accesses their own posts.
+     * @deny (create) Signed-in user attempts to create a post with a mismatched userId in the path.
+     * @deny (get, update, delete) Signed-in user attempts to access another user's posts.
+     * @principle Enforces document ownership for reads and writes.
      */
     match /users/{userId}/posts/{postId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId) && isOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId) && isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
+    /****************** Subscription Rules ******************/
+
     /**
-     * @description Controls access to subscription plans. All users can read subscription plans.
+     * @description Manages access to subscription plans.
      * @path /subscriptions/{subscriptionId}
-     * @allow (get, list) All users can read subscription plans.
-     * @deny (create, update, delete) No users can create, update, or delete subscription plans.
-     * @principle Allows public read access with restricted write access.
+     * @allow (get, list) Everyone can read subscription plans.
+     * @deny (create, update, delete) Only admins can modify subscription plans (TODO: Implement Admin Role)
+     * @principle Public read, owner-only writes (requires Admin role).
      */
     match /subscriptions/{subscriptionId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
     }
 
+    /****************** Analytics Rules ******************/
+
     /**
-     * @description Controls access to analytics data for social media accounts. Only the user can manage their own analytics data.
+     * @description Manages access to analytics data for social media accounts.
      * @path /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId}
-     * @allow (create) User with ID 'user123' can create analytics data under their social media account.
-     * @deny (create) User with ID 'user123' cannot create analytics data under another user's social media account (e.g., 'user456').
-     * @allow (get, list, update, delete) User with ID 'user123' can get, list, update, and delete their own analytics data.
-     * @deny (get, list, update, or delete) User with ID 'user123' cannot get, list, update, or delete another user's analytics data.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) Signed-in user creates analytics data under their social media account.
+     * @allow (get, update, delete) Signed-in user accesses their own analytics data.
+     * @deny (create) Signed-in user attempts to create analytics data with a mismatched userId in the path.
+     * @deny (get, update, delete) Signed-in user attempts to access another user's analytics data.
+     * @principle Enforces document ownership for reads and writes.
      */
     match /users/{userId}/socialMediaAccounts/{socialMediaAccountId}/analytics/{analyticsId} {
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
-      }
-
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId) && isOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId) && isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.socialMediaAccountId == socialMediaAccountId;
+      allow update: if isExistingOwner(userId) && request.resource.data.socialMediaAccountId == resource.data.socialMediaAccountId;
+      allow delete: if isExistingOwner(userId);
     }
 
+     /****************** Admin Role Rules ******************/
+
     /**
-     * @description Grants admin privileges based on the existence of a document in this collection.
+     * @description Manages the assignment of admin roles.  Existence of a document grants admin privileges.
      * @path /roles_admin/{userId}
-     * @allow (get, create, update, delete) Only an existing admin can manage other admins.
-     * @allow (list) Listing admins is not allowed.
-     * @principle Existence of the document grants admin privileges; admins can manage other admins.
+     * @allow (get) Only admins can view the admin role list.
+     * @allow (create, delete) Only admins can assign or remove admin roles.
+     * @deny (get, create, update, delete) Non-admins cannot manage admin roles.
+     * @principle Restricts admin role management to existing admins.
      */
     match /roles_admin/{userId} {
-        function isAdmin() {
-            return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-        }
-
-        allow get: if isSignedIn() && isAdmin();
+        allow get: if isAdmin();
         allow list: if false;
-        allow create: if isSignedIn() && isAdmin();
-        allow update: if isSignedIn() && isAdmin();
-        allow delete: if isSignedIn() && isAdmin();
+        allow create: if isAdmin();
+        allow update: if false;
+        allow delete: if isAdmin();
     }
   }
 }
