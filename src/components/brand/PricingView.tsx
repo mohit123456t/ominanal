@@ -1,34 +1,39 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { BarChart, Video, Bell, Settings, Download, UserCircle, TrendingUp, Sparkles, ShieldCheck, Zap } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { TrendingUp, Sparkles, ShieldCheck, Zap, LoaderCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 
 const PricingView = () => {
+    const { firestore } = useFirebase();
     const [expectedReels, setExpectedReels] = useState(50);
     const [totalCost, setTotalCost] = useState(0);
     const [discountAmount, setDiscountAmount] = useState(0);
     
-    // Placeholder pricing state
-    const [pricePerReel, setPricePerReel] = useState(150);
-    const [discountTiers, setDiscountTiers] = useState([{reels: 10, discount: 0.05}, {reels: 20, discount: 0.1}, {reels: 50, discount: 0.15}, {reels: 100, discount: 0.2}]);
-    const [loading, setLoading] = useState(false);
+    // Fetch pricing settings from Firestore
+    const pricingDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'settings', 'pricing') : null, [firestore]);
+    const { data: priceSettings, isLoading: loading, error } = useDoc(pricingDocRef);
+
+    const pricePerReel = priceSettings?.pricePerReel || 150;
+    const discountTiers = priceSettings?.discountTiers || [];
 
     // Calculate cost and views when inputs change
     useEffect(() => {
         const reels = expectedReels;
-        if (isNaN(reels) || reels <= 0) {
+        if (isNaN(reels) || reels <= 0 || !priceSettings) {
             setTotalCost(0);
             setDiscountAmount(0);
             return;
         }
 
         let applicableDiscount = 0;
-        const sortedTiers = [...discountTiers].sort((a, b) => b.reels - a.reels);
-        const applicableTier = sortedTiers.find(tier => reels >= tier.reels);
+        const sortedTiers = [...discountTiers].sort((a: any, b: any) => b.reels - a.reels);
+        const applicableTier = sortedTiers.find((tier: any) => reels >= tier.reels);
         if (applicableTier) {
-            applicableDiscount = applicableTier.discount;
+            applicableDiscount = applicableTier.discount / 100;
         }
 
         const baseCost = reels * pricePerReel;
@@ -38,13 +43,27 @@ const PricingView = () => {
         setTotalCost(finalCost);
         setDiscountAmount(discount);
 
-    }, [expectedReels, pricePerReel, discountTiers]);
+    }, [expectedReels, pricePerReel, discountTiers, priceSettings]);
 
 
     const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
     if (loading) {
-        return <div className="text-center p-10">Loading pricing...</div>
+        return (
+            <div className="flex flex-col items-center justify-center h-64">
+                <LoaderCircle className="h-10 w-10 animate-spin text-indigo-600" />
+                <p className="mt-4 text-lg font-semibold text-slate-700">Loading pricing...</p>
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+             <div className="flex flex-col items-center justify-center h-64 bg-red-500/10 rounded-2xl border border-red-500/20">
+                <h3 className="text-xl font-bold text-red-800">Error Loading Pricing</h3>
+                <p className="mt-2 text-red-700">{error.message}</p>
+            </div>
+        );
     }
 
     const features = [
@@ -96,14 +115,13 @@ const PricingView = () => {
 
                          <div className="text-sm text-slate-700 space-y-2 mt-6 p-4 bg-slate-900/5 rounded-lg border border-slate-900/10">
                             <p>✓ Price per Reel: <strong>{formatCurrency(pricePerReel)}</strong></p>
-                            <p>✓ Volume discounts up to <strong>20%</strong> automatically applied</p>
+                            <p>✓ Volume discounts up to <strong>{Math.max(...discountTiers.map((t:any) => t.discount), 0)}%</strong> automatically applied</p>
                         </div>
                     </div>
                     
                     <div className="bg-slate-900/5 rounded-2xl p-6 border border-slate-900/10 space-y-4">
                         <h3 className="text-xl font-bold text-slate-800 text-center">Your Estimated Cost</h3>
                         
-                        <AnimatePresence mode="wait">
                         <motion.div
                              key={totalCost}
                              initial={{ opacity: 0, y: 10 }}
@@ -116,7 +134,6 @@ const PricingView = () => {
                                 <p className="text-green-800 font-semibold mt-1">You saved {formatCurrency(discountAmount)}!</p>
                              )}
                         </motion.div>
-                        </AnimatePresence>
 
                         <ul className="text-sm text-slate-600 space-y-2 pt-4 border-t border-slate-900/10">
                             <li className="flex justify-between"><span>Base Price:</span> <span className="font-medium text-slate-700">{formatCurrency(expectedReels * pricePerReel)}</span></li>
