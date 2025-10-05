@@ -28,43 +28,14 @@ export default function AppLayout({
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
+   useEffect(() => {
     if (isUserLoading) {
-      return; // Wait until user state is initialized
+      return; 
     }
     
     // If user is not logged in and not on an allowed unauthenticated route, redirect to login
     if (!user && !unauthenticatedRoutes.includes(pathname)) {
       router.push('/login');
-      return;
-    }
-    
-    // If the user is logged in, check their role and redirect if necessary
-    if (user && firestore) {
-        // If they are on the login/signup page, they shouldn't be. Redirect them.
-        if (pathname === '/login' || pathname === '/signup') {
-             router.push('/dashboard'); // Will be immediately re-evaluated for role
-             return;
-        }
-
-        // The main redirection logic. Fetch role and redirect to the correct panel.
-        const userDocRef = doc(firestore, 'users', user.uid);
-        getDoc(userDocRef).then(userDocSnap => {
-            if (userDocSnap.exists()) {
-                const userData = userDocSnap.data();
-                const role = userData.role;
-                const targetPath = `/${role}_panel`;
-                 
-                 // Redirect to panel if role exists and user is not already on their panel page
-                if (role && panelRoutes.includes(targetPath) && pathname !== targetPath) {
-                    router.push(targetPath);
-                }
-            } else {
-                 // If no user doc, but they are logged in, just let them access standard dashboard
-            }
-        }).catch(err => {
-            console.error("Error fetching user role for redirection:", err);
-        });
     }
 
   }, [user, isUserLoading, router, pathname, firestore]);

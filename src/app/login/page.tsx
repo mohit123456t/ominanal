@@ -32,36 +32,60 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // This effect handles redirecting a user who is ALREADY logged in and lands on this page.
-  // The main redirection logic after a fresh login is now in AppLayout.
-  useEffect(() => {
-    if (!isUserLoading && user) {
-        // Just push to a generic starting point, AppLayout will handle the role-based redirect.
-        router.push('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
-
-
   const handleLogin = async () => {
     if (!auth || !firestore) {
       toast({
         variant: 'destructive',
         title: 'Initialization Error',
-        description: 'Services are not ready. Please try again in a moment.',
+        description: 'Services are not ready. Please try again.',
       });
       return;
     }
     setIsLoading(true);
     try {
-      // This will sign in the user and trigger the onAuthStateChanged listener.
-      // The AppLayout component's useEffect will then handle the redirection.
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const loggedInUser = userCredential.user;
+
+      const userDocRef = doc(firestore, 'users', loggedInUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
       
+      let role = 'user'; // default role
+      if (userDocSnap.exists()) {
+        role = userDocSnap.data().role || 'user';
+      }
+
       toast({
         title: 'Successfully logged in!',
-        description: 'Redirecting you to your panel...',
+        description: `Redirecting you to your ${role} panel...`,
       });
-      // No need for role check here, AppLayout handles it globally.
+
+      // Direct redirection based on role
+      switch (role) {
+        case 'superadmin':
+          router.push('/superadmin_panel');
+          break;
+        case 'admin':
+          router.push('/admin_panel');
+          break;
+        case 'brand':
+          router.push('/brand_panel');
+          break;
+        case 'video_editor':
+          router.push('/video_editor_panel');
+          break;
+        case 'script_writer':
+          router.push('/script_writer_panel');
+          break;
+        case 'thumbnail_maker':
+          router.push('/thumbnail_maker_panel');
+          break;
+        case 'uploader':
+            router.push('/uploader_panel');
+            break;
+        default:
+          router.push('/dashboard');
+          break;
+      }
 
     } catch (error: any) {
       console.error(error);
@@ -75,8 +99,8 @@ export default function LoginPage() {
   };
 
 
-  // Show a loader while checking auth state or if the user is already logged in and redirecting.
-  if (isUserLoading || user) {
+  // Show a loader while checking auth state. If user is already logged in, they'll be handled by AppLayout.
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
