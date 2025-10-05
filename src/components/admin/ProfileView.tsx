@@ -1,8 +1,8 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { useAuth, useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 
@@ -14,31 +14,36 @@ const formatAdminUID = (uid?: string) => {
 };
 
 const ProfileView = () => {
-    const { user: authUser, isUserLoading } = useAuth();
+    const { user: authUser, isUserLoading: isAuthUserLoading } = useAuth();
     const { firestore } = useFirebase();
     const { toast } = useToast();
 
-    const userDocRef = useMemoFirebase(() => 
-        authUser && firestore ? doc(firestore, 'users', authUser.uid) : null
-    , [authUser, firestore]);
-
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+    // Fetch all users to find the admin profile
+    const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+    const { data: users, isLoading: isUsersLoading } = useCollection(usersQuery);
 
     const [profile, setProfile] = useState<Partial<any>>({});
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
+
+    // Find the specific admin profile from the users list
+    const adminProfile = useMemo(() => {
+        if (!users || !authUser) return null;
+        return users.find(u => u.id === authUser.uid);
+    }, [users, authUser]);
+
     useEffect(() => {
-        if (userProfile) {
-            setProfile(userProfile);
+        if (adminProfile) {
+            setProfile(adminProfile);
         }
-    }, [userProfile]);
+    }, [adminProfile]);
 
     const handleUpdateProfile = useCallback(async () => {
-        if (!userDocRef) {
+        if (!authUser || !firestore) {
             toast({ variant: 'destructive', title: 'Error', description: 'User not authenticated.'});
             return;
         }
+        const userDocRef = doc(firestore, 'users', authUser.uid);
         setIsSaving(true);
         try {
             await setDoc(userDocRef, profile, { merge: true });
@@ -49,13 +54,13 @@ const ProfileView = () => {
         } finally {
             setIsSaving(false);
         }
-    }, [userDocRef, profile, toast]);
+    }, [authUser, firestore, profile, toast]);
 
     const handleInputChange = (field: string, value: string) => {
         setProfile(prev => ({ ...prev, [field]: value }));
     };
 
-    const isLoading = isUserLoading || isProfileLoading;
+    const isLoading = isAuthUserLoading || isUsersLoading;
 
     if (isLoading) {
         return (
@@ -65,7 +70,7 @@ const ProfileView = () => {
         );
     }
     
-    if (!userProfile) {
+    if (!adminProfile) {
         return (
              <div className="text-center p-8 bg-white/40 backdrop-blur-lg rounded-xl shadow-md border">
                 <h3 className="text-xl font-bold text-red-600">Profile Not Found</h3>

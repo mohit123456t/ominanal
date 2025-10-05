@@ -109,14 +109,13 @@ function AdminPanel() {
     const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
 
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
-    const staff = useMemo(() => users?.filter(u => u.role !== 'brand') || [], [users]);
-
-    const adminProfileName = useMemo(() => {
-      if (!users || !user) return 'Admin';
-      const admin = users.find(u => u.id === user.uid);
-      return admin?.name || 'Admin';
+    
+    const adminProfile = useMemo(() => {
+      if (!users || !user) return null;
+      return users.find(u => u.id === user.uid);
     }, [users, user]);
 
+    const adminProfileName = adminProfile?.name || 'Admin';
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
