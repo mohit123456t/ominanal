@@ -1,4 +1,3 @@
-
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -16,9 +15,8 @@ import {
   DollarSign,
   BarChart,
 } from 'lucide-react';
-import { useAuth } from '@/firebase';
-import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-
+import { useAuth, useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection, query, where, collectionGroup } from 'firebase/firestore';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
 import CampaignDetailView from '@/components/admin/CampaignDetailView';
@@ -28,6 +26,7 @@ import UserManagementView from '@/components/admin/UserManagementView';
 import PlaceholderView from '@/components/admin/PlaceholderView';
 import FinanceView from '@/components/admin/FinanceView';
 import EarningsView from '@/components/admin/EarningsView';
+import DashboardView from '@/components/admin/DashboardView';
 
 
 const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBack: () => void; }) => (
@@ -39,121 +38,6 @@ const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBac
     </div>
 );
 
-
-const StatCard = ({ title, value, icon, color }: { title: string; value: string; icon: React.ReactNode; color: string; }) => (
-    <motion.div
-      className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80"
-      whileHover={{ y: -5, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-md font-semibold text-slate-700">{title}</h3>
-        <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
-      </div>
-      <p className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">{value}</p>
-    </motion.div>
-  );
-
-// 🖥️ Main Dashboard — iOS फ्रॉस्टेड ग्लास थीम
-const DashboardView = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
-  const [dashboardData, setDashboardData] = useState({
-    totalRevenue: 567890, netProfit: 397523, activeCampaigns: 42, totalTeamMembers: 15,
-    totalViews: 1250000, pendingApprovals: 8, accountIssues: 0,
-  });
-  const [revenueData, setRevenueData] = useState([
-      { name: 'Jan', revenue: 240000, expenses: 150000 },
-      { name: 'Feb', revenue: 310000, expenses: 180000 },
-      { name: 'Mar', revenue: 450000, expenses: 250000 },
-      { name: 'Apr', revenue: 420000, expenses: 280000 },
-      { name: 'May', revenue: 580000, expenses: 350000 },
-      { name: 'Jun', revenue: 567890, expenses: 397523 },
-  ]);
-  const [brands, setBrands] = useState([
-      { id: '1', name: 'Brand A', status: 'Active' },
-      { id: '2', name: 'Brand B', status: 'Active' },
-      { id: '3', name: 'Brand C', status: 'Pending' },
-  ]);
-  const [loading, setLoading] = useState(false);
-
-
-  return (
-    <div className="min-h-screen">
-      <motion.div
-        className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-6 mb-8"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tighter">Dashboard</h1>
-          <p className="text-md text-slate-500 mt-1">Welcome back! Here's what's happening.</p>
-        </div>
-      </motion.div>
-
-        <motion.div>
-            {loading ? (
-              <div className="flex justify-center items-center h-96">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600"></div>
-              </div>
-            ) : (
-              <motion.div  initial="hidden" animate="show" className="space-y-8">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Total Revenue" value={`₹${dashboardData.totalRevenue.toLocaleString()}`} icon={<DollarSign/>} color="bg-green-100 text-green-600"/>
-                    <StatCard title="Active Campaigns" value={dashboardData.activeCampaigns.toString()} icon={<LayoutDashboard/>} color="bg-purple-100 text-purple-600"/>
-                    <StatCard title="Team Members" value={dashboardData.totalTeamMembers.toString()} icon={<UsersGroup/>} color="bg-orange-100 text-orange-600"/>
-                    <StatCard title="Pending Approvals" value={dashboardData.pendingApprovals.toString()} icon={<CheckCircle/>} color="bg-yellow-100 text-yellow-600"/>
-                </div>
-
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                  <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
-                    <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RechartsBarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value/1000}k`}/>
-                                <Tooltip
-                                    cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
-                                    contentStyle={{ 
-                                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                        backdropFilter: 'blur(5px)',
-                                        border: '1px solid rgba(0, 0, 0, 0.1)', 
-                                        borderRadius: '12px'
-                                    }}
-                                />
-                                <Legend wrapperStyle={{ fontSize: '14px' }}/>
-                                <RechartsBar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
-                                <RechartsBar dataKey="expenses" fill="#f59e0b" name="Expenses" radius={[4, 4, 0, 0]} />
-                            </RechartsBarChart>
-                        </ResponsiveContainer>
-                    </div>
-                  </motion.div>
-
-                  <motion.div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
-                    <h3 className="font-bold text-xl mb-6 text-slate-800">Recent Brands</h3>
-                    <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                       {brands.length > 0 ? brands.slice(0, 5).map((brand: any, index) => (
-                        <motion.div
-                          key={brand.id}
-                          className="p-4 bg-white/30 rounded-lg border border-slate-300/50 hover:bg-white/70 transition-colors"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 }}
-                        >
-                          <h4 className="font-semibold text-slate-800">{brand.name || 'Unknown Brand'}</h4>
-                          <p className="text-sm text-slate-500">Status: {brand.status || 'N/A'}</p>
-                        </motion.div>
-                      )) : <p className="text-slate-500">No brands available.</p>}
-                    </div>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-          </motion.div>
-    </div>
-  );
-};
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -212,6 +96,21 @@ function AdminPanel() {
     const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
     const router = useRouter();
     const auth = useAuth();
+    const { firestore } = useFirebase();
+
+    // Data Fetching Hooks
+    const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+    const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
+    
+    const campaignsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campaigns') : null, [firestore]);
+    const { data: campaigns, isLoading: campaignsLoading } = useCollection(campaignsQuery);
+
+    const transactionsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'transactions')) : null, [firestore]);
+    const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
+
+    const brands = useMemoFirebase(() => users?.filter(u => u.role === 'brand') || [], [users]);
+    const staff = useMemoFirebase(() => users?.filter(u => u.role !== 'brand') || [], [users]);
+
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
@@ -240,23 +139,29 @@ function AdminPanel() {
         setActiveView('campaign_detail');
     };
 
+    const isLoading = usersLoading || campaignsLoading || transactionsLoading;
+
     const renderView = () => {
+        if (isLoading) {
+            return <div className="flex h-full w-full items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
+        }
+
         if (selectedCampaignId && activeView === 'campaign_detail') {
             return <CampaignDetailView campaignId={selectedCampaignId} onClose={() => { setSelectedCampaignId(null); setActiveView('campaigns'); }} />;
         }
         
         switch (activeView) {
             case 'profile': return <ProfileView />;
-            case 'campaigns': return <CampaignManagerView onSelectCampaign={handleSelectCampaign} />;
-            case 'campaign-approval': return <CampaignApprovalView />;
-            case 'users': return <UserManagementView onViewBrand={(brandId: any) => { setSelectedBrandId(brandId); setActiveView('brand_view'); }} />;
-            case 'finance': return <FinanceView setView={setActiveView} />;
-            case 'earnings': return <EarningsView setView={setActiveView} />; 
+            case 'campaigns': return <CampaignManagerView campaigns={campaigns || []} users={users || []} onSelectCampaign={handleSelectCampaign} />;
+            case 'campaign-approval': return <CampaignApprovalView campaigns={campaigns || []} />;
+            case 'users': return <UserManagementView brands={brands || []} onViewBrand={(brandId: any) => { setSelectedBrandId(brandId); setActiveView('brand_view'); }} />;
+            case 'finance': return <FinanceView transactions={transactions || []} setView={setActiveView} />;
+            case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
             case 'communication': return <PlaceholderView name="Communication" />;
             case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
             case 'dashboard':
             default:
-                return <DashboardView onViewChange={setActiveView} />;
+                return <DashboardView campaigns={campaigns || []} users={users || []} />;
         }
     };
 
@@ -279,7 +184,10 @@ function AdminPanel() {
                             icon={item.icon}
                             label={item.label}
                             active={activeView === item.id || (item.id === 'finance' && activeView === 'earnings')}
-                            onClick={() => setActiveView(item.id)}
+                            onClick={() => {
+                                setSelectedCampaignId(null);
+                                setActiveView(item.id);
+                            }}
                         />
                     ))}
                 </nav>

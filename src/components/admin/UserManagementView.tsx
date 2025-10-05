@@ -1,9 +1,14 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth, useFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-// THEME UPDATE: AddBrandForm को ग्लास थीम के लिए स्टाइल किया गया है
 const AddBrandForm = ({ onClose, onUserAdded }: { onClose: () => void, onUserAdded: () => void }) => {
+    const { auth, firestore } = useFirebase();
+    const { toast } = useToast();
     const [formData, setFormData] = useState({
         name: '', email: '', password: '', mobile: '', brandName: '', role: 'brand'
     });
@@ -11,14 +16,35 @@ const AddBrandForm = ({ onClose, onUserAdded }: { onClose: () => void, onUserAdd
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!auth || !firestore) {
+            toast({ variant: 'destructive', title: "Error", description: "Database not connected." });
+            return;
+        }
         setLoading(true);
-        // This is a placeholder for adding a brand.
-        console.log("Adding brand (demo):", formData);
-        alert('Brand added successfully! (This is a demo)');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        onUserAdded();
-        onClose();
-        setLoading(false);
+        try {
+            // Create user in Auth. This is temporary as admin shouldn't do this client-side.
+            // This will sign the admin out. This is a known limitation of client-side-only SDKs.
+            const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+            
+            // Add user to Firestore 'users' collection
+            await setDoc(doc(firestore, "users", userCredential.user.uid), {
+                uid: userCredential.user.uid,
+                name: formData.name,
+                email: formData.email,
+                brandName: formData.brandName,
+                mobileNumber: formData.mobile,
+                role: 'brand',
+                createdAt: serverTimestamp(),
+            });
+            
+            toast({ title: "Success!", description: "Brand user has been created." });
+            onUserAdded();
+            onClose();
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error creating user", description: error.message });
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,34 +97,11 @@ const AddBrandForm = ({ onClose, onUserAdded }: { onClose: () => void, onUserAdd
     );
 };
 
-const UserManagementView = ({ onViewBrand }: { onViewBrand: (id: string) => void }) => {
+const UserManagementView = ({ brands, onViewBrand }: { brands: any[], onViewBrand: (id: string) => void }) => {
     const [showAddBrandForm, setShowAddBrandForm] = useState(false);
-    const [brands, setBrands] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchBrands = useCallback(async () => {
-        setLoading(true);
-        // Placeholder data instead of DB call
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const brandsData = [
-            { id: 'brand-1', name: 'John Doe', brandName: 'JD Fashion', email: 'john@jdfashion.com', mobile: '9876543210' },
-            { id: 'brand-2', name: 'Jane Smith', brandName: 'Smith Style', email: 'jane@smithstyle.com', mobile: '8765432109' },
-        ];
-        setBrands(brandsData);
-        setLoading(false);
-    }, []);
-
-    useEffect(() => {
-        fetchBrands();
-    }, [fetchBrands]);
 
     const handleUserAdded = () => {
-        fetchBrands(); // Refresh list after adding a new brand
-    };
-
-    const handleViewBrandDetails = (brandId: string) => {
-        // Navigate to brand details page in read-only mode
-        onViewBrand(brandId);
+        // Data will be re-fetched by the parent component's useCollection hook automatically
     };
 
     return (
@@ -127,42 +130,38 @@ const UserManagementView = ({ onViewBrand }: { onViewBrand: (id: string) => void
                 <div className="p-6 border-b border-slate-300/50">
                     <h2 className="text-lg font-semibold text-slate-800">Registered Brands</h2>
                 </div>
-                {loading ? (
-                     <div className="p-6 text-center text-slate-700">Loading brands...</div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="border-b border-slate-300/50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Brand Name</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Mobile</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Details</th>
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="border-b border-slate-300/50">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Name</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Brand Name</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Email</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Mobile</th>
+                                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-300/50">
+                            {brands.map(brand => (
+                                <tr key={brand.id} className="hover:bg-white/30 transition-colors duration-200">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{brand.name}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brand.brandName}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brand.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brand.mobileNumber || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                        <button
+                                            onClick={() => onViewBrand(brand.id)}
+                                            className="px-3 py-1 text-indigo-600 hover:underline"
+                                        >
+                                            View Details
+                                        </button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-300/50">
-                                {brands.map(brand => (
-                                    <tr key={brand.id} className="hover:bg-white/30 transition-colors duration-200">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{brand.name}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brand.brandName}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brand.email}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brand.mobile}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                            <button
-                                                onClick={() => handleViewBrandDetails(brand.id)}
-                                                className="px-3 py-1 text-indigo-600 hover:underline"
-                                            >
-                                                View Details
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-                 {brands.length === 0 && !loading && (
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                 {brands.length === 0 && (
                     <div className="p-6 text-center text-slate-500">No brands found.</div>
                 )}
             </motion.div>

@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Plus } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Plus, LoaderCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CampaignDetailView from './CampaignDetailView';
 import NewCampaignForm from './NewCampaignForm';
-
 
 const StatusBadgeComponent = ({ status }: { status: string }) => {
     const statusClasses: { [key: string]: string } = {
@@ -18,50 +17,31 @@ const StatusBadgeComponent = ({ status }: { status: string }) => {
     return <span className={`text-xs px-2.5 py-1 rounded-full ${statusClasses[status] || 'bg-gray-100 text-gray-800'}`}>{status}</span>;
 };
 
-const CampaignManagerView = () => {
-    const [campaigns, setCampaigns] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
+const CampaignManagerView = ({ campaigns, users, onSelectCampaign }: { campaigns: any[], users: any[], onSelectCampaign: (id: string) => void }) => {
     const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filter, setFilter] = useState('All');
-    const [brandNames, setBrandNames] = useState<any>({});
+    const [filter, setFilter] = useState('All Statuses');
+
+    const brandNames = useMemo(() => {
+        const nameMap: { [key: string]: string } = {};
+        users.forEach(user => {
+            if (user.role === 'brand') {
+                nameMap[user.uid] = user.brandName || user.name;
+            }
+        });
+        return nameMap;
+    }, [users]);
     
-    useEffect(() => {
-        setLoading(true);
-        // Placeholder data
-        const placeholderCampaigns = [
-            { id: 'camp-001', name: 'Summer Kick-off Campaign', brandId: 'brand-1', status: 'Active', budget: 50000, brandName: 'Cool Brand Inc.' },
-            { id: 'camp-002', name: 'Diwali Bonanza Sale', brandId: 'brand-2', status: 'Completed', budget: 120000, brandName: 'Festive Deals' },
-            { id: 'camp-003', name: 'New Fitness Tracker', brandId: 'brand-1', status: 'Pending Approval', budget: 75000, brandName: 'Cool Brand Inc.' },
-        ];
-        
-        setCampaigns(placeholderCampaigns);
-        
-        const placeholderBrandNames = {
-            'brand-1': 'Cool Brand Inc.',
-            'brand-2': 'Festive Deals',
-        }
-        setBrandNames(placeholderBrandNames);
-
-        setLoading(false);
-    }, [filter]);
-
-
     const filteredCampaigns = campaigns.filter(campaign =>
         (campaign.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (brandNames[campaign.brandId] || campaign.brandName)?.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (filter === 'All' || filter === 'All Statuses' || campaign.status === filter)
+        (filter === 'All Statuses' || campaign.status === filter)
     );
 
     return (
         <div className="space-y-6">
             <AnimatePresence>
-                {selectedCampaign && <CampaignDetailView campaignId={selectedCampaign.id} onClose={() => setSelectedCampaign(null)} />}
-                {showNewCampaignForm && <NewCampaignForm onCreateCampaign={(newCampaign) => {
-                     setCampaigns(prev => [newCampaign, ...prev]);
-                     setShowNewCampaignForm(false)
-                }} onCancel={() => setShowNewCampaignForm(false)} />}
+                {showNewCampaignForm && <NewCampaignForm onCampaignCreated={() => setShowNewCampaignForm(false)} onCancel={() => setShowNewCampaignForm(false)} />}
             </AnimatePresence>
 
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
@@ -101,39 +81,40 @@ const CampaignManagerView = () => {
                 </select>
             </motion.div>
 
-            {loading ? <div className="flex justify-center items-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div> : (
-                <motion.div 
-                    className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 overflow-hidden"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                >
-                    <table className="min-w-full">
-                        <thead className="border-b border-slate-300/70">
-                            <tr>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Campaign Name</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Brand</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Budget</th>
-                                <th scope="col" className="relative px-6 py-4"><span className="sr-only">View</span></th>
+            <motion.div 
+                className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 overflow-hidden"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+            >
+                <table className="min-w-full">
+                    <thead className="border-b border-slate-300/70">
+                        <tr>
+                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Campaign Name</th>
+                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Brand</th>
+                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Budget</th>
+                            <th scope="col" className="relative px-6 py-4"><span className="sr-only">View</span></th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-300/50">
+                        {filteredCampaigns.map((campaign, index) => (
+                            <tr key={`${campaign.id}-${index}`} className="hover:bg-white/30 transition-colors duration-200">
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{campaign.name}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brandNames[campaign.brandId] || campaign.brandName || 'N/A'}</td>
+                                <td className="px-6 py-4 whitespace-nowrap"><StatusBadgeComponent status={campaign.status} /></td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">₹{campaign.budget?.toLocaleString() || 'N/A'}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onClick={() => onSelectCampaign(campaign.id)} className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-500/10 rounded-full hover:bg-indigo-500/20">View Details</button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-300/50">
-                            {filteredCampaigns.map((campaign, index) => (
-                                <tr key={`${campaign.id}-${index}`} className="hover:bg-white/30 transition-colors duration-200">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{campaign.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{brandNames[campaign.brandId] || campaign.brandName || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap"><StatusBadgeComponent status={campaign.status} /></td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">₹{campaign.budget?.toLocaleString() || 'N/A'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button onClick={() => setSelectedCampaign(campaign)} className="px-3 py-1 text-xs font-semibold text-indigo-700 bg-indigo-500/10 rounded-full hover:bg-indigo-500/20">View Details</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </motion.div>
-            )}
+                        ))}
+                    </tbody>
+                </table>
+                 {filteredCampaigns.length === 0 && (
+                    <div className="p-8 text-center text-slate-500">No campaigns match your criteria.</div>
+                )}
+            </motion.div>
         </div>
     );
 };

@@ -2,10 +2,14 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, LoaderCircle } from 'lucide-react';
+import { useFirebase } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
-
-const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (campaign: any) => void; onCancel: () => void; }) => {
+const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: () => void; onCancel: () => void; }) => {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
     const [formData, setFormData] = useState({
         name: '',
         brandName: '',
@@ -13,12 +17,7 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
         budget: '',
         expectedReels: '',
         deadline: '',
-        teamLead: '',
-        priority: 'Medium',
-        category: 'Product Promotion',
-        assignedUploader: ''
     });
-
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -28,31 +27,29 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!firestore) {
+            toast({ variant: 'destructive', title: "Error", description: "Database not connected." });
+            return;
+        }
         setLoading(true);
         try {
+            const campaignsCollection = collection(firestore, 'campaigns');
             const newCampaign = {
                 ...formData,
                 budget: parseFloat(formData.budget),
                 expectedReels: parseInt(formData.expectedReels),
                 status: 'Pending Approval',
-                progress: 0,
-                reels: 0,
-                views: 0,
-                roi: 0,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
             };
             
-            // This is a placeholder as per instructions. No DB connection.
-            console.log("Creating campaign (demo):", newCampaign);
-            alert("Campaign created successfully! (This is a demo)");
+            await addDoc(campaignsCollection, newCampaign);
 
-            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate async operation
-            onCreateCampaign({ id: `demo-${Date.now()}`, ...newCampaign });
+            toast({ title: "Success!", description: "Campaign created and is pending approval." });
+            onCampaignCreated();
 
-        } catch (error) {
-            console.error('Error creating campaign:', error);
-            alert('Error creating campaign. Please try again.');
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Error", description: `Failed to create campaign: ${error.message}` });
         } finally {
             setLoading(false);
         }
@@ -129,43 +126,6 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
                                 className={inputStyle}
                             />
                         </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Team Lead</label>
-                            <input
-                                type="text" name="teamLead" value={formData.teamLead} onChange={handleChange}
-                                className={inputStyle} placeholder="Assign team lead"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Assigned Uploader</label>
-                            <input
-                                type="text" name="assignedUploader" value={formData.assignedUploader} onChange={handleChange}
-                                className={inputStyle} placeholder="Assign uploader"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Priority</label>
-                            <select name="priority" value={formData.priority} onChange={handleChange} className={inputStyle}>
-                                <option>Low</option>
-                                <option>Medium</option>
-                                <option>High</option>
-                                <option>Urgent</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Category</label>
-                            <select name="category" value={formData.category} onChange={handleChange} className={inputStyle}>
-                                <option>Product Promotion</option>
-                                <option>Brand Awareness</option>
-                                <option>Seasonal Campaign</option>
-                                <option>Event Promotion</option>
-                                <option>Service Promotion</option>
-                            </select>
-                        </div>
                     </div>
 
                     <div className="flex justify-end space-x-4 pt-6 border-t border-slate-300/70">
@@ -179,8 +139,9 @@ const NewCampaignForm = ({ onCreateCampaign, onCancel }: { onCreateCampaign: (ca
                         <button
                             type="submit"
                             disabled={loading}
-                            className="px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-colors disabled:bg-slate-400 disabled:shadow-none disabled:cursor-not-allowed"
+                            className="flex items-center px-6 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-colors disabled:bg-slate-400 disabled:shadow-none disabled:cursor-not-allowed"
                         >
+                            {loading ? <LoaderCircle className="animate-spin mr-2"/> : null}
                             {loading ? 'Creating...' : 'Create Campaign'}
                         </button>
                     </div>

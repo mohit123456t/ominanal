@@ -1,8 +1,9 @@
 'use client';
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Briefcase, DollarSign, Video, Calendar, X } from 'lucide-react';
+import { Briefcase, DollarSign, Video, Calendar, X, LoaderCircle } from 'lucide-react';
+import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, where } from 'firebase/firestore';
 
 
 // Helper components
@@ -16,14 +17,12 @@ const InfoPill = ({ icon, label, value }: { icon: React.ReactNode, label: string
     </div>
 );
 
-const StaffDisplay = ({ role, assignedStaff }: { role: string, assignedStaff: any[] }) => {
-    const assignment = assignedStaff.find(a => a.role === role);
-    const staffName = assignment ? (assignment.name || assignment.email) : 'Not Assigned';
+const StaffDisplay = ({ role, staffName, staffEmail }: { role: string, staffName?: string, staffEmail?: string }) => {
     return (
         <div className="bg-white/40 border border-slate-300/50 rounded-lg p-4">
             <p className="text-sm font-medium text-slate-600 capitalize">{role.replace('_', ' ')}</p>
-            <p className="font-semibold text-slate-900 mt-1">{staffName}</p>
-            {assignment && <p className="text-xs text-slate-500">{assignment.email}</p>}
+            <p className="font-semibold text-slate-900 mt-1">{staffName || 'Not Assigned'}</p>
+            {staffEmail && <p className="text-xs text-slate-500">{staffEmail}</p>}
         </div>
     );
 };
@@ -42,91 +41,89 @@ const TabButton = ({ label, isActive, onClick }: { label: string, isActive: bool
 );
 
 const CampaignDetailView = ({ campaignId, onClose }: { campaignId: string, onClose: () => void }) => {
-    const [campaign, setCampaign] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [assignedStaff, setAssignedStaff] = useState<any[]>([]);
-    const [workItems, setWorkItems] = useState<{ scripts: any[], videos: any[], thumbnails: any[], uploads: any[] }>({ scripts: [], videos: [], thumbnails: [], uploads: [] });
+    const { firestore } = useFirebase();
+
+    // Fetch campaign, users, and work items
+    const campaignDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'campaigns', campaignId) : null, [firestore, campaignId]);
+    const { data: campaign, isLoading: campaignLoading } = useDoc<any>(campaignDocRef);
+
+    const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+    const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
+
+    const workItemsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'work_items'), where('campaignId', '==', campaignId)) : null, [firestore, campaignId]);
+    const { data: workItems, isLoading: workItemsLoading } = useCollection<any>(workItemsQuery);
+
     const [activeTab, setActiveTab] = useState('scripts');
 
-    const staffRoles = ['video_editor', 'uploader', 'script_writer', 'thumbnail_maker'];
+    const loading = campaignLoading || usersLoading || workItemsLoading;
+    
+    // Process data once loaded
+    const staffAssignments = useMemo(() => {
+        if (!campaign || !users) return {};
+        const assignments: { [key: string]: any } = {};
+        const roles = ['Uploader', 'VideoEditor', 'ScriptWriter', 'ThumbnailMaker'];
+        roles.forEach(role => {
+            const staffId = campaign[`assigned${role}`];
+            if (staffId) {
+                const staffMember = users.find(u => u.uid === staffId);
+                assignments[role] = staffMember;
+            }
+        });
+        return assignments;
+    }, [campaign, users]);
+    
+    const categorizedWorkItems = useMemo(() => {
+        if (!workItems) return { scripts: [], videos: [], thumbnails: [], uploads: [] };
+        return workItems.reduce((acc, item) => {
+            if (item.type) {
+                const typeKey = `${item.type.toLowerCase()}s`;
+                if (!acc[typeKey]) acc[typeKey] = [];
+                acc[typeKey].push(item);
+            }
+            return acc;
+        }, {} as any);
+    }, [workItems]);
 
-    useEffect(() => {
-        setLoading(true);
-        // Placeholder Data
-        const placeholderCampaign = {
-            id: campaignId,
-            name: 'Summer Kick-off Campaign',
-            brandName: 'Cool Brand Inc.',
-            budget: 50000,
-            expectedReels: 20,
-            deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            description: 'A campaign to kick off the summer season with a splash. Focus on vibrant, energetic content targeting a young audience.',
-            assignedTo: 'uploader-1',
-            assignedVideoEditor: 'editor-1',
-            assignedScriptWriter: 'writer-1',
-            assignedThumbnailMaker: 'thumb-1',
-        };
 
-        const placeholderStaff = [
-            { role: 'uploader', uid: 'uploader-1', name: 'Ravi Kumar', email: 'ravi@example.com' },
-            { role: 'video_editor', uid: 'editor-1', name: 'Priya Patel', email: 'priya@example.com' },
-            { role: 'script_writer', uid: 'writer-1', name: 'Amit Desai', email: 'amit@example.com' },
-            { role: 'thumbnail_maker', uid: 'thumb-1', name: 'Sunita Singh', email: 'sunita@example.com' },
-        ];
-        
-        const placeholderWorkItems = {
-            scripts: [{ id: 's1', videoTitle: 'Intro Video Script', scriptContent: 'Scene 1: Beach party...' }],
-            videos: [{ id: 'v1', videoTitle: 'Intro Video Final Cut', downloadURL: '#' }],
-            thumbnails: [{ id: 't1', videoTitle: 'Intro Video Thumbnail', thumbnailURL: 'https://picsum.photos/seed/thumb1/100/100' }],
-            uploads: [{ id: 'up1', title: 'Our Summer Kick-off is LIVE!', publishedAt: new Date() }],
-        };
-
-        setCampaign(placeholderCampaign);
-        setAssignedStaff(placeholderStaff);
-        setWorkItems(placeholderWorkItems);
-        setLoading(false);
-    }, [campaignId]);
-
-    if (loading) return <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div></div>;
+    if (loading) return <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"><LoaderCircle className="w-12 h-12 animate-spin text-white"/></div>;
     if (!campaign) return <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"><div className="bg-white/50 p-8 rounded-2xl text-slate-800">Campaign not found.</div></div>;
 
     const renderContent = () => {
-        const items = workItems[activeTab as keyof typeof workItems];
-        if (!items || items.length === 0) {
+        const items = categorizedWorkItems[activeTab] || [];
+        if (items.length === 0) {
             return <div className="text-center py-10 text-slate-500">No items found for this category.</div>;
         }
 
         switch(activeTab) {
             case 'scripts':
-                return items.map(item => (
+                return items.map((item: any) => (
                     <div key={item.id} className="p-4 bg-white/40 rounded-lg border border-slate-300/50">
                         <p className="font-semibold text-slate-800">{item.videoTitle || 'Script'}</p>
-                        <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{item.scriptContent}</p>
+                        <p className="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{item.content}</p>
                     </div>
                 ));
             case 'videos':
-                 return items.map(item => (
+                 return items.map((item: any) => (
                     <div key={item.id} className="p-4 bg-white/40 rounded-lg border border-slate-300/50">
                         <p className="font-semibold text-slate-800">{item.videoTitle || 'Edited Video'}</p>
-                        <a href={item.downloadURL} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline">View/Download Video</a>
+                        <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline">View/Download Video</a>
                     </div>
                 ));
             case 'thumbnails':
-                 return items.map(item => (
+                 return items.map((item: any) => (
                     <div key={item.id} className="p-4 bg-white/40 rounded-lg border border-slate-300/50 flex items-center gap-4">
-                        <img src={item.thumbnailURL} alt="Thumbnail" className="w-24 h-24 object-cover rounded-md" />
+                        <img src={item.url} alt="Thumbnail" className="w-24 h-24 object-cover rounded-md" />
                         <div>
                              <p className="font-semibold text-slate-800">{item.videoTitle || 'Thumbnail'}</p>
-                             <a href={item.thumbnailURL} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline">View Full Size</a>
+                             <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline">View Full Size</a>
                         </div>
                     </div>
                 ));
             case 'uploads':
-                return items.map(item => (
+                return items.map((item: any) => (
                     <div key={item.id} className="p-4 bg-white/40 rounded-lg border border-slate-300/50">
                          <p className="font-semibold text-slate-800">{item.title}</p>
-                         <p className="text-sm text-slate-500">Uploaded on: {new Date(item.publishedAt).toLocaleDateString()}</p>
-                         {/* Add more reel details if needed */}
+                         <p className="text-sm text-slate-500">Uploaded on: {item.uploadedAt ? new Date(item.uploadedAt.seconds * 1000).toLocaleDateString() : 'N/A'}</p>
                     </div>
                 ));
             default: return null;
@@ -169,8 +166,11 @@ const CampaignDetailView = ({ campaignId, onClose }: { campaignId: string, onClo
                     {/* Assigned Staff Section */}
                      <div className="bg-white/30 border border-slate-300/50 rounded-xl p-6">
                         <h3 className="text-xl font-bold text-slate-800 mb-4">Assigned Staff</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {staffRoles.map(role => <StaffDisplay key={role} role={role} assignedStaff={assignedStaff} />)}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <StaffDisplay role="Uploader" staffName={staffAssignments.Uploader?.name} staffEmail={staffAssignments.Uploader?.email} />
+                            <StaffDisplay role="Video Editor" staffName={staffAssignments.VideoEditor?.name} staffEmail={staffAssignments.VideoEditor?.email} />
+                            <StaffDisplay role="Script Writer" staffName={staffAssignments.ScriptWriter?.name} staffEmail={staffAssignments.ScriptWriter?.email} />
+                            <StaffDisplay role="Thumbnail Maker" staffName={staffAssignments.ThumbnailMaker?.name} staffEmail={staffAssignments.ThumbnailMaker?.email} />
                         </div>
                     </div>
 
@@ -179,10 +179,10 @@ const CampaignDetailView = ({ campaignId, onClose }: { campaignId: string, onClo
                         <div className="px-6 pt-4">
                             <h3 className="text-xl font-bold text-slate-800">Work Progress</h3>
                             <div className="border-b border-slate-300/70 mt-2">
-                                <TabButton label={`Scripts (${workItems.scripts.length})`} isActive={activeTab === 'scripts'} onClick={() => setActiveTab('scripts')} />
-                                <TabButton label={`Edited Videos (${workItems.videos.length})`} isActive={activeTab === 'videos'} onClick={() => setActiveTab('videos')} />
-                                <TabButton label={`Thumbnails (${workItems.thumbnails.length})`} isActive={activeTab === 'thumbnails'} onClick={() => setActiveTab('thumbnails')} />
-                                <TabButton label={`Uploaded Reels (${workItems.uploads.length})`} isActive={activeTab === 'uploads'} onClick={() => setActiveTab('uploads')} />
+                                <TabButton label={`Scripts (${categorizedWorkItems.scripts?.length || 0})`} isActive={activeTab === 'scripts'} onClick={() => setActiveTab('scripts')} />
+                                <TabButton label={`Edited Videos (${categorizedWorkItems.videos?.length || 0})`} isActive={activeTab === 'videos'} onClick={() => setActiveTab('videos')} />
+                                <TabButton label={`Thumbnails (${categorizedWorkItems.thumbnails?.length || 0})`} isActive={activeTab === 'thumbnails'} onClick={() => setActiveTab('thumbnails')} />
+                                <TabButton label={`Uploaded Reels (${categorizedWorkItems.uploads?.length || 0})`} isActive={activeTab === 'uploads'} onClick={() => setActiveTab('uploads')} />
                             </div>
                         </div>
                         <div className="p-6 space-y-4">

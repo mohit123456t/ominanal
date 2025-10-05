@@ -1,31 +1,32 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 import CampaignAssignmentView from './CampaignAssignmentView';
+import { useToast } from '@/hooks/use-toast';
 
-const CampaignApprovalView = () => {
-    const [campaigns, setCampaigns] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+const CampaignApprovalView = ({ campaigns: initialCampaigns }: { campaigns: any[] }) => {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
+    const [campaigns, setCampaigns] = useState(() => initialCampaigns.filter(c => c.status === 'Pending Approval'));
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
     const [viewMode, setViewMode] = useState('list'); // 'list', 'assign'
 
-    useEffect(() => {
-        setLoading(true);
-        // Placeholder data
-        const placeholderCampaigns = [
-            { id: 'camp-001', name: 'Summer Kick-off Campaign', budget: 50000, status: 'Pending Approval' },
-            { id: 'camp-002', name: 'Diwali Bonanza Sale', budget: 120000, status: 'Pending Approval' },
-            { id: 'camp-003', name: 'New Product Launch - Fitness Tracker', budget: 75000, status: 'Pending Approval' },
-        ];
-        setCampaigns(placeholderCampaigns);
-        setLoading(false);
-    }, []);
-
     const handleUpdateStatus = async (id: string, newStatus: string) => {
-        // This is a placeholder, no actual DB update
-        setCampaigns(campaigns.filter(c => c.id !== id));
-        alert(`Campaign ${id} has been ${newStatus}.`);
+        if (!firestore) {
+            toast({ variant: "destructive", title: "Error", description: "Database not available." });
+            return;
+        }
+
+        const campaignRef = doc(firestore, "campaigns", id);
+        try {
+            await updateDoc(campaignRef, { status: newStatus });
+            setCampaigns(prev => prev.filter(c => c.id !== id));
+            toast({ title: "Success", description: `Campaign has been ${newStatus}.` });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Error", description: `Failed to update status: ${error.message}` });
+        }
     };
     
     const openAssignmentView = (campaign: any) => {
@@ -37,14 +38,6 @@ const CampaignApprovalView = () => {
         setSelectedCampaign(null);
         setViewMode('list');
     };
-
-    if (loading) {
-        return <div className="text-center p-6">Loading pending campaigns...</div>;
-    }
-
-    if (error) {
-        return <div className="text-center p-6 text-red-500">{error}</div>;
-    }
 
     return (
         <div className="p-1">
@@ -65,7 +58,7 @@ const CampaignApprovalView = () => {
                                     >
                                         <div>
                                             <h3 className="font-bold text-lg text-slate-800">{campaign.name}</h3>
-                                            <p className="text-sm text-slate-600">Budget: ₹{campaign.budget.toLocaleString()}</p>
+                                            <p className="text-sm text-slate-600">Budget: ₹{campaign.budget?.toLocaleString() || 'N/A'}</p>
                                         </div>
                                         <div className="flex items-center space-x-3">
                                             <button onClick={() => handleUpdateStatus(campaign.id, 'Rejected')} className="px-4 py-2 text-sm font-semibold text-red-600 bg-red-100/70 hover:bg-red-200/70 rounded-lg">Reject</button>

@@ -1,35 +1,46 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { useFirebase } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { doc, updateDoc } from 'firebase/firestore';
 
-const FinanceView = ({ setView }: { setView: (view: string) => void }) => {
-    const [transactions, setTransactions] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
 
-    useEffect(() => {
-        setLoading(true);
-        // Placeholder data
-        const placeholderTransactions = [
-            { id: 'txn_1', brandId: 'brand_a', timestamp: { seconds: Date.now() / 1000 - 86400 }, amount: 5000, status: 'Completed', type: 'DEPOSIT' },
-            { id: 'txn_2', brandId: 'brand_b', timestamp: { seconds: Date.now() / 1000 - 172800 }, amount: 10000, status: 'Pending', type: 'DEPOSIT' },
-            { id: 'txn_3', brandId: 'brand_c', timestamp: { seconds: Date.now() / 1000 - 259200 }, amount: 2500, status: 'Rejected', type: 'DEPOSIT' },
-        ];
-        setTransactions(placeholderTransactions);
-        setLoading(false);
-    }, []);
+const FinanceView = ({ transactions, setView }: { transactions: any[], setView: (view: string) => void }) => {
+    const { firestore } = useFirebase();
+    const { toast } = useToast();
 
     const handleUpdateStatus = async (transaction: any, newStatus: string) => {
-        if (!transaction.brandId || !transaction.id) {
-            console.error("Invalid transaction object:", transaction);
-            alert("Cannot update status due to invalid transaction data.");
+        if (!firestore || !transaction.brandId || !transaction.id) {
+            toast({ variant: 'destructive', title: "Error", description: "Invalid transaction data or database connection." });
             return;
         }
 
-        // Placeholder logic
-        alert(`This is a demo. Would have updated transaction ${transaction.id} to ${newStatus}.`);
-        setTransactions(prev => prev.map(tx => tx.id === transaction.id ? { ...tx, status: newStatus } : tx));
+        const transactionDocRef = doc(firestore, `users/${transaction.brandId}/transactions`, transaction.id);
+        
+        try {
+            await updateDoc(transactionDocRef, { status: newStatus });
+            if (newStatus === 'Completed' && transaction.type === 'DEPOSIT') {
+                const userDocRef = doc(firestore, 'users', transaction.brandId);
+                // Note: This needs a server-side function for security in production
+                // For this demo, we'll optimistically update from the client.
+                const { getDoc, runTransaction } = await import('firebase/firestore');
+                await runTransaction(firestore, async (dbTransaction) => {
+                    const userDoc = await dbTransaction.get(userDocRef);
+                    if (!userDoc.exists()) {
+                        throw new Error("User document not found!");
+                    }
+                    const newBalance = (userDoc.data().balance || 0) + transaction.amount;
+                    dbTransaction.update(userDocRef, { balance: newBalance });
+                });
+            }
+            toast({ title: 'Success', description: `Transaction status updated to ${newStatus}.` });
+            // Note: The UI will update automatically due to the real-time listener in the parent component.
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: "Update Failed", description: error.message });
+            console.error("Error updating transaction:", error);
+        }
     };
     
     return (
@@ -40,7 +51,7 @@ const FinanceView = ({ setView }: { setView: (view: string) => void }) => {
                     onClick={() => setView('earnings')}
                     className="font-semibold text-white bg-sky-600 hover:bg-sky-700 px-5 py-2.5 rounded-lg transition-colors shadow-md"
                 >
-                    campaign Earnings
+                    Campaign Earnings
                 </button>
             </div>
 
@@ -58,9 +69,7 @@ const FinanceView = ({ setView }: { setView: (view: string) => void }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {loading ? (
-                                <tr><td colSpan={6} className="p-4 text-center text-slate-500">Loading...</td></tr>
-                            ) : transactions.length === 0 ? (
+                            {transactions.length === 0 ? (
                                 <tr><td colSpan={6} className="p-4 text-center text-slate-500">No transactions found.</td></tr>
                             ) : (
                                 transactions.map(tx => (
