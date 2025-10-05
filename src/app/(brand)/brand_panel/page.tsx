@@ -142,7 +142,7 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
     const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
     const [showOrderForm, setShowOrderForm] = useState(false);
     const [orders, setOrders] = useState<any[]>([]);
-    const [profile, setProfile] = useState({});
+    const [profile, setProfile] = useState<any>({});
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -221,7 +221,7 @@ const BrandPanel = ({ viewBrandId: propViewBrandId, onBack }: { viewBrandId?: st
 
     const renderView = () => {
         if (selectedCampaign && activeView === 'campaign_detail') {
-            return <CampaignDetailView campaign={selectedCampaign} onClose={handleBackToCampaigns} onCreateOrder={() => setShowOrderForm(true)} />;
+            return <CampaignDetailView campaignId={selectedCampaign.id} onClose={handleBackToCampaigns} onCreateOrder={() => setShowOrderForm(true)} />;
         }
         switch (activeView) {
             case 'campaigns':
