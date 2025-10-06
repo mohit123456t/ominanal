@@ -93,7 +93,7 @@ const UploaderPanel = () => {
             case 'upload-history':
                 return <UploadHistoryView userProfile={userProfile} />;
             case 'api-keys':
-                return <ApiKeysView credentialsList={credentialsList || []} isLoadingCreds={isLoadingCreds} />;
+                return <ApiKeysView credentialsList={credentialsList || []} isLoadingCreds={isLoadingCreds} accounts={accounts || []} />;
             case 'connected-accounts':
                 return <ConnectedAccountsView accounts={accounts || []} credentialsList={credentialsList || []} isLoading={isLoadingAccounts || isLoadingCreds} />;
             case 'payments':
@@ -198,5 +198,3 @@ const UploaderPanel = () => {
 };
 
 export default UploaderPanel;
-
-    

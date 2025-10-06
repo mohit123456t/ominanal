@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { KeyRound, LoaderCircle, Youtube, Instagram, Save, Twitter, Info, Facebook, Unlink, Link2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
 import { Label } from '@/components/ui/label';
@@ -146,20 +146,13 @@ function OAuthForm({
 }
 
 
-export default function ApiKeysView({ credentialsList, isLoadingCreds }: { credentialsList: PlatformCredentials[], isLoadingCreds: boolean }) {
+export default function ApiKeysView({ credentialsList, isLoadingCreds, accounts }: { credentialsList: PlatformCredentials[], isLoadingCreds: boolean, accounts: SocialMediaAccount[] }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const [activeAccordionItem, setActiveAccordionItem] = useState<string | undefined>();
   const [isConnecting, setIsConnecting] = useState<string | null>(null);
 
   const { toast } = useToast();
-
-  const accountsCollectionRef = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
-  }, [user, firestore]);
-  
-  const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
 
   const credentials = useMemo(() => {
     if (!credentialsList) return {};
@@ -242,7 +235,8 @@ export default function ApiKeysView({ credentialsList, isLoadingCreds }: { crede
   }
 
   const handleDisconnect = async (accountId: string) => {
-    if (!accountsCollectionRef) return;
+    if (!user || !firestore) return;
+    const accountsCollectionRef = collection(firestore, 'users', user.uid, 'socialMediaAccounts');
     try {
         const docRef = doc(accountsCollectionRef, accountId);
         await deleteDoc(docRef);
@@ -252,9 +246,7 @@ export default function ApiKeysView({ credentialsList, isLoadingCreds }: { crede
     }
   };
   
-  const isLoading = isLoadingAccounts || isLoadingCreds;
-
-  if (isLoading) {
+  if (isLoadingCreds) {
     return (
         <div className="flex justify-center p-8">
             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
@@ -340,5 +332,3 @@ export default function ApiKeysView({ credentialsList, isLoadingCreds }: { crede
     </div>
   );
 }
-
-    
