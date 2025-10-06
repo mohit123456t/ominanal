@@ -83,6 +83,66 @@
         "accountName"
       ]
     },
+    "Campaign": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Campaign",
+      "type": "object",
+      "description": "Represents a marketing campaign created by a brand.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the campaign."
+        },
+        "brandId": {
+          "type": "string",
+          "description": "The ID of the user (brand) who created the campaign."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the campaign."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the campaign."
+        },
+        "budget": {
+          "type": "number",
+          "description": "The total budget allocated for the campaign."
+        },
+        "serviceLevel": {
+          "type": "string",
+          "description": "The selected service level for the campaign.",
+          "enum": ["reels-only", "ai-assisted", "manual"]
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the campaign.",
+          "enum": ["Pending Approval", "Active", "Completed", "Rejected", "Draft"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the campaign was created."
+        },
+        "assignedUploader": {
+          "type": "string",
+          "description": "The UID of the assigned uploader."
+        },
+        "assignedVideoEditor": {
+          "type": "string",
+          "description": "The UID of the assigned video editor."
+        },
+        "assignedScriptWriter": {
+          "type": "string",
+          "description": "The UID of the assigned script writer."
+        },
+        "assignedThumbnailMaker": {
+          "type": "string",
+          "description": "The UID of the assigned thumbnail maker."
+        }
+      },
+      "required": ["id", "brandId", "name", "budget", "serviceLevel", "status", "createdAt"]
+    },
     "Post": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Post",

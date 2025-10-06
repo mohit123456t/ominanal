@@ -6,24 +6,34 @@ import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase'
 import { doc, updateDoc, collection, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-const AssignmentDropdown = ({ label, value, onChange, users, role }: {label:string, value:string, onChange:(val: string)=>void, users: any[], role:string}) => (
-    <div className="bg-white/80 p-5 rounded-2xl border-2 border-slate-200/90 shadow-sm transition-all duration-300 focus-within:shadow-lg focus-within:border-indigo-300">
-        <label htmlFor={`${role}-select`} className="block mb-2.5 text-base font-bold text-slate-800 tracking-tight">{label}</label>
-        <select 
-            id={`${role}-select`} 
-            value={value} 
-            onChange={e => onChange(e.target.value)} 
-            className="w-full p-3 bg-white rounded-xl border-2 border-slate-300/80 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-slate-900 font-medium"
+const AssignmentDropdown = ({ label, value, onChange, users, role, isVisible = true }: {label:string, value:string, onChange:(val: string)=>void, users: any[], role:string, isVisible?: boolean}) => {
+    if (!isVisible) return null;
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white/80 p-5 rounded-2xl border-2 border-slate-200/90 shadow-sm transition-all duration-300 focus-within:shadow-lg focus-within:border-indigo-300"
         >
-            <option value="">-- Not Assigned --</option>
-            {users.length > 0 ? (
-                users.map(user => <option key={user.uid} value={user.uid} className="font-medium">{user.name} ({user.email})</option>)
-            ) : (
-                <option disabled>No users found with role: '{role}'</option>
-            )}
-        </select>
-    </div>
-);
+            <label htmlFor={`${role}-select`} className="block mb-2.5 text-base font-bold text-slate-800 tracking-tight">{label}</label>
+            <select 
+                id={`${role}-select`} 
+                value={value} 
+                onChange={e => onChange(e.target.value)} 
+                className="w-full p-3 bg-white rounded-xl border-2 border-slate-300/80 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-slate-900 font-medium"
+            >
+                <option value="">-- Not Assigned --</option>
+                {users.length > 0 ? (
+                    users.map(user => <option key={user.uid} value={user.uid} className="font-medium">{user.name} ({user.email})</option>)
+                ) : (
+                    <option disabled>No users found with role: '{role}'</option>
+                )}
+            </select>
+        </motion.div>
+    );
+};
+
 
 const CampaignAssignmentView = ({ campaignId, onClose }: { campaignId: string, onClose: ()=>void}) => {
     const { firestore } = useFirebase();
@@ -40,6 +50,8 @@ const CampaignAssignmentView = ({ campaignId, onClose }: { campaignId: string, o
     const [usersByRole, setUsersByRole] = useState<{ [key: string]: any[] }>({});
     const [selections, setSelections] = useState({ uploader: '', videoEditor: '', scriptWriter: '', thumbnailMaker: '' });
     
+    const serviceLevel = campaign?.serviceLevel || 'manual';
+
     useEffect(() => {
         if (allUsers) {
             const roles = ['uploader', 'video_editor', 'script_writer', 'thumbnail_maker'];
@@ -117,16 +129,16 @@ const CampaignAssignmentView = ({ campaignId, onClose }: { campaignId: string, o
 
                 <main className="overflow-y-auto flex-1 p-6 md:p-8">
                      <div className="space-y-6 max-w-lg mx-auto">
-                        <AssignmentDropdown label="Uploader" value={selections.uploader} onChange={val => handleSelectionChange('uploader', val)} users={usersByRole.uploader || []} role="uploader" />
-                        <AssignmentDropdown label="Video Editor" value={selections.videoEditor} onChange={val => handleSelectionChange('videoEditor', val)} users={usersByRole.video_editor || []} role="video_editor" />
-                        <AssignmentDropdown label="Script Writer" value={selections.scriptWriter} onChange={val => handleSelectionChange('scriptWriter', val)} users={usersByRole.script_writer || []} role="script_writer" />
-                        <AssignmentDropdown label="Thumbnail Maker" value={selections.thumbnailMaker} onChange={val => handleSelectionChange('thumbnailMaker', val)} users={usersByRole.thumbnail_maker || []} role="thumbnail_maker" />
+                        <AssignmentDropdown label="Uploader" value={selections.uploader} onChange={val => handleSelectionChange('uploader', val)} users={usersByRole.uploader || []} role="uploader" isVisible={true} />
+                        <AssignmentDropdown label="Video Editor" value={selections.videoEditor} onChange={val => handleSelectionChange('videoEditor', val)} users={usersByRole.video_editor || []} role="videoEditor" isVisible={serviceLevel !== 'reels-only'} />
+                        <AssignmentDropdown label="Script Writer" value={selections.scriptWriter} onChange={val => handleSelectionChange('scriptWriter', val)} users={usersByRole.script_writer || []} role="scriptWriter" isVisible={serviceLevel === 'manual'} />
+                        <AssignmentDropdown label="Thumbnail Maker" value={selections.thumbnailMaker} onChange={val => handleSelectionChange('thumbnailMaker', val)} users={usersByRole.thumbnail_maker || []} role="thumbnailMaker" isVisible={serviceLevel === 'manual'} />
                     </div>
                 </main>
 
                 <footer className="sticky bottom-0 z-10 flex justify-end p-5 border-t border-slate-900/10 bg-slate-200/70 backdrop-blur-lg flex-shrink-0">
                     <button onClick={onClose} className="px-6 py-2.5 text-sm font-semibold text-slate-700 rounded-lg hover:bg-slate-900/10 transition-colors mr-3">Cancel</button>
-                    <button onClick={handleAssign} className="px-7 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40 transform hover:-translate-y-0.5">
+                    <button onClick={handleAssign} className="flex items-center px-7 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 transition-all hover:shadow-xl hover:shadow-indigo-500/40 transform hover:-translate-y-0.5">
                         Save Assignments
                     </button>
                 </footer>

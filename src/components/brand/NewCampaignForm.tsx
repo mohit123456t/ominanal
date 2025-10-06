@@ -15,6 +15,7 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
         description: '',
         expectedReels: '',
         deadline: '',
+        serviceLevel: 'manual', // 'reels-only', 'ai-assisted', 'manual'
     });
 
     const [uploadOption, setUploadOption] = useState('gdrive');
@@ -46,7 +47,21 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
             return;
         }
 
-        const { pricePerReel, discountTiers } = priceSettings;
+        let pricePerReel = 0;
+        switch (campaignData.serviceLevel) {
+            case 'reels-only':
+                pricePerReel = priceSettings.pricePerReel_uploadOnly || 50;
+                break;
+            case 'ai-assisted':
+                pricePerReel = priceSettings.pricePerReel_aiAssisted || 100;
+                break;
+            case 'manual':
+            default:
+                pricePerReel = priceSettings.pricePerReel || 150;
+                break;
+        }
+
+        const { discountTiers } = priceSettings;
         let baseCost = reels * pricePerReel;
         let volumeDiscount = 0;
 
@@ -63,7 +78,7 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
         } else {
             setTotalBudget(costAfterVolumeDiscount);
         }
-    }, [campaignData.expectedReels, priceSettings, appliedCoupon, loadingPricing]);
+    }, [campaignData.expectedReels, campaignData.serviceLevel, priceSettings, appliedCoupon, loadingPricing]);
 
     const handleApplyCoupon = async () => {
         if (!firestore) return;
@@ -94,6 +109,10 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setCampaignData(prev => ({ ...prev, [name]: value }));
+    };
+    
+    const handleServiceLevelChange = (level: string) => {
+        setCampaignData(prev => ({...prev, serviceLevel: level}));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,6 +196,12 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
     };
 
     const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    
+    const serviceLevelOptions = {
+        'reels-only': { title: 'Upload Reels Only', description: 'You provide final, edited reels. We handle the uploading.' },
+        'ai-assisted': { title: 'AI-Assisted Editing', description: 'You provide raw footage. Our AI edits, and our team reviews.' },
+        'manual': { title: 'Manual Everything', description: 'We handle everything from scripting and editing to thumbnails.' },
+    };
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -194,6 +219,22 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
                     <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto">
                         {error && <div className="p-3 rounded-xl bg-red-500/10 text-red-800 text-sm font-medium border border-red-500/20">{error}</div>}
                         
+                         <div>
+                            <label className="block text-sm font-semibold text-slate-800 mb-3">Service Level</label>
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {Object.entries(serviceLevelOptions).map(([key, {title, description}]) => (
+                                    <div
+                                        key={key}
+                                        onClick={() => handleServiceLevelChange(key)}
+                                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${campaignData.serviceLevel === key ? 'border-indigo-600 bg-indigo-50/50 shadow-md' : 'border-slate-300/70 hover:border-indigo-400'}`}
+                                    >
+                                        <h4 className="font-bold text-slate-800 text-sm">{title}</h4>
+                                        <p className="text-xs text-slate-600 mt-1">{description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-semibold text-slate-800 mb-2">Campaign Name</label>
                             <input type="text" name="name" value={campaignData.name} onChange={handleChange} className="w-full text-base px-4 py-3 bg-white/50 border border-slate-300/70 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none transition placeholder:text-slate-500" placeholder="e.g., Diwali Special Sale" />
