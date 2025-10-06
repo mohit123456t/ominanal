@@ -77,7 +77,7 @@ const BrandDetailView = ({ brandId, onBack }: { brandId: string, onBack: () => v
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <InfoCard icon={<User/>} label="Contact Person" value={brand.name} color="bg-blue-100 text-blue-600" />
-                <InfoCard icon={<Phone/>} label="Mobile" value={brand.mobileNumber} color="bg-green-100 text-green-600" />
+                <InfoCard icon={<Phone/>} label="Mobile" value={brand.mobileNumber || 'N/A'} color="bg-green-100 text-green-600" />
                 <InfoCard icon={<Wallet/>} label="Wallet Balance" value={formatCurrency(brand.balance)} color="bg-yellow-100 text-yellow-600" />
                 <InfoCard icon={<ShoppingCart/>} label="Total Spend" value={formatCurrency(totalSpend)} color="bg-purple-100 text-purple-600" />
             </div>
