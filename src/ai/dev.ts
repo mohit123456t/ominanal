@@ -11,3 +11,4 @@ import '@/ai/flows/instagram-post.ts';
 import '@/ai/flows/instagram-auth.ts';
 import '@/ai/flows/facebook-post.ts';
 import '@/ai/flows/twitter-post.ts';
+import '@/ai/flows/ai-video-generation.ts';

@@ -1,7 +1,9 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, ArrowLeft, CheckCircle, File, Download, Scissors, MessageSquare } from 'lucide-react';
+import { Upload, ArrowLeft, CheckCircle, File, Download, Scissors, MessageSquare, BrainCircuit, LoaderCircle } from 'lucide-react';
+import { generateVideo } from '@/ai/flows/ai-video-generation';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface Campaign {
@@ -14,6 +16,11 @@ interface Campaign {
 }
 
 const TaskDetailsView = ({ onBack }: { onBack: () => void }) => {
+    const [prompt, setPrompt] = useState('');
+    const [generatedVideoUrl, setGeneratedVideoUrl] = useState('');
+    const [isGenerating, setIsGenerating] = useState(false);
+    const { toast } = useToast();
+
     // Mock data for task details
     const taskDetails = {
         id: 'V015',
@@ -22,24 +29,36 @@ const TaskDetailsView = ({ onBack }: { onBack: () => void }) => {
         progress: 60,
         assigned: '2024-01-08',
         deadline: 'In 2 days',
-        description: 'Edit makeup tutorial video with transitions and effects',
+        description: 'Create a 15-second promotional video for a new line of summer skincare products. The vibe should be fresh, sunny, and energetic.',
         requirements: [
             'Add smooth transitions between clips',
             'Include brand overlays and call-to-action',
             'Ensure HD quality (1080p minimum)',
-            'Add background music and voiceover',
-            'Review for any artifacts before submission'
         ],
         assets: [
             { name: 'Raw footage - Makeup Tutorial.mp4', size: '245 MB', uploaded: '2024-01-08' },
             { name: 'Brand Assets.zip', size: '15 MB', uploaded: '2024-01-08' },
-            { name: 'Voiceover Script.pdf', size: '2 MB', uploaded: '2024-01-08' }
         ],
-        comments: [
-            { user: 'Admin', message: 'Please ensure the transitions are smooth and professional', time: '2024-01-08 10:30 AM' },
-            { user: 'Priya', message: 'Working on the transitions now', time: '2024-01-08 11:15 AM' }
-        ]
     };
+    
+    const handleGenerateVideo = async () => {
+        if (!prompt) {
+            toast({ variant: 'destructive', title: 'Prompt is empty', description: 'Please enter a description for the video you want to generate.'});
+            return;
+        }
+        setIsGenerating(true);
+        setGeneratedVideoUrl('');
+        try {
+            const result = await generateVideo({ prompt });
+            setGeneratedVideoUrl(result.videoUrl);
+            toast({ title: 'Video Generated!', description: 'The AI has created a new video for you.'});
+        } catch (error: any) {
+             toast({ variant: 'destructive', title: 'AI Generation Failed', description: error.message || 'An unknown error occurred.'});
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
 
     const StatusBadge = ({ status }: { status: string }) => {
         const statusClasses: { [key: string]: string } = {
@@ -70,9 +89,43 @@ const TaskDetailsView = ({ onBack }: { onBack: () => void }) => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-6">
+                    {/* AI Video Generation Section */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                         <h3 className="font-bold text-lg mb-4 text-slate-800 flex items-center"><BrainCircuit className="mr-2 text-indigo-600"/>AI Video Generator</h3>
+                         <div className="space-y-3">
+                             <textarea 
+                                placeholder="e.g., A majestic dragon soaring over a mystical forest at dawn." 
+                                rows={3} 
+                                className="w-full p-3 border border-slate-300 rounded-md text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500 outline-none"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                            ></textarea>
+                            <button
+                                onClick={handleGenerateVideo}
+                                disabled={isGenerating}
+                                className="flex items-center justify-center w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-400 font-semibold"
+                            >
+                                {isGenerating ? <LoaderCircle className="animate-spin mr-2"/> : <BrainCircuit className="mr-2"/>}
+                                {isGenerating ? 'Generating Video...' : 'Generate Video with AI'}
+                            </button>
+                         </div>
+                         {isGenerating && (
+                             <div className="mt-4 text-center text-sm text-slate-600">
+                                Please wait, AI is creating your video. This may take a minute...
+                             </div>
+                         )}
+                         {generatedVideoUrl && (
+                             <div className="mt-4">
+                                <h4 className="font-semibold text-slate-800 mb-2">Generated Video:</h4>
+                                <video src={generatedVideoUrl} controls className="w-full rounded-lg border border-slate-200" />
+                                <a href={generatedVideoUrl} download="ai-generated-video.mp4" className="mt-2 inline-flex items-center text-sm text-green-700 hover:underline"><Download className="mr-1 h-4 w-4"/> Download Video</a>
+                             </div>
+                         )}
+                    </div>
+                    
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
                         <h3 className="font-bold text-lg mb-4 text-slate-800">Task Information</h3>
-                        <div className="grid grid-cols-2 gap-6">
+                         <div className="grid grid-cols-2 gap-6">
                             <div>
                                 <p className="text-sm text-slate-500 font-medium">Task ID</p>
                                 <p className="text-lg font-semibold text-slate-800">{taskDetails.id}</p>
@@ -81,37 +134,9 @@ const TaskDetailsView = ({ onBack }: { onBack: () => void }) => {
                                 <p className="text-sm text-slate-500 font-medium">Campaign</p>
                                 <p className="text-lg font-semibold text-slate-800">{taskDetails.campaign}</p>
                             </div>
-                            <div>
-                                <p className="text-sm text-slate-500 font-medium">Assigned Date</p>
-                                <p className="text-lg font-semibold text-slate-800">{taskDetails.assigned}</p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-slate-500 font-medium">Deadline</p>
-                                <p className={`text-lg font-semibold ${taskDetails.deadline === 'In 2 days' ? 'text-red-600' : 'text-slate-800'}`}>
-                                    {taskDetails.deadline}
-                                </p>
-                            </div>
                         </div>
                     </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-                        <h3 className="font-bold text-lg mb-4 text-slate-800">Task Description</h3>
-                        <p className="text-slate-600 leading-relaxed">{taskDetails.description}</p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-                        <h3 className="font-bold text-lg mb-4 text-slate-800">Requirements</h3>
-                        <ul className="space-y-3">
-                            {taskDetails.requirements.map((req, index) => (
-                                <li key={index} className="flex items-start">
-                                    <span className="text-green-500 mr-3 mt-1"><CheckCircle /></span>
-                                    <span className="text-slate-600">{req}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
                         <h3 className="font-bold text-lg mb-4 text-slate-800">Available Assets</h3>
                         <div className="space-y-3">
                             {taskDetails.assets.map((asset, index) => (
@@ -133,81 +158,31 @@ const TaskDetailsView = ({ onBack }: { onBack: () => void }) => {
                 </div>
 
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-                        <h3 className="font-bold text-lg mb-4 text-slate-800">Progress Tracker</h3>
-                        <div className="space-y-4">
-                            <div>
-                                <div className="flex justify-between text-sm mb-1">
-                                    <span className="text-slate-600">Overall Progress</span>
-                                    <span className="font-medium text-slate-800">{taskDetails.progress}%</span>
-                                </div>
-                                <div className="w-full bg-slate-200 rounded-full h-3">
-                                    <div className="bg-slate-600 h-3 rounded-full" style={{ width: `${taskDetails.progress}%` }}></div>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex items-center">
-                                    <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                                    <span className="text-sm text-slate-600">Raw footage downloaded</span>
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                                    <span className="text-sm text-slate-600">Initial editing completed</span>
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
-                                    <span className="text-sm text-slate-600">Adding transitions</span>
-                                </div>
-                                <div className="flex items-center">
-                                    <span className="w-3 h-3 bg-slate-300 rounded-full mr-3"></span>
-                                    <span className="text-sm text-slate-600">Final review pending</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-                        <h3 className="font-bold text-lg mb-4 text-slate-800">Comments & Updates</h3>
-                        <div className="space-y-4 max-h-64 overflow-y-auto">
-                            {taskDetails.comments.map((comment, index) => (
-                                <div key={index} className="border-l-2 border-slate-200 pl-4">
-                                    <div className="flex justify-between items-start mb-1">
-                                        <p className="font-medium text-slate-800">{comment.user}</p>
-                                        <p className="text-xs text-slate-500">{comment.time}</p>
-                                    </div>
-                                    <p className="text-sm text-slate-600">{comment.message}</p>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-slate-200">
-                            <textarea
-                                placeholder="Add a comment..."
-                                className="w-full p-3 border border-slate-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-slate-500"
-                                rows={3}
-                            ></textarea>
-                            <button className="mt-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
-                                Post Comment
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                     <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
                         <h3 className="font-bold text-lg mb-4 text-slate-800">Quick Actions</h3>
                         <div className="space-y-3">
                             <button className="w-full flex items-center justify-center px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
                                 <span className="mr-2"><Scissors /></span>
-                                Open Editor
+                                Open Desktop Editor
                             </button>
                             <button className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
                                 <span className="mr-2"><Upload /></span>
                                 Submit for Review
                             </button>
-                            <button className="w-full flex items-center justify-center px-4 py-3 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
-                                <span className="mr-2"><MessageSquare /></span>
-                                Request Extension
-                            </button>
                         </div>
                     </div>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                        <h3 className="font-bold text-lg mb-4 text-slate-800">Requirements</h3>
+                        <ul className="space-y-3">
+                            {taskDetails.requirements.map((req, index) => (
+                                <li key={index} className="flex items-start">
+                                    <span className="text-green-500 mr-3 mt-1"><CheckCircle /></span>
+                                    <span className="text-slate-600">{req}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
                 </div>
             </div>
         </div>
