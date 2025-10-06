@@ -22,7 +22,7 @@ import {
 } from '@/components/charts';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { type Post, type Kpi, type EngagementData } from '@/lib/types';
 
 
@@ -32,14 +32,18 @@ export default function AnalyticsPage() {
 
   const postsCollection = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, `users/${user.uid}/posts`);
+    return query(collection(firestore, `users/${user.uid}/posts`), orderBy('createdAt', 'desc'));
   }, [user, firestore]);
 
   const { data: posts, isLoading: isLoadingPosts } = useCollection<Post>(postsCollection);
   
-  const sortedPosts = posts ? [...posts].sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments)) : [];
-  const bestPosts = sortedPosts.slice(0, 3);
-  const worstPosts = sortedPosts.slice(-3).reverse();
+  const sortedPosts = useMemo(() => {
+    if (!posts) return [];
+    return [...posts].sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments));
+  }, [posts]);
+
+  const bestPosts = useMemo(() => sortedPosts.slice(0, 3), [sortedPosts]);
+  const worstPosts = useMemo(() => sortedPosts.slice(-3).reverse(), [sortedPosts]);
 
   const realKpis: Omit<Kpi, 'change' | 'changeType'>[] = useMemo(() => {
     if (!posts) {
@@ -51,7 +55,7 @@ export default function AnalyticsPage() {
     }
     const totalLikes = posts.reduce((sum, post) => sum + post.likes, 0);
     const totalComments = posts.reduce((sum, post) => sum + post.comments, 0);
-    const totalImpressions = posts.reduce((sum, post) => sum + (post.views || 0), 0); // Assuming views are impressions for now
+    const totalImpressions = posts.reduce((sum, post) => sum + (post.views || 0), 0);
     
     return [
        { title: 'Total Likes', value: totalLikes.toLocaleString(), icon: ThumbsUp },
