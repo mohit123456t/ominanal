@@ -45,20 +45,28 @@ const prompt = ai.definePrompt({
   name: 'aiCaptionPrompt',
   input: {schema: AICaptionInputSchema},
   output: {schema: AICaptionOutputSchema},
-  prompt: `You are a social media expert. Generate an engaging {{contentType}} for a social media post with the following characteristics:
+  prompt: `You are an expert social media scriptwriter, specializing in creating viral short-form video content. Your task is to generate a complete and engaging {{contentType}} for a social media post based on the provided characteristics.
 
 Tone: {{tone}}
 
 {{~#if topic~}}
-Topic: {{topic}}
+Topic/Theme: {{topic}}
 {{~/if~}}
 
 {{~#if mediaDataUri~}}
-Media: {{media url=mediaDataUri}}
+Media Analysis: {{media url=mediaDataUri}}
 {{~/if~}}
 
 {{#if (eq contentType "script")}}
-Please provide a full script for a short video based on the topic.
+**Instructions:**
+1. The script should be concise and suitable for a short video (e.g., 30-60 seconds).
+2. Structure the script with clear sections like [SCENE], [VISUAL], [VOICEOVER], or speaker names (e.g., SPEAKER 1).
+3. The language should be engaging, direct, and easy to understand.
+4. Include suggestions for visuals, on-screen text, and sound effects where appropriate to make the video more dynamic.
+5. Start with a strong hook to grab the viewer's attention within the first 3 seconds.
+6. End with a clear call to action (e.g., "Follow for more," "Comment below," "Check the link in bio").
+
+Please provide a full and ready-to-use script based on the topic.
 {{else}}
 Please provide a concise and engaging caption.
 {{/if}}
