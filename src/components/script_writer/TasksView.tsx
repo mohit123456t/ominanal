@@ -52,6 +52,7 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
     }, [task.videoTitle, toast]);
 
     useEffect(() => {
+        // Automatically generate script if content is empty when component mounts
         if (!initialTask.content) {
             handleGenerateAIScript();
         }
@@ -109,7 +110,7 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
                                 </button>
                             </div>
                              <textarea 
-                                placeholder="Your script will appear here. You can edit it before submitting." 
+                                placeholder={isGenerating ? "AI is writing, please wait..." : "Your script will appear here. You can edit it before submitting."} 
                                 rows={15} 
                                 className="w-full p-3 border border-slate-300 rounded-md text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500 outline-none"
                                 value={scriptContent}
@@ -136,7 +137,7 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
                 <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg">Cancel</button>
                 <button onClick={handleSaveChanges} disabled={isSaving || !scriptContent} className="flex items-center px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 shadow-lg shadow-indigo-500/20">
                      {isSaving ? <LoaderCircle size={18} className="animate-spin mr-2"/> : <CheckCircle size={16} className="mr-2"/>}
-                    {isSaving ? 'Approving...' : 'Approve & Submit Script'}
+                    {isSaving ? 'Submitting...' : 'Approve & Submit Script'}
                 </button>
             </div>
         </motion.div>

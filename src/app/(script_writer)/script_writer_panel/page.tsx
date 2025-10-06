@@ -11,12 +11,14 @@ import {
     LogOut,
     Menu,
     X,
+    Sparkles,
 } from 'lucide-react';
 import DashboardView from '@/components/script_writer/DashboardView';
 import TasksView from '@/components/script_writer/TasksView';
 import PaymentsView from '@/components/script_writer/PaymentsView';
 import ProfileView from '@/components/script_writer/ProfileView';
 import CollaborationView from '@/components/script_writer/CollaborationView';
+import AIScriptGeneratorView from '@/components/script_writer/AIScriptGeneratorView';
 import { useAuth, useCollection, useFirebase, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 
@@ -79,6 +81,8 @@ const ScriptWriterPanel = () => {
                 return <DashboardView userProfile={userProfile} tasks={tasks || []} onTaskClick={() => setActiveView('tasks')} />;
             case 'tasks':
                 return <TasksView tasks={tasks || []} isLoading={tasksLoading} />;
+            case 'ai-generator':
+                return <AIScriptGeneratorView />;
             case 'payments':
                 return <PaymentsView userProfile={userProfile} />;
             case 'profile':
@@ -115,6 +119,7 @@ const ScriptWriterPanel = () => {
                     {[
                         { id: 'dashboard', label: 'Dashboard', icon: <BarChart /> },
                         { id: 'tasks', label: 'Tasks', icon: <Clipboard /> },
+                        { id: 'ai-generator', label: 'AI Script Generator', icon: <Sparkles /> },
                         { id: 'payments', label: 'Payments', icon: <IndianRupee /> },
                         { id: 'collaboration', label: 'Collaboration', icon: <MessageSquare /> },
                         { id: 'profile', label: 'Profile', icon: <UserCircle /> },
@@ -150,7 +155,7 @@ const ScriptWriterPanel = () => {
                 <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
                     <div className="flex items-center space-x-4">
                         <h1 className="text-xl font-bold text-slate-800 capitalize">
-                            {activeView.replace('_', ' ')}
+                            {activeView.replace(/_/g, ' ').replace(/-/g, ' ')}
                         </h1>
                     </div>
                     <div className="flex items-center space-x-4">
