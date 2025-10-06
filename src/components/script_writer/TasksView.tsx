@@ -132,7 +132,7 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
                     {isSaving ? 'Submitting...' : 'Submit Script'}
                 </button>
             </div>
-        </div>
+        </motion.div>
         </div>
     );
 };

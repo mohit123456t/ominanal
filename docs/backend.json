@@ -34,7 +34,7 @@
         },
         "role": {
           "type": "string",
-          "description": "The role of the user (e.g., brand, admin, video_editor)."
+          "description": "The role of the user (e.g., brand, admin, video_editor, script_writer, thumbnail_maker, uploader)."
         }
       },
       "required": [

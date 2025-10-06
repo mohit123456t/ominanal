@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -18,7 +18,7 @@ import PaymentsView from '@/components/script_writer/PaymentsView';
 import ProfileView from '@/components/script_writer/ProfileView';
 import CollaborationView from '@/components/script_writer/CollaborationView';
 import { useAuth, useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 
 
 const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void, collapsed: boolean }) => (
