@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
@@ -8,7 +8,8 @@ import {
     MessageSquare, 
     IndianRupee, 
     UserCircle,
-    LogOut
+    LogOut,
+    Sparkles
 } from 'lucide-react';
 
 import DashboardView from '@/components/video_editor/DashboardView';
@@ -17,6 +18,7 @@ import CommunicationView from '@/components/video_editor/CommunicationView';
 import ContentSubmissionView from '@/components/video_editor/ContentSubmissionView';
 import EarningsView from '@/components/video_editor/EarningsView';
 import ProfileView from '@/components/video_editor/ProfileView';
+import AIVideoStudio from '@/components/video_editor/AIVideoStudio'; // Import the new component
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -77,6 +79,7 @@ const VideoEditorPanel = () => {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
         { id: 'assigned_tasks', label: 'Assigned Tasks', icon: <Clipboard size={18} /> },
+        { id: 'ai_video_studio', label: 'AI Video Studio', icon: <Sparkles size={18} /> },
         { id: 'communication', label: 'Communication', icon: <MessageSquare size={18} /> },
         { id: 'earnings', label: 'Earnings', icon: <IndianRupee size={18} /> },
     ];
@@ -89,6 +92,8 @@ const VideoEditorPanel = () => {
         switch (activeView) {
             case 'assigned_tasks':
                 return <AssignedTasks />;
+            case 'ai_video_studio':
+                return <AIVideoStudio />;
             case 'communication':
                 return <CommunicationView />;
             case 'content_submission':
@@ -165,7 +170,7 @@ const VideoEditorPanel = () => {
             {/* ➡️ Main Content Area */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
-                    <h1 className="text-xl font-bold text-slate-900 capitalize">Video Editor Panel</h1>
+                    <h1 className="text-xl font-bold text-slate-900 capitalize">{activeView.replace(/_/g, ' ')}</h1>
                     <div className="font-semibold text-slate-700">{userProfile?.name || 'User'}</div>
                 </header>
                 <main className="flex-1 overflow-y-auto bg-slate-50 p-8">{renderView()}</main>
