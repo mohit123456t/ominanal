@@ -17,6 +17,8 @@ import TasksView from '@/components/script_writer/TasksView';
 import PaymentsView from '@/components/script_writer/PaymentsView';
 import ProfileView from '@/components/script_writer/ProfileView';
 import CollaborationView from '@/components/script_writer/CollaborationView';
+import { useAuth, useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 
 const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void, collapsed: boolean }) => (
@@ -38,9 +40,22 @@ const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.Reac
 
 const ScriptWriterPanel = () => {
     const router = useRouter();
-    const [userProfile, setUserProfile] = useState({ name: 'Script Writer', role: 'script_writer' });
+    const { user } = useUser();
+    const { auth } = useAuth();
+    const { firestore } = useFirebase();
+
+    const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+    const { data: userProfile } = useDoc(userDocRef);
+
     const [activeView, setActiveView] = useState('dashboard');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    const assignedTasksQuery = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return query(collection(firestore, 'work_items'), where('assignedTo', '==', user.uid), where('type', '==', 'script'));
+    }, [user, firestore]);
+
+    const { data: tasks, isLoading: tasksLoading } = useCollection(assignedTasksQuery);
 
     useEffect(() => {
         const savedView = localStorage.getItem('scriptWriterActiveView');
@@ -54,23 +69,24 @@ const ScriptWriterPanel = () => {
     }, [activeView]);
 
     const handleLogout = async () => {
+        if(auth) await auth.signOut();
         router.push('/login');
     };
 
     const renderView = () => {
         switch (activeView) {
             case 'dashboard':
-                return <DashboardView userProfile={userProfile} onTaskClick={() => setActiveView('tasks')} />;
+                return <DashboardView userProfile={userProfile} tasks={tasks || []} onTaskClick={() => setActiveView('tasks')} />;
             case 'tasks':
-                return <TasksView userProfile={userProfile} />;
+                return <TasksView tasks={tasks || []} isLoading={tasksLoading} />;
             case 'payments':
                 return <PaymentsView userProfile={userProfile} />;
             case 'profile':
-                return <ProfileView userProfile={userProfile} onProfileUpdate={setUserProfile} />;
+                return <ProfileView userProfile={userProfile} onProfileUpdate={() => {}} />;
             case 'collaboration':
-                return <CollaborationView userProfile={userProfile} />;
+                return <CollaborationView />;
             default:
-                return <DashboardView userProfile={userProfile} onTaskClick={() => setActiveView('tasks')} />;
+                return <DashboardView userProfile={userProfile} tasks={tasks || []} onTaskClick={() => setActiveView('tasks')} />;
         }
     };
 
@@ -146,7 +162,7 @@ const ScriptWriterPanel = () => {
                         </div>
                         <div>
                              <p className="text-sm font-semibold text-slate-800">{userProfile?.name}</p>
-                             <p className="text-xs text-slate-500">{userProfile?.role?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                             <p className="text-xs text-slate-500">{userProfile?.role?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
                         </div>
                     </div>
                 </header>

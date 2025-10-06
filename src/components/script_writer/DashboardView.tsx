@@ -1,33 +1,14 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 
-const DashboardView = ({ userProfile, onTaskClick }: { userProfile: any, onTaskClick: (task: any) => void }) => {
-    const [tasks, setTasks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        pending: 0,
-        inProgress: 0,
-        approved: 0,
-    });
-
-    useEffect(() => {
-        // Placeholder data since we are not connecting to DB
-        const placeholderTasks = [
-            { id: 'task1', videoTitle: 'First Script Task', status: 'Pending', dueDate: new Date(Date.now() + 86400000).toISOString() },
-            { id: 'task2', videoTitle: 'Second Script Task', status: 'In Progress', dueDate: new Date(Date.now() + 2 * 86400000).toISOString() },
-            { id: 'task3', videoTitle: 'Third Script Task', status: 'Approved', dueDate: new Date(Date.now() - 86400000).toISOString() },
-        ];
-        setTasks(placeholderTasks);
-        calculateStats(placeholderTasks);
-        setLoading(false);
-    }, [userProfile]);
-
-    const calculateStats = (tasksData: any[]) => {
-        const pending = tasksData.filter(t => t.status === 'Pending').length;
-        const inProgress = tasksData.filter(t => t.status === 'In Progress').length;
-        const approved = tasksData.filter(t => t.status === 'Approved').length;
-        setStats({ pending, inProgress, approved });
-    };
+const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, tasks: any[], onTaskClick: (task: any) => void }) => {
+    
+    const stats = useMemo(() => {
+        const pending = tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').length;
+        const inProgress = tasks.filter(t => t.status === 'In Progress').length;
+        const approved = tasks.filter(t => t.status === 'Approved').length;
+        return { pending, inProgress, approved };
+    }, [tasks]);
 
     const getStatusChipStyle = (status: string) => {
         switch (status) {
@@ -66,12 +47,7 @@ const DashboardView = ({ userProfile, onTaskClick }: { userProfile: any, onTaskC
             {/* Recent Tasks Table */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200/80">
                 <h3 className="font-bold text-lg p-6 border-b text-slate-800">Your Active Tasks</h3>
-                {loading ? (
-                    <div className="p-6 text-center">
-                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto"></div>
-                         <p className="mt-2 text-slate-600">Loading tasks...</p>
-                    </div>
-                ) : tasks.length === 0 ? (
+                {tasks.length === 0 ? (
                     <div className="p-6 text-center">
                         <p className="text-slate-600">No tasks assigned to you yet.</p>
                     </div>
@@ -94,7 +70,7 @@ const DashboardView = ({ userProfile, onTaskClick }: { userProfile: any, onTaskC
                                             {task.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A'}</td>
+                                    <td className="px-6 py-4">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
                                     <td className="px-6 py-4 text-right">
                                         <button onClick={() => onTaskClick(task)} className="font-medium text-blue-600 hover:underline">View Details</button>
                                     </td>

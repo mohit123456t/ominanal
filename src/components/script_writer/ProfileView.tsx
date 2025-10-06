@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { UserCircle, Mail, Film } from 'lucide-react';
+import { useUser } from '@/firebase';
 
 const ProfileView: React.FC<{ userProfile: any, onProfileUpdate: (profile: any) => void }> = ({ userProfile: initialProfile, onProfileUpdate }) => {
-
+  const { user } = useUser();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -11,22 +12,26 @@ const ProfileView: React.FC<{ userProfile: any, onProfileUpdate: (profile: any) 
   });
 
   useEffect(() => {
-    // Using placeholder data as we are not connected to DB
-    const placeholderProfile = {
-        name: 'Script Writer',
-        email: 'writer@example.com',
-        mobileNumber: '1234567890'
-    };
-    const profileToUse = initialProfile || placeholderProfile;
-    const scriptIdSuffix = (profileToUse.mobileNumber || '').slice(-4).padStart(4, '0');
-    const scriptId = `SCP${scriptIdSuffix}`;
+    if(initialProfile) {
+        const profileToUse = initialProfile;
+        const scriptIdSuffix = (profileToUse.uid || '').slice(-4).padStart(4, '0');
+        const scriptId = `SCP${scriptIdSuffix}`;
 
-    setFormData({
-        name: profileToUse.name || '',
-        email: profileToUse.email || '',
-        scriptId: scriptId,
-    });
-  }, [initialProfile]);
+        setFormData({
+            name: profileToUse.name || '',
+            email: profileToUse.email || '',
+            scriptId: scriptId,
+        });
+    } else if (user) {
+        const scriptIdSuffix = (user.uid || '').slice(-4).padStart(4, '0');
+        const scriptId = `SCP${scriptIdSuffix}`;
+         setFormData({
+            name: user.displayName || 'Script Writer',
+            email: user.email || '',
+            scriptId: scriptId,
+        });
+    }
+  }, [initialProfile, user]);
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-8">
