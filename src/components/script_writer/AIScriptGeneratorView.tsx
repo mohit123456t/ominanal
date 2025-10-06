@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BrainCircuit, LoaderCircle, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { generateAiCaption } from '@/ai/flows/ai-caption-generation';
+import { generateAiScript } from '@/ai/flows/ai-script-generation';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,13 +32,12 @@ const AIScriptGeneratorView = () => {
         setIsGenerating(true);
         setGeneratedScript('');
         try {
-            const result = await generateAiCaption({
+            const result = await generateAiScript({
                 topic: topic,
-                contentType: 'script',
                 tone: tone as any,
             });
-            if (result.caption) {
-                setGeneratedScript(result.caption);
+            if (result.script) {
+                setGeneratedScript(result.script);
                 toast({ title: 'AI Script Generated!', description: 'A new script has been drafted for your topic.' });
             }
         } catch (error) {

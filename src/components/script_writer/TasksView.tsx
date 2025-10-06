@@ -5,7 +5,7 @@ import { ArrowLeft, CheckCircle, Download, File, LoaderCircle, MessageSquare, Sc
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { generateAiCaption } from '@/ai/flows/ai-caption-generation';
+import { generateAiScript } from '@/ai/flows/ai-script-generation';
 
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -35,13 +35,12 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
         if (!task.videoTitle) return;
         setIsGenerating(true);
         try {
-            const result = await generateAiCaption({
+            const result = await generateAiScript({
                 topic: task.videoTitle,
-                contentType: 'script',
-                tone: 'Witty',
+                tone: 'Witty', // You can make this dynamic if needed
             });
-            if (result.caption) {
-                setScriptContent(result.caption);
+            if (result.script) {
+                setScriptContent(result.script);
                 toast({ title: "AI Script Generated!", description: "The AI has drafted a script for you." });
             }
         } catch (error) {
