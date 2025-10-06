@@ -1,24 +1,24 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useAuth, useFirebase, useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 
-const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userProfile: any, onProfileUpdate: (profile: any) => void }) => {
+const ProfileView = () => {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
     
     const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState(initialProfile);
+    const [formData, setFormData] = useState({ name: '' });
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        if(initialProfile) {
-            setFormData(initialProfile);
+        if(user) {
+            setFormData({ name: user.displayName || '' });
         }
-    }, [initialProfile]);
+    }, [user]);
     
     const handleSave = async () => {
         if (!user || !firestore) {
@@ -29,7 +29,6 @@ const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userPro
         try {
             const userDocRef = doc(firestore, 'users', user.uid);
             await setDoc(userDocRef, { name: formData.name }, { merge: true });
-            onProfileUpdate(formData); // Update parent state
             setIsEditing(false);
             toast({ title: 'Success', description: 'Profile updated successfully.' });
         } catch (error: any) {
@@ -68,7 +67,7 @@ const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userPro
                     <label className="text-sm font-medium text-slate-500">Email</label>
                     <input
                         type="email"
-                        value={formData.email || ''}
+                        value={user?.email || ''}
                         readOnly
                         className="w-full mt-1 p-2 border rounded-md bg-slate-100 cursor-not-allowed"
                     />
@@ -77,13 +76,13 @@ const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userPro
                     <label className="text-sm font-medium text-slate-500">Role</label>
                     <input
                         type="text"
-                        value={formData.role || ''}
+                        value="Uploader" // This would come from user document if roles are implemented
                         readOnly
                         className="w-full mt-1 p-2 border rounded-md bg-slate-100 cursor-not-allowed"
                     />
                 </div>
                  {isEditing && (
-                    <button onClick={() => { setIsEditing(false); setFormData(initialProfile); }} className="px-4 py-2 border rounded-lg text-sm font-medium">
+                    <button onClick={() => { setIsEditing(false); setFormData({name: user?.displayName || '' }); }} className="px-4 py-2 border rounded-lg text-sm font-medium">
                         Cancel
                     </button>
                  )}
