@@ -14,7 +14,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth, useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, collectionGroup, updateDoc, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, query, doc, collectionGroup, updateDoc, addDoc, serverTimestamp, setDoc, runTransaction } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
@@ -22,19 +22,11 @@ import CampaignDetailView from '@/components/admin/CampaignDetailView';
 import CampaignManagerView from '@/components/admin/CampaignManagerView';
 import ProfileView from '@/components/admin/ProfileView';
 import UserManagementView from '@/components/admin/UserManagementView';
-import PlaceholderView from '@/components/admin/PlaceholderView';
+import BrandDetailView from '@/components/admin/BrandDetailView';
 import FinanceView from '@/components/admin/FinanceView';
 import EarningsView from '@/components/admin/EarningsView';
 import DashboardView from '@/components/admin/DashboardView';
 
-const BrandPanel = ({ viewBrandId, onBack }: { viewBrandId: string | null; onBack: () => void; }) => (
-    <div>
-        <button onClick={onBack} className="flex items-center mb-4 text-slate-600 hover:text-slate-900">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to User Management
-        </button>
-        <PlaceholderView name={`Brand Panel (ID: ${viewBrandId})`} />
-    </div>
-);
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -157,7 +149,6 @@ function AdminPanel() {
             await updateDoc(transactionDocRef, { status: newStatus });
             if (newStatus === 'Completed' && transaction.type === 'DEPOSIT') {
                 const userDocRef = doc(firestore, 'users', transaction.brandId);
-                const { runTransaction } = await import('firebase/firestore');
                 await runTransaction(firestore, async (dbTransaction) => {
                     const userDoc = await dbTransaction.get(userDocRef);
                     if (!userDoc.exists()) {
@@ -236,6 +227,10 @@ function AdminPanel() {
         if (selectedCampaignId && activeView === 'campaign_detail') {
             return <CampaignDetailView campaignId={selectedCampaignId} onClose={() => { setSelectedCampaignId(null); setActiveView('campaigns'); }} />;
         }
+
+        if (selectedBrandId && activeView === 'brand_view') {
+            return <BrandDetailView brandId={selectedBrandId} onBack={() => { setSelectedBrandId(null); setActiveView('users'); }} />;
+        }
         
         switch (activeView) {
             case 'profile': return <ProfileView profile={adminProfile} />;
@@ -244,8 +239,7 @@ function AdminPanel() {
             case 'users': return <UserManagementView brands={brands || []} onViewBrand={onViewBrand} />;
             case 'finance': return <FinanceView transactions={transactions || []} expenses={expenses || []} onUpdateStatus={handleUpdateTransactionStatus} onAddExpense={handleAddExpense} />;
             case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
-            case 'communication': return <PlaceholderView name="Communication" />;
-            case 'brand_view': return <BrandPanel viewBrandId={selectedBrandId} onBack={() => setActiveView('users')} />;
+            case 'communication': return <div className="text-center p-8">Communication View Coming Soon</div>;
             case 'dashboard':
             default:
                 return <DashboardView campaigns={campaigns || []} users={users || []} expenses={expenses || []} />;
@@ -273,6 +267,7 @@ function AdminPanel() {
                             active={activeView === item.id || (item.id === 'finance' && activeView === 'earnings')}
                             onClick={() => {
                                 setSelectedCampaignId(null);
+                                setSelectedBrandId(null);
                                 setActiveView(item.id);
                             }}
                         />
@@ -330,7 +325,7 @@ function AdminPanel() {
                 <main className="flex-1 overflow-y-auto">
                     <AnimatePresence mode="wait">
                         <motion.div
-                            key={activeView}
+                            key={activeView + (selectedBrandId || '')}
                             initial={{ opacity: 0, y: 15 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -15 }}
