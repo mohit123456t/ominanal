@@ -140,13 +140,15 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
             setError('Campaign Name, Number of Reels, and Deadline are required.');
             return;
         }
-        if (uploadOption === 'gdrive' && !gdriveLink) {
-             setError('Please provide a Google Drive link.');
-            return;
-        }
-         if (uploadOption === 'file' && !file) {
-            setError('Please upload a video file.');
-            return;
+        if (campaignData.serviceLevel !== 'ai-assisted') {
+            if (uploadOption === 'gdrive' && !gdriveLink) {
+                 setError('Please provide a Google Drive link.');
+                return;
+            }
+             if (uploadOption === 'file' && !file) {
+                setError('Please upload a video file.');
+                return;
+            }
         }
 
         const { ...restOfCampaignData } = campaignData;
@@ -155,8 +157,8 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
             ...restOfCampaignData,
             budget: totalBudget,
             expectedReels: parseInt(campaignData.expectedReels, 10),
-            uploadOption,
-            gdriveLink: uploadOption === 'gdrive' ? gdriveLink : '',
+            uploadOption: campaignData.serviceLevel !== 'ai-assisted' ? uploadOption : null,
+            gdriveLink: campaignData.serviceLevel !== 'ai-assisted' && uploadOption === 'gdrive' ? gdriveLink : '',
             // file: uploadOption === 'file' ? file : null, // Cannot store file object directly
             coupon: appliedCoupon ? appliedCoupon.code : null,
             brandId: user.uid,
@@ -199,7 +201,7 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
     
     const serviceLevelOptions = {
         'reels-only': { title: 'Upload Reels Only', description: 'You provide final, edited reels. We handle the uploading.' },
-        'ai-assisted': { title: 'AI-Assisted Editing', description: 'You provide raw footage. Our AI edits, and our team reviews.' },
+        'ai-assisted': { title: 'AI-Assisted Editing', description: 'You provide a topic. Our AI generates the script and video.' },
         'manual': { title: 'Manual Everything', description: 'We handle everything from scripting and editing to thumbnails.' },
     };
 
@@ -241,22 +243,24 @@ const NewCampaignForm = ({ onCampaignCreated, onCancel }: { onCampaignCreated: (
                         </div>
                         
                         <div>
-                            <label className="block text-sm font-semibold text-slate-800 mb-2">Description</label>
-                            <textarea name="description" value={campaignData.description} onChange={handleChange} rows={3} className="w-full text-base px-4 py-3 bg-white/50 border border-slate-300/70 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none transition placeholder:text-slate-500" placeholder="Describe campaign goals..."></textarea>
+                            <label className="block text-sm font-semibold text-slate-800 mb-2">Description / Topic</label>
+                            <textarea name="description" value={campaignData.description} onChange={handleChange} rows={3} className="w-full text-base px-4 py-3 bg-white/50 border border-slate-300/70 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none transition" placeholder="Describe campaign goals or provide a topic for the AI..."></textarea>
                         </div>
                         
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-800 mb-2">Video Asset</label>
-                            <div className="flex bg-black/5 rounded-xl p-1 mb-3">
-                                <button type="button" onClick={() => setUploadOption('gdrive')} className={`w-1/2 py-2 rounded-lg text-sm font-semibold transition-colors ${uploadOption === 'gdrive' ? 'bg-white/80 shadow' : 'text-slate-600'}`}>Google Drive Link</button>
-                                <button type="button" onClick={() => setUploadOption('file')} className={`w-1/2 py-2 rounded-lg text-sm font-semibold transition-colors ${uploadOption === 'file' ? 'bg-white/80 shadow' : 'text-slate-600'}`}>Upload File</button>
+                        {campaignData.serviceLevel !== 'ai-assisted' && (
+                             <div>
+                                <label className="block text-sm font-semibold text-slate-800 mb-2">Video Asset</label>
+                                <div className="flex bg-black/5 rounded-xl p-1 mb-3">
+                                    <button type="button" onClick={() => setUploadOption('gdrive')} className={`w-1/2 py-2 rounded-lg text-sm font-semibold transition-colors ${uploadOption === 'gdrive' ? 'bg-white/80 shadow' : 'text-slate-600'}`}>Google Drive Link</button>
+                                    <button type="button" onClick={() => setUploadOption('file')} className={`w-1/2 py-2 rounded-lg text-sm font-semibold transition-colors ${uploadOption === 'file' ? 'bg-white/80 shadow' : 'text-slate-600'}`}>Upload File</button>
+                                </div>
+                                {uploadOption === 'gdrive' ? (
+                                    <input type="text" value={gdriveLink} onChange={e => setGdriveLink(e.target.value)} className="w-full text-base px-4 py-3 bg-white/50 border border-slate-300/70 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none transition" placeholder="https://drive.google.com/..." />
+                                ) : (
+                                    <input type="file" onChange={handleFileChange} accept="video/*" className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-200/50 file:text-slate-700 hover:file:bg-slate-200" />
+                                )}
                             </div>
-                            {uploadOption === 'gdrive' ? (
-                                <input type="text" value={gdriveLink} onChange={e => setGdriveLink(e.target.value)} className="w-full text-base px-4 py-3 bg-white/50 border border-slate-300/70 rounded-xl focus:ring-2 focus:ring-slate-500 outline-none transition" placeholder="https://drive.google.com/..." />
-                            ) : (
-                                <input type="file" onChange={handleFileChange} accept="video/*" className="w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-200/50 file:text-slate-700 hover:file:bg-slate-200" />
-                            )}
-                        </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
