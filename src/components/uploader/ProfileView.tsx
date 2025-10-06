@@ -1,24 +1,24 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useAuth, useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { useAuth, useFirebase, useUser } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle } from 'lucide-react';
 
-const ProfileView = ({ userProfile, onProfileUpdate }: { userProfile: any, onProfileUpdate: (profile: any) => void }) => {
-    const { user } = useAuth();
+const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userProfile: any, onProfileUpdate: (profile: any) => void }) => {
+    const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
     
     const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState(userProfile);
+    const [formData, setFormData] = useState(initialProfile);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
-        if(userProfile) {
-            setFormData(userProfile);
+        if(initialProfile) {
+            setFormData(initialProfile);
         }
-    }, [userProfile]);
+    }, [initialProfile]);
     
     const handleSave = async () => {
         if (!user || !firestore) {
@@ -83,7 +83,7 @@ const ProfileView = ({ userProfile, onProfileUpdate }: { userProfile: any, onPro
                     />
                 </div>
                  {isEditing && (
-                    <button onClick={() => { setIsEditing(false); setFormData(userProfile); }} className="px-4 py-2 border rounded-lg text-sm font-medium">
+                    <button onClick={() => { setIsEditing(false); setFormData(initialProfile); }} className="px-4 py-2 border rounded-lg text-sm font-medium">
                         Cancel
                     </button>
                  )}
