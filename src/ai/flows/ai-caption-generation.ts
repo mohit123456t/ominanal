@@ -57,8 +57,7 @@ Topic/Theme: {{topic}}
 Media Analysis: {{media url=mediaDataUri}}
 {{~/if~}}
 
-{{#if (eq contentType "script")}}
-**Instructions:**
+**Instructions for script generation:**
 1. The script should be concise and suitable for a short video (e.g., 30-60 seconds).
 2. Structure the script with clear sections like [SCENE], [VISUAL], [VOICEOVER], or speaker names (e.g., SPEAKER 1).
 3. The language should be engaging, direct, and easy to understand.
@@ -66,10 +65,7 @@ Media Analysis: {{media url=mediaDataUri}}
 5. Start with a strong hook to grab the viewer's attention within the first 3 seconds.
 6. End with a clear call to action (e.g., "Follow for more," "Comment below," "Check the link in bio").
 
-Please provide a full and ready-to-use script based on the topic.
-{{else}}
-Please provide a concise and engaging caption.
-{{/if}}
+If the request is for a 'script', provide a full and ready-to-use script based on the topic. Otherwise, provide a concise and engaging caption.
 `,
 });
 
