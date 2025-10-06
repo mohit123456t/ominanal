@@ -27,6 +27,9 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
     useEffect(() => {
         setCurrentTask(task);
         setStatus(task.status);
+        if(!task.thumbnailIdeas || task.thumbnailIdeas.length === 0){
+            handleGenerateThumbnails();
+        }
     }, [task]);
     
     const handleUpdateTask = async () => {
@@ -49,9 +52,10 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
         }
     };
     
-    const handleFileUpload = () => {
-        // Placeholder for file upload logic
-        toast({ title: "Upload Clicked", description: "File upload functionality would be here." });
+    const handleApproveAndSubmit = () => {
+        // Placeholder for approval logic
+        toast({ title: "Thumbnail Approved!", description: "The thumbnail has been submitted for final review." });
+        onBack();
     }
 
     const handleGenerateThumbnails = async () => {
@@ -77,7 +81,7 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
         <div className="p-8 max-w-4xl mx-auto bg-white rounded-xl shadow-lg">
             <button onClick={onBack} className="flex items-center text-sm font-medium text-slate-600 hover:text-slate-900 mb-4">
                 <ArrowLeft className="mr-2 h-4 w-4" /> 
-                <span>Back to Dashboard</span>
+                <span>Back to Tasks</span>
             </button>
 
             <div className="flex justify-between items-start">
@@ -92,72 +96,51 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
 
             <div className="mt-6 border-t pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2 space-y-6">
-                    <div>
-                        <h3 className="font-semibold text-lg text-slate-800 mb-2">Task Details</h3>
-                        <p className="text-slate-700 whitespace-pre-wrap">{currentTask.description || 'No description provided.'}</p>
-                    </div>
-
-                     {/* AI Thumbnail Generation */}
+                    {/* AI Thumbnail Generation */}
                     <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200">
                         <h3 className="font-bold text-lg mb-3 text-slate-800 flex items-center">
                             <BrainCircuit className="mr-2 text-indigo-600"/>AI Thumbnail Studio
                         </h3>
+                        <p className="text-sm text-slate-600 mb-3">AI has generated these thumbnail ideas based on the video content. Review them and select the best one, or regenerate for new ideas.</p>
                         <button 
                             onClick={handleGenerateThumbnails}
                             disabled={isGenerating}
                             className="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-400 font-semibold"
                         >
                             {isGenerating ? <LoaderCircle className="animate-spin mr-2"/> : <ImageIcon className="mr-2"/>}
-                            {isGenerating ? 'Generating Ideas...' : 'Generate Thumbnails with AI'}
+                            {isGenerating ? 'Generating Ideas...' : 'Regenerate Thumbnails with AI'}
                         </button>
+                        
+                        {(isGenerating && thumbnailIdeas.length === 0) && (
+                            <div className="mt-4 text-center text-slate-600">Generating new ideas...</div>
+                        )}
+                        
                         {thumbnailIdeas.length > 0 && (
                             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 {thumbnailIdeas.map(idea => (
-                                    <div key={idea.id} className="group">
-                                        <img src={idea.url} alt="AI Thumbnail Idea" className="rounded-lg shadow-md border border-slate-200" />
+                                    <div key={idea.id} className="group cursor-pointer">
+                                        <img src={idea.url} alt="AI Thumbnail Idea" className="rounded-lg shadow-md border-2 border-transparent group-hover:border-indigo-500 transition-all" />
                                         <p className="text-xs text-center text-slate-600 mt-1">{idea.prompt}</p>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
-                     <div>
-                        <h3 className="font-semibold text-lg text-slate-800 mb-2">Add a Note</h3>
-                         <textarea 
-                            rows={4}
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                            className="w-full p-2 border border-slate-300 rounded-lg"
-                            placeholder='Add a comment or update for the team...'
-                        />
-                    </div>
-                    <div className="flex space-x-4">
-                        <button 
-                            onClick={handleUpdateTask}
-                            disabled={loading}
-                            className="bg-slate-900 text-white px-6 py-2 rounded-lg font-semibold hover:bg-slate-800 disabled:opacity-50"
-                        >
-                            {loading ? 'Updating...' : 'Save Changes'}
-                        </button>
-                         <button 
-                            onClick={handleFileUpload}
-                            className="bg-green-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-green-700 flex items-center"
-                        >
-                            <Upload className="mr-2 h-4 w-4" />
-                            Upload Final Thumbnail
-                        </button>
-                    </div>
-                    {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
                 </div>
-                <div className="bg-slate-50 p-4 rounded-lg space-y-4">
+                <div className="bg-slate-50 p-4 rounded-lg space-y-4 h-fit">
                     <h3 className="font-semibold text-slate-800 border-b pb-2">Task Info</h3>
                     <div className="text-sm">
                         <p className="font-medium text-slate-500">Assigned On</p>
                         <p className="text-slate-900 font-semibold">{currentTask.assignedAt ? new Date(currentTask.assignedAt).toLocaleString() : 'N/A'}</p>
                     </div>
-                     <div className="text-sm">
-                        <p className="font-medium text-slate-500">Last Updated</p>
-                        <p className="text-slate-900 font-semibold">{currentTask.lastUpdatedAt ? new Date(currentTask.lastUpdatedAt).toLocaleString() : 'Never'}</p>
+                    <div>
+                         <button 
+                            onClick={handleApproveAndSubmit}
+                            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 flex items-center justify-center"
+                        >
+                            <CheckCircle className="mr-2 h-5 w-5" />
+                            Approve & Submit
+                        </button>
                     </div>
                 </div>
             </div>

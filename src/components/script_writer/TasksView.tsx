@@ -49,6 +49,13 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
             setIsGenerating(false);
         }
     };
+
+    // Auto-generate script on first load if content is empty
+    useEffect(() => {
+        if (!initialTask.content) {
+            handleGenerateAIScript();
+        }
+    }, [initialTask.content]);
     
     const handleSaveChanges = async () => {
         if (!firestore) return;
@@ -98,7 +105,7 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
                                     className="flex items-center text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-md hover:bg-indigo-200 disabled:opacity-50"
                                 >
                                     {isGenerating ? <LoaderCircle size={14} className="animate-spin mr-1.5" /> : <BrainCircuit size={14} className="mr-1.5" />}
-                                    {isGenerating ? 'Generating...' : 'Generate with AI'}
+                                    {isGenerating ? 'Regenerating...' : 'Regenerate with AI'}
                                 </button>
                             </div>
                              <textarea 
@@ -128,8 +135,8 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
             <div className="p-5 flex justify-end space-x-3 border-t border-slate-300/50 bg-slate-100/80 rounded-b-2xl">
                 <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg">Cancel</button>
                 <button onClick={handleSaveChanges} disabled={isSaving || !scriptContent} className="flex items-center px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 shadow-lg shadow-indigo-500/20">
-                     {isSaving ? <LoaderCircle size={18} className="animate-spin mr-2"/> : <Upload size={16} className="mr-2"/>}
-                    {isSaving ? 'Submitting...' : 'Submit Script'}
+                     {isSaving ? <LoaderCircle size={18} className="animate-spin mr-2"/> : <CheckCircle size={16} className="mr-2"/>}
+                    {isSaving ? 'Approving...' : 'Approve & Submit Script'}
                 </button>
             </div>
         </motion.div>
@@ -147,7 +154,7 @@ const TasksView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) =
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200/80">
             <div className="p-4 border-b">
-                 <h3 className="font-bold text-lg text-slate-800 mb-2">Assigned Tasks</h3>
+                 <h3 className="font-bold text-lg text-slate-800 mb-2">Assigned Tasks for Script Review</h3>
             </div>
             <div className="p-4">
                 {isLoading ? (
@@ -171,7 +178,7 @@ const TasksView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) =
                                 </div>
                                 <p className="text-xs text-slate-500 mb-2">Due: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</p>
                                 <button onClick={() => handleOpenModal(task)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    View & Edit
+                                    Review AI Script
                                 </button>
                             </div>
                         ))}
