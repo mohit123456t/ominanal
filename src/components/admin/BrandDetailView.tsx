@@ -28,8 +28,10 @@ const BrandDetailView = ({ brandId, onBack }: { brandId: string, onBack: () => v
     const brandDocRef = useMemoFirebase(() => firestore ? doc(firestore, 'users', brandId) : null, [firestore, brandId]);
     const { data: brand, isLoading: brandLoading } = useDoc<any>(brandDocRef);
     
-    // Fetch campaigns for this brand
-    const campaignsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'campaigns'), where('brandId', '==', brandId)) : null, [firestore, brandId]);
+    // Fetch campaigns for this brand using the correct field 'userId'
+    const campaignsQuery = useMemoFirebase(() => 
+        firestore ? query(collection(firestore, 'campaigns'), where('userId', '==', brandId)) : null
+    , [firestore, brandId]);
     const { data: campaigns, isLoading: campaignsLoading } = useCollection<any>(campaignsQuery);
 
     const totalSpend = useMemo(() => {
