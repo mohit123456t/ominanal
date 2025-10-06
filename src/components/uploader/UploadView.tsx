@@ -25,6 +25,8 @@ import {
   Upload,
   Twitter,
   AlertCircle,
+  Hash,
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -42,6 +44,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { generateAiCaption } from '@/ai/flows/ai-caption-generation';
+import { getHashtagRecommendations } from '@/ai/ai-hashtag-recommendation';
+import { suggestBestTimeToPost } from '@/ai/flows/ai-powered-best-time-to-post';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -181,6 +185,48 @@ export default function UploadView() {
         title: 'Error',
         description: 'Failed to generate AI caption.',
       });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+  
+    const handleSuggestHashtags = async () => {
+    setIsGenerating(true);
+    try {
+        const platform = Object.keys(selectedAccounts)[0] || 'Instagram';
+        const result = await getHashtagRecommendations({
+            postContent: text,
+            platform: platform,
+        });
+        if (result.hashtags) {
+            const hashtagString = result.hashtags.map(h => `#${h}`).join(' ');
+            setText(prev => `${prev}\n\n${hashtagString}`);
+            toast({ title: 'Hashtags Suggested!', description: 'Trending hashtags have been added to your post.' });
+        }
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to suggest hashtags.' });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSuggestTime = async () => {
+    setIsGenerating(true);
+    try {
+        const platform = Object.keys(selectedAccounts)[0] || 'Instagram';
+        const result = await suggestBestTimeToPost({
+            postContent: text,
+            platform: platform,
+            audienceActivityData: 'Followers are most active in the evenings. Engagement is highest on weekends.' // This would be dynamic
+        });
+        if (result.suggestedPostTime) {
+            setDate(new Date(result.suggestedPostTime));
+            toast({ title: 'Best Time to Post!', description: `Scheduled for optimal engagement: ${result.explanation}`});
+        }
+    } catch (error) {
+      console.error(error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to suggest a post time.' });
     } finally {
       setIsGenerating(false);
     }
@@ -559,7 +605,7 @@ export default function UploadView() {
                 </Select>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-2">
+            <div className="grid sm:grid-cols-3 gap-2">
               <Button
                 onClick={handleGenerateCaption}
                 disabled={isGenerating || (!text && !effectiveMediaUrl)}
@@ -572,9 +618,21 @@ export default function UploadView() {
                 )}
                 Generate Content
               </Button>
-              <Button variant="outline" disabled>
-                <Sparkles className="mr-2 h-4 w-4" />
+               <Button
+                onClick={handleSuggestHashtags}
+                disabled={isGenerating || !text}
+                variant="outline"
+              >
+                {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin"/> : <Hash className="mr-2 h-4 w-4"/>}
                 Suggest Hashtags
+              </Button>
+              <Button
+                onClick={handleSuggestTime}
+                disabled={isGenerating || !text}
+                variant="outline"
+              >
+                 {isGenerating ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin"/> : <Clock className="mr-2 h-4 w-4"/>}
+                Suggest Time
               </Button>
             </div>
           </CardContent>
