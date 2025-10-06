@@ -17,7 +17,7 @@ import TasksView from '@/components/script_writer/TasksView';
 import PaymentsView from '@/components/script_writer/PaymentsView';
 import ProfileView from '@/components/script_writer/ProfileView';
 import CollaborationView from '@/components/script_writer/CollaborationView';
-import { useAuth, useCollection, useFirebase, useMemoFirebase, useUser } from '@/firebase';
+import { useAuth, useCollection, useFirebase, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 
 
