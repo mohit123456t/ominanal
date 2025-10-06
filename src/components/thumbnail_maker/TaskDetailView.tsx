@@ -1,10 +1,10 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, CheckCircle, Download, File, Upload, BrainCircuit, LoaderCircle, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 // Mock AI function for generating thumbnail ideas
-const generateThumbnailIdeas = async (prompt: string) => {
+const generateThumbnailIdeas = async (prompt: string): Promise<{ id: string; url: string; prompt: string; }[]> => {
     await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
     return [
         { id: 'idea1', url: `https://picsum.photos/seed/${prompt.slice(0,5)}1/400/225`, prompt: 'Bold text, vibrant colors' },
@@ -24,41 +24,8 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
     const [thumbnailIdeas, setThumbnailIdeas] = useState<any[]>([]);
     const { toast } = useToast();
 
-    useEffect(() => {
-        setCurrentTask(task);
-        setStatus(task.status);
-        if(!task.thumbnailIdeas || task.thumbnailIdeas.length === 0){
-            handleGenerateThumbnails();
-        }
-    }, [task]);
-    
-    const handleUpdateTask = async () => {
-        if (!currentTask?.id) return;
-        setLoading(true);
-        setError('');
-        try {
-            // Placeholder for update logic
-            console.log("Updating task:", { id: currentTask.id, status, notes });
-            await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-            setCurrentTask({ ...currentTask, status });
-            setNotes('');
-            toast({ title: "Task Updated!", description: "The task status has been updated." });
-        } catch (err) {
-            console.error("Error updating task:", err);
-            setError('Failed to update the task. Please try again.');
-            toast({ variant: "destructive", title: "Error", description: "Failed to update task." });
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    const handleApproveAndSubmit = () => {
-        // Placeholder for approval logic
-        toast({ title: "Thumbnail Approved!", description: "The thumbnail has been submitted for final review." });
-        onBack();
-    }
-
-    const handleGenerateThumbnails = async () => {
+     const handleGenerateThumbnails = useCallback(async () => {
+        if (!currentTask?.videoTitle) return;
         setIsGenerating(true);
         setThumbnailIdeas([]);
         try {
@@ -70,7 +37,22 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
         } finally {
             setIsGenerating(false);
         }
-    };
+    }, [currentTask?.videoTitle, toast]);
+
+    useEffect(() => {
+        setCurrentTask(task);
+        setStatus(task.status);
+        if(!task.thumbnailIdeas || task.thumbnailIdeas.length === 0){
+            handleGenerateThumbnails();
+        }
+    }, [task, handleGenerateThumbnails]);
+    
+    
+    const handleApproveAndSubmit = () => {
+        // Placeholder for approval logic
+        toast({ title: "Thumbnail Approved!", description: "The thumbnail has been submitted for final review." });
+        onBack();
+    }
 
 
     if (!currentTask) {

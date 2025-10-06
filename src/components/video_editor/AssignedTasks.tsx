@@ -21,7 +21,7 @@ const TaskDetailsView = ({ task, onBack }: { task: any, onBack: () => void }) =>
     const [isGenerating, setIsGenerating] = useState(false);
     const { toast } = useToast();
     
-    const handleGenerateVideo = async () => {
+    const handleGenerateVideo = useCallback(async () => {
         if (!prompt) {
             toast({ variant: 'destructive', title: 'Prompt is empty', description: 'Please enter a description for the video you want to generate.'});
             return;
@@ -37,14 +37,13 @@ const TaskDetailsView = ({ task, onBack }: { task: any, onBack: () => void }) =>
         } finally {
             setIsGenerating(false);
         }
-    };
+    }, [prompt, toast]);
     
-    // Auto-generate on first load
     useEffect(() => {
         if (prompt) {
             handleGenerateVideo();
         }
-    }, []);
+    }, [prompt, handleGenerateVideo]);
 
 
     const StatusBadge = ({ status }: { status: string }) => {
@@ -154,8 +153,8 @@ const AssignedTasks = () => {
   useEffect(() => {
     setLoading(true);
     const placeholderCampaigns = [
-        { id: 'camp-1', name: 'Summer Breeze', status: 'Active', assignedEditor: 'editor-1', reels: [{title: 'Reel 1'}, {title: 'Reel 2'}], description: 'A cool summer campaign.'},
-        { id: 'camp-2', name: 'Winter Fest', status: 'In-Progress', assignedEditor: 'editor-1', reels: [], description: 'A festive winter campaign.'},
+        { id: 'camp-1', name: 'Summer Breeze', status: 'Active', assignedEditor: 'editor-1', reels: [{title: 'Reel 1'}, {title: 'Reel 2'}], description: 'A cool summer campaign with vibrant visuals.'},
+        { id: 'camp-2', name: 'Winter Fest', status: 'In-Progress', assignedEditor: 'editor-1', reels: [], description: 'A festive winter campaign showcasing family moments.'},
     ];
     setCampaigns(placeholderCampaigns);
     setLoading(false);

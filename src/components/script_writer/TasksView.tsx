@@ -31,13 +31,14 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
     const [isSaving, setIsSaving] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const handleGenerateAIScript = async () => {
+    const handleGenerateAIScript = useCallback(async () => {
+        if (!task.videoTitle) return;
         setIsGenerating(true);
         try {
             const result = await generateAiCaption({
-                topic: task.videoTitle || 'a social media video',
+                topic: task.videoTitle,
                 contentType: 'script',
-                tone: 'Witty', // or make this dynamic
+                tone: 'Witty',
             });
             if (result.caption) {
                 setScriptContent(result.caption);
@@ -48,14 +49,13 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
         } finally {
             setIsGenerating(false);
         }
-    };
+    }, [task.videoTitle, toast]);
 
-    // Auto-generate script on first load if content is empty
     useEffect(() => {
         if (!initialTask.content) {
             handleGenerateAIScript();
         }
-    }, [initialTask.content]);
+    }, [initialTask.content, handleGenerateAIScript]);
     
     const handleSaveChanges = async () => {
         if (!firestore) return;
@@ -64,12 +64,12 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
         try {
             await updateDoc(taskRef, {
                 content: scriptContent,
-                status: 'Submitted', // Automatically set status to submitted
+                status: 'Submitted',
                 updatedAt: new Date().toISOString(),
             });
             setTask({ ...task, content: scriptContent, status: 'Submitted' });
             toast({ title: "Success!", description: "Your script has been submitted for review." });
-            onClose(); // Close modal on success
+            onClose();
         } catch (error: any) {
             toast({ variant: 'destructive', title: "Save failed", description: error.message });
         } finally {
