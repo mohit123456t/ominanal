@@ -19,10 +19,10 @@ const AICaptionInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      "A media file (image or video) as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'." // cspell:disable-line
+      "A media file (image or video) as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'" // cspell:disable-line
     ),
   tone: z
-    .enum(['Professional', 'Witty', 'Casual'])
+    .enum(['Professional', 'Witty', 'Casual', 'Inspirational'])
     .default('Casual')
     .describe('The desired tone of the content.'),
   contentType: z
@@ -57,11 +57,11 @@ Topic: {{topic}}
 Media: {{media url=mediaDataUri}}
 {{~/if~}}
 
-{{~#if (eq contentType "script")~}}
+{{#if (eq contentType "script")}}
 Please provide a full script for a short video based on the topic.
-{{~else~}}
+{{else}}
 Please provide a concise and engaging caption.
-{{~/if~}}
+{{/if}}
 `,
 });
 
