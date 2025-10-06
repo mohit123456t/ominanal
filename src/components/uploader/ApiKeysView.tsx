@@ -158,6 +158,7 @@ export default function ApiKeysView({ credentialsList, isLoadingCreds }: { crede
     if (!user || !firestore) return null;
     return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
   }, [user, firestore]);
+  
   const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
 
   const credentials = useMemo(() => {
@@ -339,3 +340,5 @@ export default function ApiKeysView({ credentialsList, isLoadingCreds }: { crede
     </div>
   );
 }
+
+    
