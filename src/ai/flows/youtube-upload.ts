@@ -40,6 +40,16 @@ const uploadVideoToYoutubeFlow = ai.defineFlow({
 
     oauth2Client.setCredentials({ access_token: accessToken, refresh_token: refreshToken });
     
+    // Handle token refresh if necessary
+    oauth2Client.on('tokens', (tokens) => {
+        if (tokens.refresh_token) {
+          // A new refresh token might be issued, you should store it.
+          console.log("New YouTube refresh token received:", tokens.refresh_token);
+        }
+        // The access_token is automatically updated in the client.
+    });
+
+
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
     try {

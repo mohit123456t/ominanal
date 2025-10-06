@@ -711,5 +711,3 @@ export default function UploadView() {
     </div>
   );
 }
-
-    
