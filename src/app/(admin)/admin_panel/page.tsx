@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,7 +14,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useAuth, useCollection, useFirebase, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, doc, collectionGroup, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, doc, collectionGroup, updateDoc, addDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 import CampaignApprovalView from '@/components/admin/CampaignApprovalView';
@@ -99,7 +99,35 @@ function AdminPanel() {
     const userDocRef = useMemoFirebase(() =>
         user && firestore ? doc(firestore, 'users', user.uid) : null
     , [user, firestore]);
-    const { data: adminProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+    const { data: adminProfile, isLoading: isProfileLoading, error: profileError } = useDoc(userDocRef);
+
+    // Auto-create admin profile if it doesn't exist
+    useEffect(() => {
+        const createAdminProfileIfNeeded = async () => {
+            if (user && !isProfileLoading && !adminProfile && userDocRef) {
+                // Check one more time to avoid race conditions
+                 const { getDoc } = await import('firebase/firestore');
+                 const docSnap = await getDoc(userDocRef);
+                 if (!docSnap.exists()) {
+                     console.log("Admin profile does not exist, creating one...");
+                     try {
+                         await setDoc(userDocRef, {
+                             uid: user.uid,
+                             email: user.email,
+                             name: user.displayName || 'Admin User',
+                             role: 'admin',
+                             createdAt: serverTimestamp(),
+                         });
+                         toast({ title: 'Profile Created', description: 'Your admin profile has been initialized.' });
+                     } catch (e: any) {
+                         console.error("Failed to create admin profile:", e);
+                         toast({ variant: 'destructive', title: 'Profile Creation Failed', description: e.message });
+                     }
+                 }
+            }
+        };
+        createAdminProfileIfNeeded();
+    }, [user, adminProfile, isProfileLoading, userDocRef, firestore, toast]);
 
     const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
     const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
@@ -115,7 +143,7 @@ function AdminPanel() {
 
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
     
-    const adminProfileName = adminProfile?.name || 'Admin';
+    const adminProfileName = adminProfile?.name || user?.displayName || 'Admin';
     
     const handleUpdateTransactionStatus = async (transaction: any, newStatus: string) => {
         if (!firestore || !transaction.brandId || !transaction.id) {
@@ -201,7 +229,7 @@ function AdminPanel() {
     const isLoading = usersLoading || campaignsLoading || transactionsLoading || isProfileLoading || expensesLoading;
 
     const renderView = () => {
-        if (isLoading) {
+        if (isLoading && !adminProfile) { // Show loading only on initial load
             return <div className="flex h-full w-full items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
         }
 
