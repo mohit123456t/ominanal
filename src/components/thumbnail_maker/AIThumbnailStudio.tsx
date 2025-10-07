@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BrainCircuit, LoaderCircle, Sparkles, Clipboard, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { improvePrompt, generateThumbnailPrompts, type GenerateThumbnailPromptsOutput } from '@/ai/flows/ai-thumbnail-generation';
