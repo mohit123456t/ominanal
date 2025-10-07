@@ -1,12 +1,14 @@
 'use client';
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { BrainCircuit, LoaderCircle, Sparkles, Download } from 'lucide-react';
+import { BrainCircuit, LoaderCircle, Sparkles, Download, AlertCircle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateVideo } from '@/ai/flows/ai-video-generation';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+
 
 const AIVideoStudio = () => {
     const { toast } = useToast();
@@ -45,6 +47,23 @@ const AIVideoStudio = () => {
                 <h1 className="text-3xl font-bold text-slate-800 mt-4">AI Video Studio</h1>
                 <p className="text-slate-600 mt-2">Generate videos from text prompts, anytime. Perfect for brainstorming and creating quick content.</p>
             </div>
+            
+            <Alert className="bg-blue-50 border-blue-200">
+              <AlertCircle className="h-4 w-4 !text-blue-700" />
+              <AlertTitle className="text-blue-800 font-semibold">Billing Required for This Feature</AlertTitle>
+              <AlertDescription className="text-blue-700">
+                AI video generation is a powerful feature that uses Google's advanced models. To use it, you must have billing enabled on your Google Cloud project. You can set this up in the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Cloud Console</a>.
+              </AlertDescription>
+            </Alert>
+            
+             <Alert className="bg-yellow-50 border-yellow-200">
+                <AlertCircle className="h-4 w-4 !text-yellow-700" />
+                <AlertTitle className="text-yellow-800 font-semibold">About Video Generation Costs</AlertTitle>
+                <AlertDescription className="text-yellow-700">
+                    The cost of video generation depends on the length of the video produced. For the most up-to-date and detailed pricing information, please visit the official <a href="https://cloud.google.com/vertex-ai/pricing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Vertex AI pricing page</a>.
+                </AlertDescription>
+            </Alert>
+
 
             <Card>
                 <CardContent className="p-6 space-y-4">
