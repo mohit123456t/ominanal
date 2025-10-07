@@ -17,7 +17,7 @@ const GenerateVideoInputSchema = z.object({
 export type GenerateVideoInput = z.infer<typeof GenerateVideoInputSchema>;
 
 const GenerateVideoOutputSchema = z.object({
-    videoUrl: z.string().url().describe('The data URI of the generated video.'),
+    videoUrl: z.string().describe('The data URI of the generated video.'),
 });
 export type GenerateVideoOutput = z.infer<typeof GenerateVideoOutputSchema>;
 
