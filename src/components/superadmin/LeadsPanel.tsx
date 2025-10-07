@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MessageSquare, LoaderCircle, Bot, Download, Play, Pause } from 'lucide-react';
+import { Search, MessageSquare, LoaderCircle, Bot, Download, Play, Pause, Phone } from 'lucide-react';
 import { findLeads, type Lead } from '@/ai/flows/ai-lead-generation';
 import { generateAudioOutreach } from '@/ai/flows/ai-audio-outreach';
 import { useToast } from '@/hooks/use-toast';
@@ -96,8 +96,8 @@ const LeadsPanel = () => {
             animate={{ opacity: 1 }}
         >
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-800 tracking-tighter">AI Lead Generation</h1>
-                <p className="text-slate-500 mt-1">Discover new brands by searching topics like "top 10 footwear brands in India".</p>
+                <h1 className="text-3xl font-bold text-slate-800 tracking-tighter">AI Lead Generation & Outreach</h1>
+                <p className="text-slate-500 mt-1">Discover new brands and engage with them using personalized AI tools.</p>
             </div>
 
             <motion.div
@@ -110,7 +110,7 @@ const LeadsPanel = () => {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Find new leads..."
+                            placeholder="Find new leads (e.g., top 10 footwear brands in India)"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -154,7 +154,7 @@ const LeadsPanel = () => {
                                 <p><strong>Address:</strong> {lead.address}</p>
                             </div>
                              <div className="mt-4 pt-4 border-t border-slate-300/50 space-y-2">
-                                <button 
+                                 <button 
                                     onClick={() => handleGenerateAudio(lead)}
                                     disabled={isGeneratingAudio === lead.email}
                                     className="w-full flex items-center justify-center px-3 py-2 text-sm font-semibold text-indigo-700 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 disabled:bg-slate-500/10 disabled:text-slate-500 disabled:cursor-not-allowed"
@@ -162,6 +162,25 @@ const LeadsPanel = () => {
                                     {isGeneratingAudio === lead.email ? <LoaderCircle className="animate-spin mr-1.5"/> : <Bot size={14} className="mr-1.5"/>}
                                     {isGeneratingAudio === lead.email ? 'Generating Audio...' : 'Generate Audio Message'}
                                 </button>
+                                
+                                <button 
+                                    onClick={() => handleWhatsAppContact(lead)}
+                                    disabled={!lead.mobileNumber}
+                                    className="w-full flex items-center justify-center px-3 py-2 text-sm font-semibold text-green-700 bg-green-500/10 rounded-lg hover:bg-green-500/20 disabled:bg-slate-500/10 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                >
+                                    <MessageSquare size={14} className="mr-1.5"/>
+                                    Contact via WhatsApp
+                                </button>
+                                
+                                <button 
+                                    disabled // This button is for demonstration and is disabled
+                                    className="w-full flex items-center justify-center px-3 py-2 text-sm font-semibold text-slate-500 bg-slate-500/10 rounded-lg cursor-not-allowed"
+                                    title="Coming soon with Twilio integration"
+                                >
+                                    <Phone size={14} className="mr-1.5"/>
+                                    Start AI Call
+                                </button>
+
 
                                 {audioData[lead.email] && (
                                     <div className="flex items-center gap-2 p-2 bg-slate-100 rounded-lg">
@@ -173,15 +192,6 @@ const LeadsPanel = () => {
                                         <a href={audioData[lead.email]} download={`${lead.name}-outreach.wav`}><Download className="w-5 h-5 text-slate-600"/></a>
                                     </div>
                                 )}
-
-                                <button 
-                                    onClick={() => handleWhatsAppContact(lead)}
-                                    disabled={!lead.mobileNumber}
-                                    className="w-full mt-2 flex items-center justify-center px-3 py-2 text-sm font-semibold text-green-700 bg-green-500/10 rounded-lg hover:bg-green-500/20 disabled:bg-slate-500/10 disabled:text-slate-500 disabled:cursor-not-allowed"
-                                >
-                                    <MessageSquare size={14} className="mr-1.5"/>
-                                    Contact via WhatsApp
-                                </button>
                             </div>
                         </motion.div>
                     ))}
