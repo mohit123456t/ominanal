@@ -28,7 +28,7 @@ export type GenerateThumbnailOutput = z.infer<typeof GenerateThumbnailOutputSche
 const thumbnailPromptsGenerator = ai.definePrompt({
     name: 'thumbnailPromptsGenerator',
     input: { schema: GenerateThumbnailInputSchema },
-    output: { schema: z.object({ prompts: z.array(z.string().describe("A creative and visually descriptive prompt for a thumbnail.")).length(3) }) },
+    output: { schema: z.object({ prompts: z.array(z.string().describe("A creative and visually descriptive prompt for a thumbnail.")) }) },
     prompt: `You are a creative director specializing in viral YouTube thumbnails.
     Given the video title, generate 3 distinct, highly detailed, and visually compelling prompts to give to an AI image generator.
     Focus on creating a sense of curiosity, emotion, and visual clarity.
