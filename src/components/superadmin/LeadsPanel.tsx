@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MessageSquare, LoaderCircle, Bot, Download, Play, Pause, Phone } from 'lucide-react';
 import { findLeads, type Lead } from '@/ai/flows/ai-lead-generation';
 import { generateAudioOutreach } from '@/ai/flows/ai-audio-outreach';
 import { useToast } from '@/hooks/use-toast';
+import AICallView from './AICallView'; // Import the new component
 
 const LeadsPanel = () => {
     const { toast } = useToast();
@@ -14,6 +15,7 @@ const LeadsPanel = () => {
     const [isGeneratingAudio, setIsGeneratingAudio] = useState<string | null>(null);
     const [audioData, setAudioData] = useState<Record<string, string>>({});
     const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+    const [callingLead, setCallingLead] = useState<Lead | null>(null);
 
     const handleSearch = async () => {
         if (!searchTerm.trim()) {
@@ -89,7 +91,19 @@ const LeadsPanel = () => {
         window.open(whatsappUrl, '_blank');
     };
 
+    const handleStartCall = (lead: Lead) => {
+        setCallingLead(lead);
+    };
+
+    const handleEndCall = () => {
+        setCallingLead(null);
+    };
+
     return (
+        <>
+        <AnimatePresence>
+            {callingLead && <AICallView lead={callingLead} onClose={handleEndCall} />}
+        </AnimatePresence>
         <motion.div 
             className="space-y-8"
             initial={{ opacity: 0 }}
@@ -173,9 +187,8 @@ const LeadsPanel = () => {
                                 </button>
                                 
                                 <button 
-                                    disabled // This button is for demonstration and is disabled
-                                    className="w-full flex items-center justify-center px-3 py-2 text-sm font-semibold text-slate-500 bg-slate-500/10 rounded-lg cursor-not-allowed"
-                                    title="Coming soon with Twilio integration"
+                                    onClick={() => handleStartCall(lead)}
+                                    className="w-full flex items-center justify-center px-3 py-2 text-sm font-semibold text-red-700 bg-red-500/10 rounded-lg hover:bg-red-500/20"
                                 >
                                     <Phone size={14} className="mr-1.5"/>
                                     Start AI Call
@@ -199,6 +212,7 @@ const LeadsPanel = () => {
             )}
 
         </motion.div>
+        </>
     );
 };
 
