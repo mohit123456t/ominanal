@@ -127,11 +127,15 @@ function AdminPanel() {
     const campaignsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campaigns') : null, [firestore]);
     const { data: campaigns, isLoading: campaignsLoading } = useCollection(campaignsQuery);
 
-    const transactionsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'transactions')) : null, [firestore]);
-    const { data: transactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
-
     const expensesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'expenses')) : null, [firestore]);
     const { data: expenses, isLoading: expensesLoading } = useCollection(expensesQuery);
+    
+    // Consolidate all transactions from all users
+    const allTransactions = useMemo(() => {
+        if (!users) return [];
+        return users.flatMap(u => (u.transactions || []).map((t: any) => ({ ...t, brandId: u.id })));
+    }, [users]);
+
 
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
     
@@ -217,7 +221,7 @@ function AdminPanel() {
         setActiveView('brand_view');
     };
 
-    const isLoading = usersLoading || campaignsLoading || transactionsLoading || isProfileLoading || expensesLoading;
+    const isLoading = usersLoading || campaignsLoading || isProfileLoading || expensesLoading;
 
     const renderView = () => {
         if (isLoading && !adminProfile) { // Show loading only on initial load
@@ -237,7 +241,7 @@ function AdminPanel() {
             case 'campaigns': return <CampaignManagerView campaigns={campaigns || []} users={users || []} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-approval': return <CampaignApprovalView campaigns={campaigns || []} />;
             case 'users': return <UserManagementView brands={brands || []} onViewBrand={onViewBrand} />;
-            case 'finance': return <FinanceView transactions={transactions || []} expenses={expenses || []} onUpdateStatus={handleUpdateTransactionStatus} onAddExpense={handleAddExpense} />;
+            case 'finance': return <FinanceView transactions={allTransactions || []} expenses={expenses || []} onUpdateStatus={handleUpdateTransactionStatus} onAddExpense={handleAddExpense} />;
             case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
             case 'communication': return <div className="text-center p-8">Communication View Coming Soon</div>;
             case 'dashboard':
