@@ -11,6 +11,7 @@ import {
     LogOut,
     Menu,
     X,
+    Sparkles
 } from 'lucide-react';
 
 import DashboardView from '@/components/thumbnail_maker/DashboardView';
@@ -19,6 +20,7 @@ import TaskDetailView from '@/components/thumbnail_maker/TaskDetailView';
 import CommunicationView from '@/components/thumbnail_maker/CommunicationView';
 import EarningsView from '@/components/thumbnail_maker/EarningsView';
 import ProfileView from '@/components/thumbnail_maker/ProfileView';
+import AIThumbnailStudio from '@/components/thumbnail_maker/AIThumbnailStudio';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -84,6 +86,7 @@ const ThumbnailMakerPanel = () => {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'my-tasks', label: 'My Tasks', icon: <Clipboard /> },
+        { id: 'ai-studio', label: 'AI Thumbnail Studio', icon: <Sparkles /> },
         { id: 'communication', label: 'Communication', icon: <MessageSquare /> },
         { id: 'earnings', label: 'Earnings', icon: <IndianRupee /> },
         { id: 'profile', label: 'Profile', icon: <Users /> },
@@ -111,6 +114,8 @@ const ThumbnailMakerPanel = () => {
                 return <DashboardView userProfile={userProfile} onTaskClick={handleTaskClick} />;
             case 'my-tasks':
                 return <AssignedTasks userProfile={userProfile} onTaskClick={handleTaskClick} />;
+            case 'ai-studio':
+                return <AIThumbnailStudio />;
             case 'communication':
                 return <CommunicationView />;
             case 'earnings':
