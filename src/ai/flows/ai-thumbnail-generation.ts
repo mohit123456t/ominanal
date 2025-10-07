@@ -14,8 +14,14 @@ const GenerateThumbnailPromptsInputSchema = z.object({
 });
 export type GenerateThumbnailPromptsInput = z.infer<typeof GenerateThumbnailPromptsInputSchema>;
 
+
+const ThumbnailIdeaSchema = z.object({
+    prompt: z.string().describe("A creative and visually descriptive prompt for a high-CTR ad thumbnail, optimized for an AI image generator like Midjourney or DALL-E."),
+    description: z.string().describe("A one-sentence description of the visual scene this prompt would create. For example: 'A close-up of a gamer's excited face lit by a neon laptop screen'.")
+});
+
 const GenerateThumbnailPromptsOutputSchema = z.object({
-  prompts: z.array(z.string().describe("A creative and visually descriptive prompt for a high-CTR ad thumbnail.")),
+  ideas: z.array(ThumbnailIdeaSchema).describe("An array of creative and visually descriptive concepts for a high-CTR ad thumbnail."),
 });
 export type GenerateThumbnailPromptsOutput = z.infer<typeof GenerateThumbnailPromptsOutputSchema>;
 
@@ -28,43 +34,55 @@ const generateThumbnailPromptsFlow = ai.defineFlow(
   },
   async ({ prompt }) => {
     
-    // This prompt asks the text model to generate creative prompts.
     const thumbnailPromptsGenerator = await ai.generate({
         prompt: `You are a creative director specializing in hyper-realistic, high-click-through-rate (CTR) ad thumbnails for platforms like YouTube and Instagram.
-        Given the video ad title, generate 3 unique, highly detailed, and visually compelling prompts for an AI image generator like Midjourney or DALL-E. The goal is to create a thumbnail that looks like a real, stunning photograph and makes people click.
+        Given the video ad title, generate 3 unique, highly detailed, and visually compelling concepts for an AI image generator. For each concept, provide both a detailed 'prompt' for the AI image generator, and a simple one-sentence 'description' of the resulting visual.
 
         Video Ad Title: {{{prompt}}}
         
-        **CRITICAL INSTRUCTIONS:**
+        **CRITICAL INSTRUCTIONS FOR EACH 'prompt':**
         1.  **Hyper-Realism:** Each prompt MUST include terms like "cinematic, hyper-realistic, 8K, photorealistic, sharp focus".
         2.  **Advertising Principles:**
             - **High Emotion:** Focus on expressive faces (shock, excitement, satisfaction).
             - **Visual Clarity:** A single, clear subject. Use bold, contrasting colors and dramatic lighting.
             - **Intrigue & Curiosity:** Create a sense of mystery or a "before and after" effect.
             - **Professional Photography:** Suggest techniques like "shallow depth of field", "dramatic lighting", "golden hour".
-            - **Minimal Text:** Suggest short, punchy text overlays like "50% OFF" or "SECRET REVEALED".
-        3.  **Format:** Generate 3 unique prompts optimized for an advertisement.
+        3. **CRITICAL INSTRUCTIONS FOR EACH 'description':**
+            - Provide a simple, one-sentence summary of the visual scene. This is for internal use.
 
-        **Example:**
+        **EXAMPLE:**
         Video Ad Title: "My new gaming laptop"
-        Your Output:
-        - "Hyper-realistic 8K photo of a gamer's face, illuminated by the neon glow of a high-end gaming laptop. Eyes wide with shock and excitement, dramatic lighting, shallow depth of field focusing on the intricate details of the keyboard."
-        - "Cinematic close-up shot of a sleek, futuristic gaming laptop on a dark, metallic surface. Steam rises from the vents, glowing with RGB light. The reflection on the screen shows a tense moment from a AAA game. Photorealistic, sharp focus."
-        - "A stunning 'before and after' style photo. On the left, a frustrated gamer with an old, slow laptop. On the right, the same gamer, now ecstatic and victorious, with the new, glowing gaming laptop. 8K, hyper-realistic, dramatic contrast."
+        Your Output (in JSON format):
+        {
+          "ideas": [
+            {
+              "prompt": "Hyper-realistic 8K photo of a gamer's face, illuminated by the neon glow of a high-end gaming laptop. Eyes wide with shock and excitement, dramatic lighting, shallow depth of field focusing on the intricate details of the keyboard.",
+              "description": "A close-up of a gamer's excited face lit by a neon laptop screen."
+            },
+            {
+              "prompt": "Cinematic close-up shot of a sleek, futuristic gaming laptop on a dark, metallic surface. Steam rises from the vents, glowing with RGB light. The reflection on the screen shows a tense moment from a AAA game. Photorealistic, sharp focus.",
+              "description": "A sleek, glowing gaming laptop on a dark surface with steam rising from it."
+            },
+            {
+              "prompt": "A stunning 'before and after' style photo. On the left, a frustrated gamer with an old, slow laptop. On the right, the same gamer, now ecstatic and victorious, with the new, glowing gaming laptop. 8K, hyper-realistic, dramatic contrast.",
+              "description": "A split-screen showing a frustrated gamer on one side and an ecstatic gamer with a new laptop on the other."
+            }
+          ]
+        }
 
         Now, generate the prompts for the given video ad title.`,
         model: googleAI.model('gemini-2.5-flash'),
         output: {
-            schema: z.object({ prompts: z.array(z.string().describe("A creative and visually descriptive prompt for a high-CTR ad thumbnail.")) })
+            schema: GenerateThumbnailPromptsOutputSchema
         }
     });
 
     const output = thumbnailPromptsGenerator.output;
-    if (!output?.prompts || output.prompts.length === 0) {
+    if (!output?.ideas || output.ideas.length === 0) {
         throw new Error('Failed to generate creative prompts for thumbnails.');
     }
 
-    return { prompts: output.prompts };
+    return { ideas: output.ideas };
   }
 );
 
