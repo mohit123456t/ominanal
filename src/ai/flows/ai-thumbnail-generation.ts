@@ -73,7 +73,7 @@ const generateThumbnailIdeasFlow = ai.defineFlow(
         // The URL from Imagen is temporary. To make it usable on the client, we must fetch it 
         // and convert it to a Base64 data URI.
         const fetch = (await import('node-fetch')).default;
-        const imageDownloadResponse = await fetch(media.url);
+        const imageDownloadResponse = await fetch(`${media.url}&key=${process.env.GEMINI_API_KEY}`);
 
         if (!imageDownloadResponse.ok || !imageDownloadResponse.body) {
             throw new Error(`Failed to download generated image. Status: ${imageDownloadResponse.status}`);
