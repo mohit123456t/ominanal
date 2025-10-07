@@ -54,7 +54,7 @@ const searchWebForLeads = ai.defineTool(
       },
     });
 
-    return leadsGenerator.output()!;
+    return leadsGenerator.output!;
   }
 );
 
@@ -77,7 +77,7 @@ const findLeadsFlow = ai.defineFlow(
 
     // The LLM will automatically call the tool if it decides it's necessary.
     // We just need to return the final generated output.
-    const output = llmResponse.output();
+    const output = llmResponse.output;
     if (!output || !('leads' in output)) {
       throw new Error('AI did not return the expected lead data.');
     }
