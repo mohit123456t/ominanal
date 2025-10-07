@@ -20,6 +20,7 @@ import {
   ChartBar,
   Clipboard,
   UserCircle,
+  Contact,
 } from 'lucide-react';
 import { useAuth, useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query } from 'firebase/firestore';
@@ -34,6 +35,7 @@ import UploaderManagerView from '@/components/superadmin/UploaderManagerView';
 import ScriptWriterManagerView from '@/components/superadmin/ScriptWriterManagerView';
 import ReelsUploadedPage from '@/components/superadmin/ReelsUploadedPage';
 import SuperAdminProfileView from '@/components/superadmin/SuperAdminProfileView';
+import LeadsPanel from '@/components/superadmin/LeadsPanel';
 
 
 const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
@@ -97,6 +99,7 @@ function SuperAdminPanel() {
             case 'finance': return <SuperAdminFinance posts={postsData || []} onNavigate={setActiveView} />;
             case 'pricing_management': return <PricingManagement />;
             case 'profile': return <SuperAdminProfileView />;
+            case 'leads_panel': return <LeadsPanel />;
             default: return <SuperAdminDashboard users={usersData || []} posts={postsData || []} />;
         }
     };
@@ -105,6 +108,7 @@ function SuperAdminPanel() {
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
         { id: 'finance', label: 'Finance', icon: <IndianRupee size={18} /> },
         { id: 'staff_management', label: 'Staff Management', icon: <UsersGroup size={18} /> },
+        { id: 'leads_panel', label: 'Leads Panel', icon: <Contact size={18} /> },
         { id: 'uploader_manager', label: 'Uploader Manager', icon: <Upload size={18} /> },
         { id: 'script_writer_manager', label: 'Script Writer Manager', icon: <Pencil size={18} /> },
         { id: 'thumbnail_maker_manager', label: 'Thumbnail Maker Manager', icon: <ImageIcon size={18} /> },
