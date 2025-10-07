@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MessageSquare, LoaderCircle } from 'lucide-react';
+import { Search, MessageSquare, LoaderCircle, Bot, Download, Play, Pause } from 'lucide-react';
 import { findLeads, type Lead } from '@/ai/flows/ai-lead-generation';
+import { generateAudioOutreach } from '@/ai/flows/ai-audio-outreach';
 import { useToast } from '@/hooks/use-toast';
 
 const LeadsPanel = () => {
@@ -10,6 +11,9 @@ const LeadsPanel = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [leads, setLeads] = useState<Lead[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isGeneratingAudio, setIsGeneratingAudio] = useState<string | null>(null);
+    const [audioData, setAudioData] = useState<Record<string, string>>({});
+    const [playingAudio, setPlayingAudio] = useState<string | null>(null);
 
     const handleSearch = async () => {
         if (!searchTerm.trim()) {
@@ -22,6 +26,7 @@ const LeadsPanel = () => {
         }
         setIsLoading(true);
         setLeads([]);
+        setAudioData({});
         try {
             const result = await findLeads({ query: searchTerm });
             setLeads(result.leads);
@@ -36,6 +41,43 @@ const LeadsPanel = () => {
         }
     };
     
+    const handleGenerateAudio = async (lead: Lead) => {
+        const leadId = lead.email; // Using email as a unique ID for the lead
+        setIsGeneratingAudio(leadId);
+        try {
+            const result = await generateAudioOutreach({ lead });
+            setAudioData(prev => ({...prev, [leadId]: result.audioDataUri}));
+            toast({ title: "Audio Generated!", description: `Personalized audio message created for ${lead.name}.` });
+        } catch (error: any) {
+             toast({
+                variant: "destructive",
+                title: "Audio Generation Error",
+                description: error.message || "Could not generate audio message.",
+            });
+        } finally {
+            setIsGeneratingAudio(null);
+        }
+    };
+
+    const toggleAudioPlay = (leadId: string) => {
+        const audio = document.getElementById(`audio-${leadId}`) as HTMLAudioElement;
+        if (!audio) return;
+
+        if (playingAudio === leadId) {
+            audio.pause();
+            setPlayingAudio(null);
+        } else {
+            // Pause any currently playing audio
+            if (playingAudio) {
+                 const currentAudio = document.getElementById(`audio-${playingAudio}`) as HTMLAudioElement;
+                 currentAudio?.pause();
+            }
+            audio.play();
+            setPlayingAudio(leadId);
+        }
+        audio.onended = () => setPlayingAudio(null);
+    }
+
     const handleWhatsAppContact = (lead: Lead) => {
         const mobile = lead.mobileNumber;
         if (!mobile) {
@@ -111,14 +153,36 @@ const LeadsPanel = () => {
                                 <p><strong>Mobile:</strong> {lead.mobileNumber}</p>
                                 <p><strong>Address:</strong> {lead.address}</p>
                             </div>
-                            <button 
-                                onClick={() => handleWhatsAppContact(lead)}
-                                disabled={!lead.mobileNumber}
-                                className="w-full mt-4 flex items-center justify-center px-3 py-2 text-sm font-semibold text-green-700 bg-green-500/10 rounded-lg hover:bg-green-500/20 disabled:bg-slate-500/10 disabled:text-slate-500 disabled:cursor-not-allowed"
-                            >
-                                <MessageSquare size={14} className="mr-1.5"/>
-                                Contact via WhatsApp
-                            </button>
+                             <div className="mt-4 pt-4 border-t border-slate-300/50 space-y-2">
+                                <button 
+                                    onClick={() => handleGenerateAudio(lead)}
+                                    disabled={isGeneratingAudio === lead.email}
+                                    className="w-full flex items-center justify-center px-3 py-2 text-sm font-semibold text-indigo-700 bg-indigo-500/10 rounded-lg hover:bg-indigo-500/20 disabled:bg-slate-500/10 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                >
+                                    {isGeneratingAudio === lead.email ? <LoaderCircle className="animate-spin mr-1.5"/> : <Bot size={14} className="mr-1.5"/>}
+                                    {isGeneratingAudio === lead.email ? 'Generating Audio...' : 'Generate Audio Message'}
+                                </button>
+
+                                {audioData[lead.email] && (
+                                    <div className="flex items-center gap-2 p-2 bg-slate-100 rounded-lg">
+                                        <audio id={`audio-${lead.email}`} src={audioData[lead.email]} className="hidden"></audio>
+                                        <button onClick={() => toggleAudioPlay(lead.email)}>
+                                            {playingAudio === lead.email ? <Pause className="w-5 h-5 text-slate-600"/> : <Play className="w-5 h-5 text-slate-600"/>}
+                                        </button>
+                                        <div className="flex-grow text-xs text-slate-600">AI Generated Message</div>
+                                        <a href={audioData[lead.email]} download={`${lead.name}-outreach.wav`}><Download className="w-5 h-5 text-slate-600"/></a>
+                                    </div>
+                                )}
+
+                                <button 
+                                    onClick={() => handleWhatsAppContact(lead)}
+                                    disabled={!lead.mobileNumber}
+                                    className="w-full mt-2 flex items-center justify-center px-3 py-2 text-sm font-semibold text-green-700 bg-green-500/10 rounded-lg hover:bg-green-500/20 disabled:bg-slate-500/10 disabled:text-slate-500 disabled:cursor-not-allowed"
+                                >
+                                    <MessageSquare size={14} className="mr-1.5"/>
+                                    Contact via WhatsApp
+                                </button>
+                            </div>
                         </motion.div>
                     ))}
                 </motion.div>
