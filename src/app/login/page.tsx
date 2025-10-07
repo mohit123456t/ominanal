@@ -16,7 +16,6 @@ import { Label } from '@/components/ui/label';
 import { useAuth, useFirebase } from '@/firebase';
 import {
   signInWithEmailAndPassword,
-  getIdTokenResult
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -52,10 +51,10 @@ export default function LoginPage() {
       });
       
       const userDocRef = doc(firestore, 'users', loggedInUser.uid);
-      
-      // SUPER ADMIN CHECK (HARDCODED & FAST)
+      const userDocSnap = await getDoc(userDocRef);
+
+      // Handle Super Admin separately and first
       if (loggedInUser.email === 'mohitmleena3@gmail.com') {
-        const userDocSnap = await getDoc(userDocRef);
         if (!userDocSnap.exists()) {
           await setDoc(userDocRef, {
             uid: loggedInUser.uid,
@@ -63,61 +62,57 @@ export default function LoginPage() {
             name: loggedInUser.displayName || 'Super Admin',
             role: 'superadmin',
             createdAt: new Date().toISOString(),
-          });
+          }, { merge: true });
         }
         window.location.href = '/superadmin_panal';
         return;
       }
       
-      // Fetch user document from Firestore
-      const userDocSnap = await getDoc(userDocRef);
-
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         const role = userData.role;
 
+        let targetUrl = '';
+
         switch (role) {
           case 'admin':
-            // Ensure document exists for admin, though it should if they're in the DB
-             if (!userDocSnap.exists()) {
-              await setDoc(userDocRef, {
-                uid: loggedInUser.uid,
-                email: loggedInUser.email,
-                name: loggedInUser.displayName || 'Admin User',
-                role: 'admin',
-                createdAt: new Date().toISOString(),
-              });
-            }
-            window.location.href = '/admin_panel';
+            targetUrl = '/admin_panel';
             break;
           case 'brand':
-            window.location.href = '/brand_panel';
+            targetUrl = '/brand_panel';
             break;
           case 'video_editor':
-            window.location.href = '/video_editor_panel';
+            targetUrl = '/video_editor_panel';
             break;
           case 'script_writer':
-            window.location.href = '/script_writer_panel';
+            targetUrl = '/script_writer_panel';
             break;
           case 'thumbnail_maker':
-            window.location.href = '/thumbnail_maker_panel';
+            targetUrl = '/thumbnail_maker_panel';
             break;
           case 'uploader':
-            window.location.href = '/uploader_panel';
+            targetUrl = '/uploader_panel';
             break;
           default:
+            // This handles cases where role is missing or not recognized
             toast({
               variant: 'destructive',
               title: 'Login Failed',
-              description: "Your user role is not recognized. Please contact support.",
+              description: "Your user role is not recognized or is missing. Please contact support.",
             });
             setIsLoading(false);
+            return; // Stop execution
         }
+        
+        // If a valid role was found, redirect
+        window.location.href = targetUrl;
+
       } else {
+         // This case handles users who might exist in Auth but not in the 'users' collection
          toast({
           variant: 'destructive',
           title: 'Login Failed',
-          description: "Could not find user details. Please contact support.",
+          description: "Could not find user details in the database. Please contact support if you believe this is an error.",
         });
         setIsLoading(false);
       }
