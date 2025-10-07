@@ -1,21 +1,19 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { LoaderCircle } from 'lucide-react';
 
 const AssignedTasks = ({ userProfile, onTaskClick }: { userProfile: any, onTaskClick: (task: any) => void }) => {
-    const [tasks, setTasks] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    
+    const { firestore } = useFirebase();
 
-    useEffect(() => {
-        // Placeholder data
-        setLoading(true);
-        const tasksData = [
-            { id: '1', videoTitle: 'Epic Gaming Moments', status: 'Pending', assignedAt: new Date() },
-            { id: '2', videoTitle: 'Cooking Challenge', status: 'In Progress', assignedAt: new Date(Date.now() - 86400000) },
-            { id: '3', videoTitle: 'Travel Vlog: Japan', status: 'Completed', assignedAt: new Date(Date.now() - 2 * 86400000) },
-        ];
-        setTasks(tasksData);
-        setLoading(false);
-    }, [userProfile]);
+    const tasksQuery = useMemoFirebase(() => {
+        if (!userProfile?.uid || !firestore) return null;
+        return query(collection(firestore, 'work_items'), where('assignedTo', '==', userProfile.uid), where('type', '==', 'thumbnail'));
+    }, [userProfile, firestore]);
+
+    const { data: tasks, isLoading: loading } = useCollection(tasksQuery);
 
     const getStatusChipStyle = (status: string) => {
         switch (status) {
@@ -39,10 +37,10 @@ const AssignedTasks = ({ userProfile, onTaskClick }: { userProfile: any, onTaskC
             <h3 className="font-bold text-lg p-6 border-b text-slate-800">All Assigned Tasks</h3>
             {loading ? (
                 <div className="p-6 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900 mx-auto"></div>
+                    <LoaderCircle className="animate-spin h-8 w-8 mx-auto text-indigo-600" />
                     <p className="mt-2 text-slate-600">Loading tasks...</p>
                 </div>
-            ) : tasks.length === 0 ? (
+            ) : !tasks || tasks.length === 0 ? (
                 <div className="p-6 text-center">
                     <p className="text-slate-600">No tasks have been assigned to you yet.</p>
                 </div>
@@ -66,7 +64,7 @@ const AssignedTasks = ({ userProfile, onTaskClick }: { userProfile: any, onTaskC
                                             {task.status}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">{task.assignedAt ? new Date(task.assignedAt).toLocaleDateString() : 'N/A'}</td>
+                                    <td className="px-6 py-4">{task.createdAt ? new Date(task.createdAt.seconds * 1000).toLocaleDateString() : 'N/A'}</td>
                                     <td className="px-6 py-4 text-right">
                                         <button onClick={() => onTaskClick(task)} className="font-medium text-blue-600 hover:underline">View Details</button>
                                     </td>
