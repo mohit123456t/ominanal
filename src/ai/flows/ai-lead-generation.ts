@@ -54,7 +54,11 @@ const searchWebForLeads = ai.defineTool(
       },
     });
 
-    return leadsGenerator.output!;
+    const output = leadsGenerator.output;
+    if (!output) {
+      throw new Error('The AI failed to generate any lead data from the search tool.');
+    }
+    return output;
   }
 );
 
@@ -70,18 +74,13 @@ const findLeadsFlow = ai.defineFlow(
     outputSchema: FindLeadsOutputSchema,
   },
   async (input) => {
-    const llmResponse = await ai.generate({
-      prompt: `Find business leads based on the following query: ${input.query}`,
-      tools: [searchWebForLeads], // Make the tool available to the LLM
-    });
+    // Directly call the tool to ensure we get the structured data we need.
+    const searchResult = await searchWebForLeads(input);
 
-    // The LLM will automatically call the tool if it decides it's necessary.
-    // We just need to return the final generated output.
-    const output = llmResponse.output;
-    if (!output || !('leads' in output)) {
+    if (!searchResult || !searchResult.leads) {
       throw new Error('AI did not return the expected lead data.');
     }
-    return output as FindLeadsOutput;
+    return searchResult;
   }
 );
 
