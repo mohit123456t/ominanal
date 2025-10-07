@@ -30,19 +30,29 @@ const generateThumbnailPromptsFlow = ai.defineFlow(
     
     // This prompt asks the text model to generate creative prompts.
     const thumbnailPromptsGenerator = await ai.generate({
-        prompt: `You are a creative director specializing in high-click-through-rate (CTR) ad thumbnails for platforms like YouTube and Instagram.
-        Given the video ad title, generate 3 unique, highly detailed, and visually compelling prompts for an AI image generator. The goal is to create a thumbnail that grabs attention and makes people click.
+        prompt: `You are a creative director specializing in hyper-realistic, high-click-through-rate (CTR) ad thumbnails for platforms like YouTube and Instagram.
+        Given the video ad title, generate 3 unique, highly detailed, and visually compelling prompts for an AI image generator like Midjourney or DALL-E. The goal is to create a thumbnail that looks like a real, stunning photograph and makes people click.
 
         Video Ad Title: {{{prompt}}}
         
-        Think about advertising principles:
-        - **High Emotion:** Focus on expressive faces (shock, excitement, satisfaction).
-        - **Visual Clarity:** A single, clear subject. Use bold, contrasting colors.
-        - **Intrigue & Curiosity:** Create a sense of mystery or a "before and after" effect.
-        - **Branding:** Subtly include brand colors or product placement.
-        - **Minimal Text:** Suggest short, punchy text overlays like "50% OFF" or "SECRET REVEALED".
+        **CRITICAL INSTRUCTIONS:**
+        1.  **Hyper-Realism:** Each prompt MUST include terms like "cinematic, hyper-realistic, 8K, photorealistic, sharp focus".
+        2.  **Advertising Principles:**
+            - **High Emotion:** Focus on expressive faces (shock, excitement, satisfaction).
+            - **Visual Clarity:** A single, clear subject. Use bold, contrasting colors and dramatic lighting.
+            - **Intrigue & Curiosity:** Create a sense of mystery or a "before and after" effect.
+            - **Professional Photography:** Suggest techniques like "shallow depth of field", "dramatic lighting", "golden hour".
+            - **Minimal Text:** Suggest short, punchy text overlays like "50% OFF" or "SECRET REVEALED".
+        3.  **Format:** Generate 3 unique prompts optimized for an advertisement.
 
-        Generate 3 unique prompts optimized for an advertisement.`,
+        **Example:**
+        Video Ad Title: "My new gaming laptop"
+        Your Output:
+        - "Hyper-realistic 8K photo of a gamer's face, illuminated by the neon glow of a high-end gaming laptop. Eyes wide with shock and excitement, dramatic lighting, shallow depth of field focusing on the intricate details of the keyboard."
+        - "Cinematic close-up shot of a sleek, futuristic gaming laptop on a dark, metallic surface. Steam rises from the vents, glowing with RGB light. The reflection on the screen shows a tense moment from a AAA game. Photorealistic, sharp focus."
+        - "A stunning 'before and after' style photo. On the left, a frustrated gamer with an old, slow laptop. On the right, the same gamer, now ecstatic and victorious, with the new, glowing gaming laptop. 8K, hyper-realistic, dramatic contrast."
+
+        Now, generate the prompts for the given video ad title.`,
         model: googleAI.model('gemini-2.5-flash'),
         output: {
             schema: z.object({ prompts: z.array(z.string().describe("A creative and visually descriptive prompt for a high-CTR ad thumbnail.")) })
