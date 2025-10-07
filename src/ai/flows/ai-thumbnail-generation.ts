@@ -35,38 +35,47 @@ const generateThumbnailPromptsFlow = ai.defineFlow(
   async ({ prompt }) => {
     
     const thumbnailPromptsGenerator = await ai.generate({
-        prompt: `You are a creative director specializing in hyper-realistic, high-click-through-rate (CTR) ad thumbnails for platforms like YouTube and Instagram.
-        Given the video ad title, generate 3 unique, highly detailed, and visually compelling concepts for an AI image generator. For each concept, provide both a detailed 'prompt' for the AI image generator, and a simple one-sentence 'description' of the resulting visual.
+        prompt: `You are a creative director specializing in hyper-realistic, high-click-through-rate (CTR) ad thumbnails.
+        Your MOST IMPORTANT job is to create concepts that are DIRECTLY based on the user's provided "Video Ad Title". Do not invent new subjects.
 
         Video Ad Title: {{{prompt}}}
         
-        **CRITICAL INSTRUCTIONS FOR EACH 'prompt':**
-        1.  **Hyper-Realism:** Each prompt MUST include terms like "cinematic, hyper-realistic, 8K, photorealistic, sharp focus".
-        2.  **Advertising Principles:**
-            - **High Emotion:** Focus on expressive faces (shock, excitement, satisfaction).
-            - **Visual Clarity:** A single, clear subject. Use bold, contrasting colors and dramatic lighting.
-            - **Intrigue & Curiosity:** Create a sense of mystery or a "before and after" effect.
-            - **Professional Photography:** Suggest techniques like "shallow depth of field", "dramatic lighting", "golden hour".
-        3. **CRITICAL INSTRUCTIONS FOR EACH 'description':**
-            - Provide a simple, one-sentence summary of the visual scene. This is for internal use.
+        Generate 3 unique, highly detailed, and visually compelling concepts based *strictly* on the title above. For each concept, provide a 'prompt' for an AI image generator and a simple one-sentence 'description'.
 
-        **EXAMPLE:**
+        **CRITICAL INSTRUCTIONS FOR EACH 'prompt':**
+        1.  **Strict Relevance:** The prompt MUST reflect the core subject of the "Video Ad Title". For example, if the title is "Diwali offer on protein powder", your concepts MUST include Diwali themes and protein powder.
+        2.  **Hyper-Realism & Advertising Principles:**
+            - Include terms like "cinematic, hyper-realistic, 8K, photorealistic, sharp focus".
+            - Focus on high emotion, visual clarity with a single subject, bold colors, and dramatic lighting.
+            - If the title mentions a discount or offer, visually represent it (e.g., text overlay "10% OFF").
+        3.  **Photography Techniques:** Suggest techniques like "shallow depth of field", "dramatic lighting", "golden hour".
+
+        **CRITICAL INSTRUCTIONS FOR EACH 'description':**
+            - Provide a simple, one-sentence summary of the visual scene.
+
+        **EXAMPLE 1:**
         Video Ad Title: "My new gaming laptop"
-        Your Output (in JSON format):
+        Your Output (JSON):
         {
           "ideas": [
             {
-              "prompt": "Hyper-realistic 8K photo of a gamer's face, illuminated by the neon glow of a high-end gaming laptop. Eyes wide with shock and excitement, dramatic lighting, shallow depth of field focusing on the intricate details of the keyboard.",
+              "prompt": "Hyper-realistic 8K photo of a gamer's face, illuminated by the neon glow of a high-end gaming laptop. Eyes wide with shock and excitement, dramatic lighting, shallow depth of field focusing on the keyboard.",
               "description": "A close-up of a gamer's excited face lit by a neon laptop screen."
             },
+            ...
+          ]
+        }
+
+        **EXAMPLE 2:**
+        Video Ad Title: "Diwali 10% discount on our chocolate protein supplement"
+        Your Output (JSON):
+        {
+          "ideas": [
             {
-              "prompt": "Cinematic close-up shot of a sleek, futuristic gaming laptop on a dark, metallic surface. Steam rises from the vents, glowing with RGB light. The reflection on the screen shows a tense moment from a AAA game. Photorealistic, sharp focus.",
-              "description": "A sleek, glowing gaming laptop on a dark surface with steam rising from it."
+                "prompt": "Cinematic photo of a sleek, chocolate protein supplement tub decorated with marigold flowers and glowing diyas for Diwali. A bold, elegant text overlay says 'DIWALI SALE 10% OFF'. Hyper-realistic, 8K, festive atmosphere, warm lighting.",
+                "description": "A protein supplement tub decorated for Diwali with a '10% OFF' text overlay."
             },
-            {
-              "prompt": "A stunning 'before and after' style photo. On the left, a frustrated gamer with an old, slow laptop. On the right, the same gamer, now ecstatic and victorious, with the new, glowing gaming laptop. 8K, hyper-realistic, dramatic contrast.",
-              "description": "A split-screen showing a frustrated gamer on one side and an ecstatic gamer with a new laptop on the other."
-            }
+            ...
           ]
         }
 
