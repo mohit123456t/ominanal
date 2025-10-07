@@ -15,3 +15,4 @@ import '@/ai/flows/twitter-post.ts';
 import '@/ai/flows/ai-video-generation.ts';
 import '@/ai/ai-hashtag-recommendation.ts';
 import '@/ai/flows/ai-thumbnail-generation.ts';
+import '@/ai/flows/ai-lead-generation.ts';
