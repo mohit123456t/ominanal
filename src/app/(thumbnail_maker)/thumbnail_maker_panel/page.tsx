@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -13,6 +13,8 @@ import {
     X,
     Sparkles
 } from 'lucide-react';
+import { useAuth, useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 import DashboardView from '@/components/thumbnail_maker/DashboardView';
 import AssignedTasks from '@/components/thumbnail_maker/AssignedTasks';
@@ -78,9 +80,16 @@ const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.Reac
 
 const ThumbnailMakerPanel = () => {
     const router = useRouter();
+    const { user } = useUser();
+    const { auth, firestore } = useFirebase();
+
+    const userDocRef = useMemoFirebase(() => 
+        user ? doc(firestore, 'users', user.uid) : null
+    , [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedTask, setSelectedTask] = useState(null);
-    const [userProfile, setUserProfile] = useState<any>({ name: 'Thumbnail Maker' });
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const navItems = [
@@ -100,7 +109,10 @@ const ThumbnailMakerPanel = () => {
         setSelectedTask(null);
     };
     
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        if (auth) {
+            await auth.signOut();
+        }
         router.push('/login');
     };
 
@@ -119,7 +131,7 @@ const ThumbnailMakerPanel = () => {
             case 'communication':
                 return <CommunicationView />;
             case 'earnings':
-                return <EarningsView />;
+                return <EarningsView userProfile={userProfile} />;
             case 'profile':
                 return <ProfileView userProfile={userProfile} />;
             default:
@@ -166,7 +178,7 @@ const ThumbnailMakerPanel = () => {
             <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ease-in-out`}>
                 <header className="h-16 bg-white/60 backdrop-blur-lg border-b border-slate-300/70 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
                     <h1 className="text-xl font-bold text-slate-900 capitalize">{getHeaderText()}</h1>
-                    <div className="font-semibold">{userProfile?.name || 'User'}</div>
+                    <div className="font-semibold">{isProfileLoading ? 'Loading...' : userProfile?.name || 'User'}</div>
                 </header>
                 <main className="flex-1 overflow-y-auto p-8">
                     <div className="animate-fadeIn" key={activeView + (selectedTask ? (selectedTask as any).id : '')}>
