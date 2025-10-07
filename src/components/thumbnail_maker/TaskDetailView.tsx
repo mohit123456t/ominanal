@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, CheckCircle, Upload, BrainCircuit, LoaderCircle, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { generateThumbnailIdeas } from '@/ai/flows/ai-thumbnail-generation';
+import { generateThumbnailPrompts } from '@/ai/flows/ai-thumbnail-generation';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 
@@ -12,20 +12,22 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
     const [notes, setNotes] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
-    const [thumbnailIdeas, setThumbnailIdeas] = useState<any[]>([]);
-    const [selectedIdea, setSelectedIdea] = useState<any | null>(null);
+    const [thumbnailPrompts, setThumbnailPrompts] = useState<string[]>([]);
+    const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
     
     const { toast } = useToast();
-    const { firestore } = useFirebase();
+    const { firestore } = useFirestore();
 
     const handleGenerateThumbnails = useCallback(async () => {
         if (!currentTask?.videoTitle) return;
         setIsGenerating(true);
-        setThumbnailIdeas([]);
+        setThumbnailPrompts([]);
         try {
-            const result = await generateThumbnailIdeas({ prompt: currentTask.videoTitle });
-            setThumbnailIdeas(result.ideas);
-            toast({ title: "AI Thumbnail Ideas Generated!", description: "Review the concepts below." });
+            const result = await generateThumbnailPrompts({ prompt: currentTask.videoTitle });
+            if(result.prompts) {
+                setThumbnailPrompts(result.prompts);
+                toast({ title: "AI Thumbnail Prompts Generated!", description: "Review the concepts below." });
+            }
         } catch (error) {
             toast({ variant: "destructive", title: "AI Error", description: "Failed to generate thumbnail ideas." });
         } finally {
@@ -36,15 +38,17 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
     useEffect(() => {
         setCurrentTask(task);
         setStatus(task.status);
-        if(!task.thumbnailIdeas || task.thumbnailIdeas.length === 0){
+        if(!task.thumbnailPrompts || task.thumbnailPrompts.length === 0){
             handleGenerateThumbnails();
+        } else {
+            setThumbnailPrompts(task.thumbnailPrompts);
         }
     }, [task, handleGenerateThumbnails]);
     
     
     const handleApproveAndSubmit = async () => {
-        if (!selectedIdea || !firestore) {
-            toast({ variant: 'destructive', title: 'No Thumbnail Selected', description: 'Please select an AI-generated thumbnail to submit.' });
+        if (!selectedPrompt || !firestore) {
+            toast({ variant: 'destructive', title: 'No Prompt Selected', description: 'Please select an AI-generated prompt to submit.' });
             return;
         }
 
@@ -53,11 +57,11 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
         try {
             await updateDoc(taskRef, {
                 status: 'Completed',
-                content: selectedIdea.url, // Save the URL of the selected thumbnail
-                notes: `Submitted AI thumbnail with prompt: ${selectedIdea.prompt}`,
+                content: selectedPrompt, // Save the selected prompt
+                notes: `Submitted AI thumbnail prompt.`,
                 completedAt: new Date().toISOString(),
             });
-            toast({ title: "Thumbnail Approved!", description: "The thumbnail has been submitted for final review." });
+            toast({ title: "Prompt Approved!", description: "The thumbnail prompt has been submitted for final review." });
             onBack();
         } catch(error: any) {
             toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
@@ -94,27 +98,26 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
                         <h3 className="font-bold text-lg mb-3 text-slate-800 flex items-center">
                             <BrainCircuit className="mr-2 text-indigo-600"/>AI Thumbnail Studio
                         </h3>
-                        <p className="text-sm text-slate-600 mb-3">AI has generated these thumbnail ideas based on the video content. Review them, select one, or regenerate for new ideas.</p>
+                        <p className="text-sm text-slate-600 mb-3">AI has generated these thumbnail prompts based on the video content. Review them, select one, or regenerate for new ideas.</p>
                         <button 
                             onClick={handleGenerateThumbnails}
                             disabled={isGenerating}
                             className="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-indigo-400 font-semibold"
                         >
                             {isGenerating ? <LoaderCircle className="animate-spin mr-2"/> : <ImageIcon className="mr-2"/>}
-                            {isGenerating ? 'Generating Ideas...' : 'Regenerate Thumbnails with AI'}
+                            {isGenerating ? 'Generating Ideas...' : 'Regenerate Prompts with AI'}
                         </button>
                         
-                        {(isGenerating && thumbnailIdeas.length === 0) && (
+                        {(isGenerating && thumbnailPrompts.length === 0) && (
                             <div className="mt-4 text-center text-slate-600">Generating new ideas...</div>
                         )}
                         
-                        {thumbnailIdeas.length > 0 && (
-                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                {thumbnailIdeas.map(idea => (
-                                    <div key={idea.url} className={`group cursor-pointer relative rounded-lg overflow-hidden border-4 transition-all ${selectedIdea?.url === idea.url ? 'border-indigo-500' : 'border-transparent'}`} onClick={() => setSelectedIdea(idea)}>
-                                        <img src={idea.url} alt="AI Thumbnail Idea" className="w-full h-auto aspect-video object-cover" />
-                                        <p className="text-xs text-center text-slate-600 p-1 bg-slate-100">{idea.prompt}</p>
-                                        {selectedIdea?.url === idea.url && <div className="absolute inset-0 bg-black/30 flex items-center justify-center"><CheckCircle className="text-white w-8 h-8"/></div>}
+                        {thumbnailPrompts.length > 0 && (
+                            <div className="mt-4 space-y-2">
+                                {thumbnailPrompts.map((prompt, index) => (
+                                    <div key={index} className={`group cursor-pointer relative rounded-lg p-3 border-2 transition-all ${selectedPrompt === prompt ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300'}`} onClick={() => setSelectedPrompt(prompt)}>
+                                        <p className="text-xs text-slate-700">{prompt}</p>
+                                        {selectedPrompt === prompt && <div className="absolute top-2 right-2 bg-indigo-500 rounded-full p-0.5"><CheckCircle className="text-white w-3 h-3"/></div>}
                                     </div>
                                 ))}
                             </div>
@@ -134,7 +137,7 @@ const TaskDetailView = ({ task, onBack, userProfile }: { task: any, onBack: () =
                     <div>
                          <button 
                             onClick={handleApproveAndSubmit}
-                            disabled={!selectedIdea || isSubmitting}
+                            disabled={!selectedPrompt || isSubmitting}
                             className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 flex items-center justify-center disabled:bg-green-400"
                         >
                             {isSubmitting ? <LoaderCircle className="animate-spin mr-2"/> : <CheckCircle className="mr-2 h-5 w-5" />}
