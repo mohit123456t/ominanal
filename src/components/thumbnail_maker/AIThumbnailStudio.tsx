@@ -1,13 +1,14 @@
 'use client';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BrainCircuit, LoaderCircle, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { BrainCircuit, LoaderCircle, Sparkles, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateThumbnailIdeas } from '@/ai/flows/ai-thumbnail-generation';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '../ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const AIThumbnailStudio = () => {
     const { toast } = useToast();
@@ -46,6 +47,14 @@ const AIThumbnailStudio = () => {
                 <h1 className="text-3xl font-bold text-slate-800 mt-4">AI Thumbnail Studio</h1>
                 <p className="text-slate-600 mt-2">Generate thumbnail ideas for any topic, anytime. Perfect for inspiration and quick creation.</p>
             </div>
+
+            <Alert className="bg-red-50 border-red-200">
+              <AlertCircle className="h-4 w-4 !text-red-700" />
+              <AlertTitle className="text-red-800 font-semibold">Important: Billing Required for This Feature</AlertTitle>
+              <AlertDescription className="text-red-700">
+                AI image generation uses advanced Google models that require billing to be enabled on your Google Cloud project, even if you are within the free tier. Please enable billing in the <a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Cloud Console</a> to use this feature.
+              </AlertDescription>
+            </Alert>
 
             <Card>
                 <CardContent className="p-6 space-y-4">

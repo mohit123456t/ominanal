@@ -53,11 +53,11 @@ const AIVideoStudio = () => {
                 <p className="text-slate-600 mt-2">Generate videos from text prompts, anytime. Perfect for brainstorming and creating quick content.</p>
             </div>
             
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertCircle className="h-4 w-4 !text-blue-700" />
-              <AlertTitle className="text-blue-800 font-semibold">Billing Required for This Feature</AlertTitle>
-              <AlertDescription className="text-blue-700">
-                AI video generation uses Google's advanced models. To use it, you must have billing enabled on your Google Cloud project. You can set this up in the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Cloud Console</a>.
+            <Alert className="bg-red-50 border-red-200">
+              <AlertCircle className="h-4 w-4 !text-red-700" />
+              <AlertTitle className="text-red-800 font-semibold">Important: Billing Required for This Feature</AlertTitle>
+              <AlertDescription className="text-red-700">
+                AI video generation uses advanced Google models that require billing to be enabled on your Google Cloud project, even if you are within the free tier. Please enable billing in the <a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Cloud Console</a> to use this feature.
               </AlertDescription>
             </Alert>
             
@@ -65,7 +65,7 @@ const AIVideoStudio = () => {
                 <AlertCircle className="h-4 w-4 !text-yellow-700" />
                 <AlertTitle className="text-yellow-800 font-semibold">About Video Generation Costs</AlertTitle>
                 <AlertDescription className="text-yellow-700">
-                    The cost depends on the length of the video produced. For the most up-to-date pricing, please visit the official <a href="https://cloud.google.com/vertex-ai/pricing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Vertex AI pricing page</a>. The estimate provided below is based on current rates for the Veo 3 model and is for guidance only.
+                    The cost depends on the length of the video produced. For the most up-to-date pricing, please visit the official <a href="https://cloud.google.com/vertex-ai/pricing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Vertex AI pricing page</a>. The estimate provided below is for guidance only.
                 </AlertDescription>
             </Alert>
 
