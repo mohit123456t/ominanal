@@ -17,7 +17,7 @@ import { googleAI } from '@genkit-ai/google-genai';
 // =========== STEP 1: Improve User's Prompt ===========
 
 const ImprovePromptInputSchema = z.object({
-  prompt: z.string().describe("The user's initial, simple idea or topic for a video ad."),
+  prompt: z.string().describe("The user's initial, simple idea or topic for a video ad, which can be in English or Hinglish."),
 });
 export type ImprovePromptInput = z.infer<typeof ImprovePromptInputSchema>;
 
@@ -38,10 +38,12 @@ const improvePromptFlow = ai.defineFlow({
         prompt: `You are a world-class creative director specializing in high-impact video advertisements. 
         Your task is to take a user's simple idea and expand it into a single, rich, detailed, and cinematic prompt for an AI image/video generator like Midjourney, DALL-E, or Veo. The goal is to create a compelling ad concept.
         
+        The user's idea may be in English or Hinglish (a mix of Hindi and English). You must understand both and translate the core concept into a professional English prompt.
+
         User's Idea: "${prompt}"
 
         Elaborate on this idea with an advertising mindset. Describe the scene, the lighting (e.g., "golden hour," "dramatic studio lighting"), the mood ("uplifting," "mysterious"), camera angles ("dynamic low-angle shot," "slow-motion close-up"), and the action in a way that highlights a product or service.
-        Your output must be a single, cohesive, ready-to-use prompt that would result in a professional-looking advertisement still.
+        Your output must be a single, cohesive, ready-to-use prompt in English that would result in a professional-looking advertisement still.
         
         Example 1:
         User's Idea: "a new brand of coffee"

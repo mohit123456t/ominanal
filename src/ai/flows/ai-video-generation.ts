@@ -12,7 +12,7 @@ import { googleAI } from '@genkit-ai/google-genai';
 
 
 const GenerateVideoPromptInputSchema = z.object({
-    prompt: z.string().describe('The user\'s idea or topic for a video ad.'),
+    prompt: z.string().describe('The user\'s idea or topic for a video ad, which can be in English or Hinglish.'),
 });
 export type GenerateVideoPromptInput = z.infer<typeof GenerateVideoPromptInputSchema>;
 
@@ -32,14 +32,15 @@ const generateVideoPromptFlow = ai.defineFlow({
         model: googleAI.model('gemini-2.5-flash'),
         prompt: `You are a creative director specializing in high-impact video advertisements. Your task is to take a user's simple idea and expand it into a rich, detailed, and cinematic prompt for an AI video generation model like Veo or Sora. The goal is to create a compelling ad.
         
+        The user's idea may be in English or Hinglish (a mix of Hindi and English). You must understand both and translate the core concept into a professional English prompt.
+
         User Idea: "${prompt}"
 
-        Elaborate on this idea with an advertising mindset. Describe the scene, the lighting (e.g., "golden hour," "dramatic studio lighting"), the mood ("uplifting," "mysterious"), camera angles ("dynamic low-angle shot," "slow-motion close-up"), and the action in a way that highlights a product or service.
-        Your output must be a single, ready-to-use prompt that would result in a professional-looking video advertisement.
+        Elaborate on this idea with an advertising mindset. Describe the scene, the lighting (e.g., "golden hour," "dramatic studio lighting"), the mood ("uplifting," "mysterious"), camera angles ("dynamic low-angle shot," "slow-motion close-up"), and the action in a way that highlights a product or service. Your final output must be a single, ready-to-use prompt in English.
         
         Example:
-        User Idea: "a new brand of coffee"
-        Your output: "Cinematic 4K product shot of a steaming cup of artisan coffee on a rustic wooden table, morning sunlight filtering through a window, highlighting the rich crema. A slow-motion shot of a single coffee bean dropping into a grinder. The final shot shows a person smiling with satisfaction after their first sip, feeling energized and ready for the day. Uplifting and warm mood."`,
+        User Idea: "Diwali par hamare naye chocolate protein supplement par 10% discount"
+        Your output: "Hyper-realistic 8K product shot of a sleek, chocolate protein supplement tub decorated with glowing marigold flowers and festive diyas for a Diwali celebration. A bold, elegant text overlay announces 'DIWALI SALE: 10% OFF'. The atmosphere is warm, celebratory, and premium, with a shallow depth of field focusing on the product."`,
     });
 
     if (!text) {
