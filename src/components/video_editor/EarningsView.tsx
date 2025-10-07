@@ -1,7 +1,10 @@
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { IndianRupee, Banknote, Calendar } from 'lucide-react';
+import { IndianRupee, Banknote, Calendar, LoaderCircle } from 'lucide-react';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, orderBy } from 'firebase/firestore';
+import { isThisMonth, parseISO } from 'date-fns';
 
 const StatCard = ({ title, value, icon, color }: { title: string, value: string, icon: React.ReactNode, color: string }) => (
     <motion.div 
@@ -18,21 +21,36 @@ const StatCard = ({ title, value, icon, color }: { title: string, value: string,
     </motion.div>
 );
 
-const EarningsView = () => {
-    // Placeholder data
-    const earningsData = {
-        total_earnings: 58500,
-        month_earnings: 12500,
-        last_payout: {
-            amount: 25000,
-            date: '2024-07-05',
-        },
-        transactions: [
-            { id: 'TRX001', date: '2024-07-05', amount: 25000, status: 'Paid' },
-            { id: 'TRX002', date: '2024-06-28', amount: 3500, status: 'Paid' },
-            { id: 'TRX003', date: '2024-06-20', amount: 5000, status: 'Paid' },
-        ]
-    };
+const EarningsView = ({ userProfile }: { userProfile: any }) => {
+    const { firestore } = useFirebase();
+
+    const transactionsQuery = useMemoFirebase(() => {
+        if (!userProfile?.uid || !firestore) return null;
+        return query(
+            collection(firestore, 'transactions'), 
+            where('staffId', '==', userProfile.uid),
+            orderBy('date', 'desc')
+        );
+    }, [userProfile, firestore]);
+    
+    const { data: transactions, isLoading: loading } = useCollection(transactionsQuery);
+
+    const stats = useMemo(() => {
+        if (!transactions) return { total_earnings: 0, month_earnings: 0, last_payout: { amount: 0, date: 'N/A' } };
+
+        const total = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+        const thisMonth = transactions
+            .filter(tx => isThisMonth(parseISO(tx.date)))
+            .reduce((sum, tx) => sum + tx.amount, 0);
+        const lastPayout = transactions[0] || { amount: 0, date: 'N/A' };
+        
+        return {
+            total_earnings: total,
+            month_earnings: thisMonth,
+            last_payout: lastPayout,
+        };
+    }, [transactions]);
+
 
     const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
@@ -64,19 +82,19 @@ const EarningsView = () => {
             >
                 <StatCard 
                     title="Total Earnings"
-                    value={formatCurrency(earningsData.total_earnings)}
+                    value={formatCurrency(stats.total_earnings)}
                     icon={<IndianRupee className="text-green-600" />}
                     color="bg-green-100"
                 />
                 <StatCard 
                     title="This Month"
-                    value={formatCurrency(earningsData.month_earnings)}
+                    value={formatCurrency(stats.month_earnings)}
                     icon={<Banknote className="text-blue-600" />}
                     color="bg-blue-100"
                 />
                 <StatCard 
                     title="Last Payout"
-                    value={formatCurrency(earningsData.last_payout.amount)}
+                    value={formatCurrency(stats.last_payout.amount)}
                     icon={<Calendar className="text-purple-600" />}
                     color="bg-purple-100"
                 />
@@ -98,9 +116,14 @@ const EarningsView = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {earningsData.transactions.map((tx) => (
+                             {loading ? (
+                                <tr><td colSpan={4} className="text-center py-12"><LoaderCircle className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /></td></tr>
+                            ) : !transactions || transactions.length === 0 ? (
+                                <tr><td colSpan={4} className="text-center p-8 text-slate-500">No transactions found.</td></tr>
+                            ) : (
+                                transactions.map((tx) => (
                                 <tr key={tx.id}>
-                                    <td className="p-3 font-mono text-slate-700">{tx.id}</td>
+                                    <td className="p-3 font-mono text-slate-700">{tx.id.slice(0,8)}...</td>
                                     <td className="p-3 text-slate-600">{new Date(tx.date).toLocaleDateString()}</td>
                                     <td className="p-3 text-right font-semibold text-slate-800">{formatCurrency(tx.amount)}</td>
                                     <td className="p-3 text-center">
@@ -109,7 +132,7 @@ const EarningsView = () => {
                                         </span>
                                     </td>
                                 </tr>
-                            ))}
+                            )))}
                         </tbody>
                     </table>
                 </div>
