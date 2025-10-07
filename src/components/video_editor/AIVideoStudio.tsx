@@ -1,7 +1,7 @@
 'use client';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { BrainCircuit, LoaderCircle, Sparkles, Download, AlertCircle, ExternalLink } from 'lucide-react';
+import { BrainCircuit, LoaderCircle, Sparkles, Download, AlertCircle, ExternalLink, IndianRupee } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generateVideo } from '@/ai/flows/ai-video-generation';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,11 @@ const AIVideoStudio = () => {
     const [prompt, setPrompt] = useState('');
     const [generatedVideoUrl, setGeneratedVideoUrl] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    
+    // Pricing based on Veo 3 (preview pricing as of July 2024)
+    // 8-second video at ₹0.025/second = ₹2
+    // This is a client-side estimation for UI purposes.
+    const estimatedCostPerVideo = 2.00; 
 
     const handleGenerateVideo = async () => {
         if (!prompt) {
@@ -52,7 +57,7 @@ const AIVideoStudio = () => {
               <AlertCircle className="h-4 w-4 !text-blue-700" />
               <AlertTitle className="text-blue-800 font-semibold">Billing Required for This Feature</AlertTitle>
               <AlertDescription className="text-blue-700">
-                AI video generation is a powerful feature that uses Google's advanced models. To use it, you must have billing enabled on your Google Cloud project. You can set this up in the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Cloud Console</a>.
+                AI video generation uses Google's advanced models. To use it, you must have billing enabled on your Google Cloud project. You can set this up in the <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Cloud Console</a>.
               </AlertDescription>
             </Alert>
             
@@ -60,7 +65,7 @@ const AIVideoStudio = () => {
                 <AlertCircle className="h-4 w-4 !text-yellow-700" />
                 <AlertTitle className="text-yellow-800 font-semibold">About Video Generation Costs</AlertTitle>
                 <AlertDescription className="text-yellow-700">
-                    The cost of video generation depends on the length of the video produced. For the most up-to-date and detailed pricing information, please visit the official <a href="https://cloud.google.com/vertex-ai/pricing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Vertex AI pricing page</a>.
+                    The cost depends on the length of the video produced. For the most up-to-date pricing, please visit the official <a href="https://cloud.google.com/vertex-ai/pricing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Vertex AI pricing page</a>. The estimate provided below is based on current rates for the Veo 3 model and is for guidance only.
                 </AlertDescription>
             </Alert>
 
@@ -77,8 +82,12 @@ const AIVideoStudio = () => {
                             className="mt-1 min-h-[100px]"
                         />
                     </div>
-                    <div className="flex justify-end">
-                        <Button onClick={handleGenerateVideo} disabled={isGenerating || !prompt}>
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                         <div className="flex items-center gap-2 text-sm font-medium text-green-700 bg-green-100/70 border border-green-200/80 px-3 py-1.5 rounded-lg">
+                            <IndianRupee className="h-4 w-4" />
+                            <span>Estimated Cost per Video: ~₹{estimatedCostPerVideo.toFixed(2)}</span>
+                        </div>
+                        <Button onClick={handleGenerateVideo} disabled={isGenerating || !prompt} className="w-full sm:w-auto">
                             {isGenerating ? <LoaderCircle className="animate-spin mr-2"/> : <Sparkles className="mr-2"/>}
                             {isGenerating ? 'Generating Video...' : 'Generate Video'}
                         </Button>
