@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, ArrowLeft, CheckCircle, File, Download, Scissors, MessageSquare, BrainCircuit, LoaderCircle, Clipboard } from 'lucide-react';
 import { generateVideoPrompt } from '@/ai/flows/ai-video-generation';
 import { useToast } from '@/hooks/use-toast';
-import { useFirebase, useUser, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useFirebase, useUser } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 
 interface Campaign {
@@ -157,16 +157,8 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 
-const AssignedTasks = () => {
-  const { user, firestore } = useFirebase();
+const AssignedTasks = ({ tasks, isLoading }: { tasks: Campaign[], isLoading: boolean }) => {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-
-  const workItemsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    return query(collection(firestore, 'work_items'), where('assignedTo', '==', user.uid), where('type', '==', 'video'));
-  }, [user, firestore]);
-  
-  const { data: campaigns, isLoading: loading } = useCollection<Campaign>(workItemsQuery);
 
   const handleViewDetails = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
@@ -204,11 +196,11 @@ const AssignedTasks = () => {
           Assigned Video Tasks
         </motion.h2>
 
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-12"><LoaderCircle className="animate-spin h-8 w-8 mx-auto text-indigo-600" /></div>
-        ) : campaigns && campaigns.length > 0 ? (
+        ) : tasks && tasks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {campaigns.map((campaign) => (
+            {tasks.map((campaign) => (
               <motion.div
                 key={campaign.id}
                 variants={cardVariants}

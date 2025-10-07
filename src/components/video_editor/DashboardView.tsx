@@ -1,10 +1,16 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, CheckCircle, Clipboard } from 'lucide-react';
-import { isSameDay, parseISO } from 'date-fns';
+import { isToday, parseISO } from 'date-fns';
 
-interface VideoTask { id: string; assignedTo: string; status?: string; createdAt?: string; completedAt?: string; }
+interface VideoTask {
+  id: string;
+  assignedTo: string;
+  status?: string;
+  createdAt?: { seconds: number; nanoseconds: number };
+  completedAt?: string;
+}
 
 const StatCard = ({ title, value, icon, subtitle }: { title: string; value: string; icon: React.ReactNode; subtitle?: string; }) => (
     <motion.div
@@ -23,38 +29,32 @@ const StatCard = ({ title, value, icon, subtitle }: { title: string; value: stri
     </motion.div>
 );
 
-const DashboardView = () => {
-    const [tasks, setTasks] = useState<VideoTask[]>([]);
-    const [userProfile, setUserProfile] = useState<any | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+const DashboardView = ({ tasks, userProfile }: { tasks: VideoTask[], userProfile: any }) => {
 
-    useEffect(() => {
-        setIsLoading(true);
-        // Placeholder data
-        const placeholderProfile = { name: 'Demo Editor', email: 'editor@example.com' };
-        const placeholderTasks: VideoTask[] = [
-            { id: '1', assignedTo: 'editor@example.com', status: 'completed', createdAt: new Date().toISOString(), completedAt: new Date().toISOString() },
-            { id: '2', assignedTo: 'editor@example.com', status: 'in-progress', createdAt: new Date(Date.now() - 86400000).toISOString() },
-            { id: '3', assignedTo: 'editor@example.com', status: 'pending', createdAt: new Date().toISOString() }
-        ];
-        setUserProfile(placeholderProfile);
-        setTasks(placeholderTasks);
-        setIsLoading(false);
-    }, []);
-
-    const isToday = (dateString?: string): boolean => {
+    const isDateToday = (date?: { seconds: number, nanoseconds: number }): boolean => {
+        if (!date) return false;
+        try {
+            return isToday(new Date(date.seconds * 1000));
+        } catch {
+            return false;
+        }
+    };
+    
+    const isStringDateToday = (dateString?: string): boolean => {
         if (!dateString) return false;
         try { return isSameDay(parseISO(dateString), new Date()); } catch { return false; }
     };
 
-    // Calculate stats based on the real-time `tasks` state.
+
     const stats = useMemo(() => {
-        const completedTasks = tasks.filter(task => task.status === 'completed');
+        if (!tasks) return { pendingTasks: 0, totalCompleted: 0, approvalRate: 0, todayAssigned: 0, todayCompleted: 0 };
+        
+        const completedTasks = tasks.filter(task => task.status === 'Completed' || task.status === 'Approved');
         const totalAssigned = tasks.length;
         const totalCompleted = completedTasks.length;
         const approvalRate = totalAssigned > 0 ? Math.round((totalCompleted / totalAssigned) * 100) : 0;
-        const todayAssigned = tasks.filter(task => isToday(task.createdAt)).length;
-        const todayCompleted = completedTasks.filter(task => isToday(task.completedAt)).length;
+        const todayAssigned = tasks.filter(task => isDateToday(task.createdAt)).length;
+        const todayCompleted = completedTasks.filter(task => isStringDateToday(task.completedAt)).length;
 
         return {
             pendingTasks: totalAssigned - totalCompleted,
@@ -64,17 +64,6 @@ const DashboardView = () => {
             todayCompleted,
         };
     }, [tasks]);
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                    <span className="text-4xl">⏳</span>
-                    <h3 className="text-lg font-semibold mt-4">Loading Dashboard...</h3>
-                </div>
-            </div>
-        );
-    }
 
     const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } };
 

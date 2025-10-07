@@ -2,47 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-const ProfileView = () => {
-  const [authState, setAuthState] = useState({ 
-      isLoading: true, 
-      isAuthenticated: false,
-      userProfile: null as any 
-  });
-
-  useEffect(() => {
-    // Simulate fetching auth state
-    setAuthState({
-      isLoading: false,
-      isAuthenticated: true,
-      userProfile: {
-        name: 'Demo Editor',
-        email: 'editor@example.com',
-        lastLoginAt: new Date().toISOString(),
-        uid: 'demo-uid-123'
-      }
-    });
-  }, []);
-
-  if (authState.isLoading) {
-    return (
-      <div className="text-center py-8">
-        <span className="text-4xl">⏳</span>
-        <h3 className="text-lg font-semibold mt-4">Loading Profile...</h3>
-      </div>
-    );
-  }
-
-  if (!authState.isAuthenticated || !authState.userProfile) {
-    return (
-      <div className="text-center py-8">
-        <span className="text-4xl">👤</span>
-        <h3 className="text-lg font-semibold mt-4">Profile Not Available</h3>
-        <p className="text-slate-500">You might need to log in to view your profile.</p>
-      </div>
-    );
-  }
-
-  const { userProfile } = authState;
+const ProfileView = ({ userProfile }: { userProfile: any }) => {
 
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -53,6 +13,15 @@ const ProfileView = () => {
     hidden: { x: -15, opacity: 0 },
     visible: { x: 0, opacity: 1 },
   };
+
+  if (!userProfile) {
+    return (
+      <div className="text-center py-8">
+        <span className="text-4xl">⏳</span>
+        <h3 className="text-lg font-semibold mt-4">Loading Profile...</h3>
+      </div>
+    )
+  }
 
   return (
     <motion.div

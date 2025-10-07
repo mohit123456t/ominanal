@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
@@ -11,6 +11,8 @@ import {
     LogOut,
     Sparkles
 } from 'lucide-react';
+import { useAuth, useCollection, useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 
 import DashboardView from '@/components/video_editor/DashboardView';
 import AssignedTasks from '@/components/video_editor/AssignedTasks';
@@ -18,7 +20,7 @@ import CommunicationView from '@/components/video_editor/CommunicationView';
 import ContentSubmissionView from '@/components/video_editor/ContentSubmissionView';
 import EarningsView from '@/components/video_editor/EarningsView';
 import ProfileView from '@/components/video_editor/ProfileView';
-import AIVideoStudio from '@/components/video_editor/AIVideoStudio'; // Import the new component
+import AIVideoStudio from '@/components/video_editor/AIVideoStudio';
 
 const Logo = () => (
     <div className="flex items-center gap-2">
@@ -73,8 +75,19 @@ const NavItem = ({ icon, label, active, onClick, ...props }: { icon: React.React
 // 🖥️ Main Panel — WHITE SIDEBAR GOD MODE ACTIVATED 😎
 const VideoEditorPanel = () => {
     const router = useRouter();
+    const { user } = useUser();
+    const { auth, firestore } = useFirebase();
     const [activeView, setActiveView] = useState('dashboard');
-    const [userProfile, setUserProfile] = useState<any>({ name: 'Editor User' }); // Placeholder profile
+
+    const userDocRef = useMemoFirebase(() => 
+        user ? doc(firestore, 'users', user.uid) : null
+    , [user, firestore]);
+    const { data: userProfile } = useDoc(userDocRef);
+
+    const workItemsQuery = useMemoFirebase(() => 
+        user ? query(collection(firestore, 'work_items'), where('assignedTo', '==', user.uid), where('type', '==', 'video')) : null
+    , [user, firestore]);
+    const { data: tasks, isLoading: tasksLoading } = useCollection(workItemsQuery);
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
@@ -87,11 +100,18 @@ const VideoEditorPanel = () => {
     const secondaryNavItems = [
         { id: 'profile', label: 'Profile', icon: <UserCircle size={18} /> },
     ];
+    
+    const handleLogout = async () => {
+        if (auth) {
+            await auth.signOut();
+        }
+        router.push('/login');
+    };
 
     const renderView = () => {
         switch (activeView) {
             case 'assigned_tasks':
-                return <AssignedTasks />;
+                return <AssignedTasks tasks={tasks || []} isLoading={tasksLoading} />;
             case 'ai_video_studio':
                 return <AIVideoStudio />;
             case 'communication':
@@ -101,10 +121,10 @@ const VideoEditorPanel = () => {
             case 'earnings':
                 return <EarningsView />;
             case 'profile':
-                return <ProfileView />;
+                return <ProfileView userProfile={userProfile} />;
             case 'dashboard':
             default:
-                return <DashboardView />;
+                return <DashboardView tasks={tasks || []} userProfile={userProfile} />;
         }
     };
 
@@ -156,7 +176,7 @@ const VideoEditorPanel = () => {
 
                     {/* 🚪 Logout — Classy Red Accent */}
                     <motion.button
-                        onClick={() => router.push('/')}
+                        onClick={handleLogout}
                         className="flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all"
                         whileHover={{ x: 6 }}
                         whileTap={{ scale: 0.98 }}
