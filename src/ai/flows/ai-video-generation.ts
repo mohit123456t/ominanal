@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview AI Video Generation Flow
- * This file contains a Genkit flow for generating a video from a text prompt using Veo.
- * - generateVideo - Generates a video from a text prompt.
+ * @fileOverview AI Video Prompt Generation Flow
+ * This file contains a Genkit flow for generating a detailed video prompt from a user's idea.
+ * - generateVideoPrompt - Generates a rich prompt for video creation.
  */
 
 import { ai } from '@/ai/genkit';
@@ -11,67 +11,47 @@ import { z } from 'zod';
 import { googleAI } from '@genkit-ai/google-genai';
 
 
-const GenerateVideoInputSchema = z.object({
-    prompt: z.string().describe('The text prompt to generate a video from.'),
+const GenerateVideoPromptInputSchema = z.object({
+    prompt: z.string().describe('The user\'s idea or topic for a video.'),
 });
-export type GenerateVideoInput = z.infer<typeof GenerateVideoInputSchema>;
+export type GenerateVideoPromptInput = z.infer<typeof GenerateVideoPromptInputSchema>;
 
-const GenerateVideoOutputSchema = z.object({
-    videoUrl: z.string().describe('The data URI of the generated video.'),
+const GenerateVideoPromptOutputSchema = z.object({
+    generatedPrompt: z.string().describe('A detailed, descriptive prompt suitable for an AI video generation model.'),
 });
-export type GenerateVideoOutput = z.infer<typeof GenerateVideoOutputSchema>;
+export type GenerateVideoPromptOutput = z.infer<typeof GenerateVideoPromptOutputSchema>;
 
 
-const generateVideoFlow = ai.defineFlow({
-    name: 'generateVideoFlow',
-    inputSchema: GenerateVideoInputSchema,
-    outputSchema: GenerateVideoOutputSchema,
+const generateVideoPromptFlow = ai.defineFlow({
+    name: 'generateVideoPromptFlow',
+    inputSchema: GenerateVideoPromptInputSchema,
+    outputSchema: GenerateVideoPromptOutputSchema,
 }, async ({ prompt }) => {
 
-    let { operation } = await ai.generate({
-        model: googleAI.model('veo-3.0-generate-preview'),
-        prompt: prompt,
+    const { text } = await ai.generate({
+        model: googleAI.model('gemini-2.5-flash'),
+        prompt: `You are a creative assistant that expands a user's simple idea into a rich, detailed prompt for an AI video generator.
+        
+        User Idea: "${prompt}"
+
+        Take this idea and elaborate on it. Describe the scene, the lighting, the mood, the camera angles, and the action in a cinematic way.
+        Your output should be a single, ready-to-use prompt for a model like Veo or Sora.
+        
+        Example:
+        User Idea: "a cat in space"
+        Your output: "Cinematic 4K shot of a fluffy ginger cat wearing a tiny astronaut helmet, floating serenely inside a spaceship cockpit, with the Earth visible through the window, soft nebula light illuminating its fur."`,
     });
 
-    if (!operation) {
-        throw new Error('Expected the model to return an operation');
+    if (!text) {
+        throw new Error('Failed to generate a video prompt.');
     }
     
-    // Wait until the operation completes. This may take some time.
-    while (!operation.done) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        operation = await ai.checkOperation(operation);
-    }
-    
-    if (operation.error) {
-        throw new Error('failed to generate video: ' + operation.error.message);
-    }
-
-    const video = operation.output?.message?.content.find((p) => !!p.media);
-    if (!video || !video.media?.url) {
-        throw new Error('Failed to find the generated video in the operation result.');
-    }
-    
-    // The URL from Veo is temporary. To make it usable on the client, we must fetch it 
-    // and convert it to a Base64 data URI.
-    const fetch = (await import('node-fetch')).default;
-    const videoDownloadResponse = await fetch(
-        `${video.media.url}&key=${process.env.GEMINI_API_KEY}`
-    );
-
-     if (!videoDownloadResponse.ok || !videoDownloadResponse.body) {
-        throw new Error(`Failed to download generated video. Status: ${videoDownloadResponse.status}`);
-    }
-    
-    const arrayBuffer = await videoDownloadResponse.arrayBuffer();
-    const videoBase64 = Buffer.from(arrayBuffer).toString('base64');
-
     return {
-        videoUrl: `data:${video.media.contentType || 'video/mp4'};base64,${videoBase64}`
+        generatedPrompt: text
     };
 });
 
 
-export async function generateVideo(input: GenerateVideoInput): Promise<GenerateVideoOutput> {
-    return generateVideoFlow(input);
+export async function generateVideoPrompt(input: GenerateVideoPromptInput): Promise<GenerateVideoPromptOutput> {
+    return generateVideoPromptFlow(input);
 }

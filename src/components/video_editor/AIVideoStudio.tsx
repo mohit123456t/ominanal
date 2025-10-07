@@ -1,44 +1,43 @@
 'use client';
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BrainCircuit, LoaderCircle, Sparkles, Download, AlertCircle, ExternalLink, IndianRupee } from 'lucide-react';
+import { BrainCircuit, LoaderCircle, Sparkles, Clipboard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { generateVideo } from '@/ai/flows/ai-video-generation';
+import { generateVideoPrompt } from '@/ai/flows/ai-video-generation';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 
 
 const AIVideoStudio = () => {
     const { toast } = useToast();
     const [prompt, setPrompt] = useState('');
-    const [generatedVideoUrl, setGeneratedVideoUrl] = useState('');
+    const [generatedPrompt, setGeneratedPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
-    
-    // Pricing based on Veo 3 (preview pricing as of July 2024)
-    // 8-second video at ₹1.25/second (approx) = ₹10
-    // This is a client-side estimation for UI purposes.
-    const estimatedCostPerVideo = 10.00; 
 
-    const handleGenerateVideo = async () => {
+    const handleGeneratePrompt = async () => {
         if (!prompt) {
-            toast({ variant: 'destructive', title: 'Prompt is required', description: 'Please enter a prompt to generate a video.' });
+            toast({ variant: 'destructive', title: 'Prompt is required', description: 'Please enter a prompt to generate a video prompt.' });
             return;
         }
         setIsGenerating(true);
-        setGeneratedVideoUrl('');
+        setGeneratedPrompt('');
         try {
-            const result = await generateVideo({ prompt });
-            if (result.videoUrl) {
-                setGeneratedVideoUrl(result.videoUrl);
-                toast({ title: 'AI Video Generated!', description: 'A new video has been created from your prompt.' });
+            const result = await generateVideoPrompt({ prompt });
+            if (result.generatedPrompt) {
+                setGeneratedPrompt(result.generatedPrompt);
+                toast({ title: 'AI Video Prompt Generated!', description: 'A new detailed prompt has been created.' });
             }
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'AI Error', description: error.message || 'Failed to generate AI video.' });
+            toast({ variant: 'destructive', title: 'AI Error', description: error.message || 'Failed to generate AI video prompt.' });
         } finally {
             setIsGenerating(false);
         }
+    };
+    
+    const handleCopyToClipboard = () => {
+        navigator.clipboard.writeText(generatedPrompt);
+        toast({ title: 'Copied to Clipboard!', description: 'You can now paste this prompt into any video generator.' });
     };
 
     return (
@@ -49,69 +48,58 @@ const AIVideoStudio = () => {
         >
             <div className="text-center">
                 <BrainCircuit className="mx-auto h-12 w-12 text-indigo-600" />
-                <h1 className="text-3xl font-bold text-slate-800 mt-4">AI Video Studio</h1>
-                <p className="text-slate-600 mt-2">Generate videos from text prompts, anytime. Perfect for brainstorming and creating quick content.</p>
+                <h1 className="text-3xl font-bold text-slate-800 mt-4">AI Video Prompt Generator</h1>
+                <p className="text-slate-600 mt-2">Generate cinematic prompts from your ideas. Use these prompts in any AI video generator.</p>
             </div>
-            
-            <Alert className="bg-red-50 border-red-200">
-              <AlertCircle className="h-4 w-4 !text-red-700" />
-              <AlertTitle className="text-red-800 font-semibold">Important: Billing Required for This Feature</AlertTitle>
-              <AlertDescription className="text-red-700">
-                AI video generation uses advanced Google models that require billing to be enabled on your Google Cloud project, even if you are within the free tier. Please enable billing in the <a href="https://console.cloud.google.com/billing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Google Cloud Console</a> to use this feature.
-              </AlertDescription>
-            </Alert>
-            
-             <Alert className="bg-yellow-50 border-yellow-200">
-                <AlertCircle className="h-4 w-4 !text-yellow-700" />
-                <AlertTitle className="text-yellow-800 font-semibold">About Video Generation Costs</AlertTitle>
-                <AlertDescription className="text-yellow-700">
-                    The cost depends on the length of the video produced. For the most up-to-date pricing, please visit the official <a href="https://cloud.google.com/vertex-ai/pricing" target="_blank" rel="noopener noreferrer" className="underline font-bold">Vertex AI pricing page</a>. The estimate provided below is for guidance only.
-                </AlertDescription>
-            </Alert>
-
 
             <Card>
                 <CardContent className="p-6 space-y-4">
                     <div>
-                        <label htmlFor="topic-input" className="font-semibold text-slate-700">Video Prompt</label>
+                        <label htmlFor="topic-input" className="font-semibold text-slate-700">Your Video Idea</label>
                         <Textarea
                             id="topic-input"
-                            placeholder="e.g., 'A cinematic shot of a an old car driving down a deserted road at sunset.'"
+                            placeholder="e.g., 'A cat learning to play the piano' or 'A futuristic city at night'"
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             className="mt-1 min-h-[100px]"
                         />
                     </div>
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                         <div className="flex items-center gap-2 text-sm font-medium text-green-700 bg-green-100/70 border border-green-200/80 px-3 py-1.5 rounded-lg">
-                            <IndianRupee className="h-4 w-4" />
-                            <span>Estimated Cost per Video: ~₹{estimatedCostPerVideo.toFixed(2)}</span>
-                        </div>
-                        <Button onClick={handleGenerateVideo} disabled={isGenerating || !prompt} className="w-full sm:w-auto">
+                    <div className="flex justify-end">
+                        <Button onClick={handleGeneratePrompt} disabled={isGenerating || !prompt}>
                             {isGenerating ? <LoaderCircle className="animate-spin mr-2"/> : <Sparkles className="mr-2"/>}
-                            {isGenerating ? 'Generating Video...' : 'Generate Video'}
+                            {isGenerating ? 'Generating Prompt...' : 'Generate Prompt'}
                         </Button>
                     </div>
                 </CardContent>
             </Card>
-
-            {isGenerating && !generatedVideoUrl && (
-                 <Card>
-                    <CardContent className="p-6 text-center text-slate-600">
-                        <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-indigo-600 mb-2"/>
-                        <p>AI is creating your video. This may take up to a minute...</p>
-                    </CardContent>
-                </Card>
-            )}
-
-            {generatedVideoUrl && (
+            
+            {(isGenerating || generatedPrompt) && (
                  <Card>
                     <CardContent className="p-6">
-                        <h3 className="font-bold text-lg mb-3 text-slate-800">Generated Video:</h3>
-                        <video src={generatedVideoUrl} controls className="w-full rounded-lg border border-slate-200" />
-                        <a href={generatedVideoUrl} download="ai-generated-video.mp4" className="mt-2 inline-flex items-center text-sm text-green-700 hover:underline">
-                            <Download className="mr-1 h-4 w-4"/> Download Video
-                        </a>
+                        <h3 className="font-bold text-lg mb-3 text-slate-800">Generated Video Prompt:</h3>
+                        {isGenerating && !generatedPrompt && (
+                             <div className="text-center text-slate-600 p-4">
+                                <LoaderCircle className="mx-auto h-8 w-8 animate-spin text-indigo-600 mb-2"/>
+                                <p>AI is crafting your cinematic prompt...</p>
+                            </div>
+                        )}
+                        {generatedPrompt && (
+                            <div className="relative">
+                                <Textarea
+                                    value={generatedPrompt}
+                                    readOnly
+                                    className="min-h-[150px] bg-slate-50 text-sm"
+                                />
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleCopyToClipboard}
+                                    className="absolute top-2 right-2"
+                                >
+                                    <Clipboard className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             )}
