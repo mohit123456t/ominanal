@@ -17,9 +17,9 @@ const AIVideoStudio = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     
     // Pricing based on Veo 3 (preview pricing as of July 2024)
-    // 8-second video at ₹0.025/second = ₹2
+    // 8-second video at ₹1.25/second (approx) = ₹10
     // This is a client-side estimation for UI purposes.
-    const estimatedCostPerVideo = 2.00; 
+    const estimatedCostPerVideo = 10.00; 
 
     const handleGenerateVideo = async () => {
         if (!prompt) {

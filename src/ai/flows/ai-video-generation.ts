@@ -62,9 +62,9 @@ const generateVideoFlow = ai.defineFlow({
      if (!videoDownloadResponse.ok || !videoDownloadResponse.body) {
         throw new Error(`Failed to download generated video. Status: ${videoDownloadResponse.status}`);
     }
-
-    const videoBuffer = await videoDownloadResponse.buffer();
-    const videoBase64 = videoBuffer.toString('base64');
+    
+    const arrayBuffer = await videoDownloadResponse.arrayBuffer();
+    const videoBase64 = Buffer.from(arrayBuffer).toString('base64');
 
     return {
         videoUrl: `data:${video.media.contentType || 'video/mp4'};base64,${videoBase64}`
