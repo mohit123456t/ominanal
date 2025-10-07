@@ -1,86 +1,99 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { LoaderCircle } from 'lucide-react';
 
-const ProfileSkeleton = () => (
-    <div className="animate-pulse">
-        {/* Profile Header Skeleton */}
-        <div className="flex items-center mb-10">
-            <div className="w-24 h-24 bg-slate-200 rounded-full mr-6"></div>
-            <div className="flex-1">
-                <div className="h-8 bg-slate-200 rounded w-1/3 mb-3"></div>
-                <div className="h-5 bg-slate-200 rounded w-1/2"></div>
-            </div>
-        </div>
-
-        {/* Account Details Skeleton */}
-        <div className="space-y-4">
-             <div className="h-6 bg-slate-200 rounded w-1/4 mb-6"></div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-100 p-4 rounded-lg h-20"></div>
-                <div className="bg-slate-100 p-4 rounded-lg h-20"></div>
-                <div className="bg-slate-100 p-4 rounded-lg h-20"></div>
-                <div className="bg-slate-100 p-4 rounded-lg h-20"></div>
-             </div>
-        </div>
-    </div>
-);
-
-
-const ProfileView = ({ userProfile }: { userProfile: any }) => {
+const ProfileView = ({ userProfile: initialProfile }: { userProfile: any }) => {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({ name: '' });
+    const [isSaving, setIsSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simulate loading delay, remove this in production if data loads instantly
-        const timer = setTimeout(() => {
-            if (userProfile) {
-                setLoading(false);
-            }
-        }, 500); // 0.5 second delay to show skeleton
+        if (initialProfile) {
+            setFormData({ name: initialProfile.name || '' });
+            setLoading(false);
+        }
+    }, [initialProfile]);
+    
+    const handleSave = async () => {
+        if (!user || !firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Not authenticated.' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await setDoc(userDocRef, { name: formData.name }, { merge: true });
+            setIsEditing(false);
+            toast({ title: 'Success', description: 'Profile updated successfully.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
-        return () => clearTimeout(timer);
-    }, [userProfile]);
-
-
-    if (loading || !userProfile) {
-        return <ProfileSkeleton />;
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <LoaderCircle className="w-12 h-12 animate-spin text-indigo-600"/>
+            </div>
+        );
     }
 
     return (
-        <div className="max-w-4xl mx-auto">
-            {/* Profile Header */}
-            <div className="flex items-center mb-10 p-4 bg-white rounded-xl shadow-sm border border-slate-200/80">
-                <img 
-                    src={userProfile.photoURL || `https://ui-avatars.com/api/?name=${userProfile.name}&background=random`}
-                    alt="Profile"
-                    className="w-24 h-24 rounded-full mr-6 border-4 border-slate-100 object-cover"
-                />
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-800">{userProfile.name}</h1>
-                    <p className="text-slate-600">{userProfile.email}</p>
-                </div>
+        <div className="max-w-3xl mx-auto p-6 space-y-8">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+                {!isEditing ? (
+                    <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium">Edit Profile</button>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg text-sm font-medium">Cancel</button>
+                        <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center disabled:bg-blue-400">
+                            {isSaving && <LoaderCircle className="animate-spin mr-2"/>}
+                            {isSaving ? 'Saving...' : 'Save'}
+                        </button>
+                    </div>
+                )}
             </div>
 
-            {/* Account Details */}
-            <div>
-                 <h2 className="text-2xl font-bold text-slate-700 mb-4">Account Details</h2>
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/80">
-                         <p className="text-sm text-slate-500 font-medium">User ID</p>
-                         <p className="text-slate-800 font-mono text-sm">{'TM' + (userProfile.uid || 'xxxx').slice(-4)}</p>
-                     </div>
-                     <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/80">
-                         <p className="text-sm text-slate-500 font-medium">Member Since</p>
-                         <p className="text-slate-800">{userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A'}</p>
-                     </div>
-                      <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/80">
-                         <p className="text-sm text-slate-500 font-medium">Role</p>
-                         <p className="text-slate-800 font-semibold">{userProfile.role}</p>
-                     </div>
-                      <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/80">
-                         <p className="text-sm text-slate-500 font-medium">Status</p>
-                         <p className="text-green-600 font-semibold capitalize">Active</p>
-                     </div>
-                 </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 space-y-4">
+                <div>
+                    <label className="text-sm font-medium text-slate-500">Name</label>
+                    <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        readOnly={!isEditing}
+                        className="w-full mt-1 p-2 border rounded-md bg-slate-50 read-only:bg-slate-100 disabled:cursor-not-allowed"
+                    />
+                </div>
+                <div>
+                    <label className="text-sm font-medium text-slate-500">Email</label>
+                    <input
+                        type="email"
+                        value={initialProfile?.email || 'N/A'}
+                        readOnly
+                        className="w-full mt-1 p-2 border rounded-md bg-slate-100 cursor-not-allowed"
+                    />
+                </div>
+                 <div>
+                    <label className="text-sm font-medium text-slate-500">Role</label>
+                    <input
+                        type="text"
+                        value={initialProfile?.role || 'N/A'}
+                        readOnly
+                        className="w-full mt-1 p-2 border rounded-md bg-slate-100 cursor-not-allowed"
+                    />
+                </div>
             </div>
         </div>
     );

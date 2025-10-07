@@ -1,110 +1,106 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { UserCircle, Mail, Film } from 'lucide-react';
-import { useUser } from '@/firebase';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { LoaderCircle } from 'lucide-react';
 
-const ProfileView: React.FC<{ userProfile: any, onProfileUpdate: (profile: any) => void }> = ({ userProfile: initialProfile, onProfileUpdate }) => {
-  const { user } = useUser();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    scriptId: '', 
-  });
+const ProfileView = ({ userProfile: initialProfile }: { userProfile: any, onProfileUpdate: (profile: any) => void }) => {
+    const { user } = useUser();
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({ name: '', email: '', scriptId: '' });
+    const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if(initialProfile) {
-        const profileToUse = initialProfile;
-        const scriptIdSuffix = (profileToUse.uid || '').slice(-4).padStart(4, '0');
-        const scriptId = `SCP${scriptIdSuffix}`;
-
-        setFormData({
-            name: profileToUse.name || '',
-            email: profileToUse.email || '',
-            scriptId: scriptId,
-        });
-    } else if (user) {
-        const scriptIdSuffix = (user.uid || '').slice(-4).padStart(4, '0');
-        const scriptId = `SCP${scriptIdSuffix}`;
-         setFormData({
-            name: user.displayName || 'Script Writer',
-            email: user.email || '',
-            scriptId: scriptId,
-        });
+    useEffect(() => {
+        if (initialProfile) {
+            const scriptIdSuffix = (initialProfile.uid || '').slice(-4).padStart(4, '0');
+            const scriptId = `SCP${scriptIdSuffix}`;
+            setFormData({
+                name: initialProfile.name || '',
+                email: initialProfile.email || '',
+                scriptId: scriptId,
+            });
+        }
+    }, [initialProfile]);
+    
+    const handleSave = async () => {
+        if (!user || !firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Not authenticated.' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const userDocRef = doc(firestore, 'users', user.uid);
+            await setDoc(userDocRef, { name: formData.name }, { merge: true });
+            setIsEditing(false);
+            toast({ title: 'Success', description: 'Profile updated successfully.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Error', description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+    
+    if (!initialProfile) {
+        return (
+            <div className="flex justify-center items-center h-full">
+                <LoaderCircle className="w-12 h-12 animate-spin text-indigo-600"/>
+            </div>
+        );
     }
-  }, [initialProfile, user]);
 
-  return (
-    <div className="max-w-3xl mx-auto p-6 space-y-8">
-      {/* Header */}
-      <div className="text-center space-y-2 animate-fade-in">
-        <h1 className="text-3xl font-extrabold text-slate-900">Your Profile</h1>
-        <p className="text-slate-500">View your personal details and script identity.</p>
-      </div>
-
-      {/* Form - Now a read-only display */}
-      <div className="space-y-6">
-        {[
-          {
-            label: 'Name',
-            icon: <UserCircle />,
-            name: 'name',
-            type: 'text',
-            placeholder: 'Your full name',
-            disabled: true
-          },
-          {
-            label: 'Email',
-            icon: <Mail />,
-            name: 'email',
-            type: 'email',
-            placeholder: 'Your email address',
-            disabled: true 
-          },
-          {
-            label: 'Script ID',
-            icon: <Film />,
-            name: 'scriptId',
-            type: 'text',
-            placeholder: 'Your script writer ID',
-            disabled: true
-          }
-        ].map((field, idx) => (
-          <div
-            key={field.name}
-            className={`bg-white p-5 rounded-2xl shadow-sm border border-slate-100 transition-all duration-300 transform animate-slide-up`}
-            style={{ animationDelay: `${idx * 0.1}s` }}
-          >
-            <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center">
-              <span className="mr-2 text-slate-500">{field.icon}</span>
-              {field.label}
-            </label>
-            <input
-              type={field.type}
-              name={field.name}
-              value={formData[field.name as keyof typeof formData]}
-              placeholder={field.placeholder}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none transition-all duration-200 placeholder:text-slate-400 disabled:bg-slate-100 cursor-not-allowed"
-              disabled={field.disabled}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Global Animations */}
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in { animation: fade-in 0.6s ease-out forwards; }
-        .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
-      `}</style>
-    </div>
-  );
+    return (
+        <div className="max-w-3xl mx-auto p-6 space-y-8">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+                {!isEditing ? (
+                    <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium">Edit Profile</button>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setIsEditing(false)} className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg text-sm font-medium">Cancel</button>
+                        <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium flex items-center disabled:bg-blue-400">
+                             {isSaving && <LoaderCircle className="animate-spin mr-2"/>}
+                            {isSaving ? 'Saving...' : 'Save'}
+                        </button>
+                    </div>
+                )}
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80 space-y-4">
+                <div>
+                    <label className="text-sm font-medium text-slate-500">Name</label>
+                    <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        readOnly={!isEditing}
+                        className="w-full mt-1 p-2 border rounded-md bg-slate-50 read-only:bg-slate-100 disabled:cursor-not-allowed"
+                    />
+                </div>
+                <div>
+                    <label className="text-sm font-medium text-slate-500">Email</label>
+                    <input
+                        type="email"
+                        value={formData.email}
+                        readOnly
+                        className="w-full mt-1 p-2 border rounded-md bg-slate-100 cursor-not-allowed"
+                    />
+                </div>
+                <div>
+                    <label className="text-sm font-medium text-slate-500">Script ID</label>
+                    <input
+                        type="text"
+                        value={formData.scriptId}
+                        readOnly
+                        className="w-full mt-1 p-2 border rounded-md bg-slate-100 cursor-not-allowed font-mono"
+                    />
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default ProfileView;
