@@ -21,6 +21,25 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, LogIn } from 'lucide-react';
 
+
+const Logo = () => (
+    <div className="flex items-center justify-center gap-2 mb-4">
+        <svg
+            className="size-10 text-primary"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+            d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z"
+            fill="currentColor"
+            />
+        </svg>
+        <h2 className="font-bold text-2xl text-foreground">TrendXoda</h2>
+    </div>
+);
+
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -135,59 +154,58 @@ export default function LoginPage() {
 
 
   return (
-    <div className="flex min-h-[calc(100vh-12rem)] flex-col items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Client & Staff Login</CardTitle>
-          <CardDescription>
-            Enter your credentials to access your panel.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="login-email">Email</Label>
-            <Input
-              id="login-email"
-              type="email"
-              placeholder="m@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
+    <Card className="w-full max-w-sm border-border/50">
+      <CardHeader className="text-center">
+        <Logo />
+        <CardTitle>Client & Staff Login</CardTitle>
+        <CardDescription>
+          Enter your credentials to access your panel.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="login-email">Email</Label>
+          <Input
+            id="login-email"
+            type="email"
+            placeholder="m@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+          />
+        </div>
+        <div className="space-y-2">
+           <div className="flex items-center justify-between">
+              <Label htmlFor="login-password">Password</Label>
+              <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-primary hover:underline underline-offset-4"
+              >
+                  Forgot Password?
+              </Link>
           </div>
-          <div className="space-y-2">
-             <div className="flex items-center justify-between">
-                <Label htmlFor="login-password">Password</Label>
-                <Link
-                    href="/forgot-password"
-                    className="text-sm font-medium text-primary hover:underline underline-offset-4"
-                >
-                    Forgot Password?
-                </Link>
-            </div>
-            <Input
-              id="login-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-          <Button onClick={handleLogin} className="w-full" disabled={isLoading}>
-             {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <LogIn className="mr-2"/>}
-            Login
-          </Button>
-           <p className="text-center text-sm text-muted-foreground">
-            Are you a new brand?{' '}
-            <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
-              Sign Up
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
-    </div>
+          <Input
+            id="login-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+          />
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-4">
+        <Button onClick={handleLogin} className="w-full" disabled={isLoading}>
+           {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <LogIn className="mr-2"/>}
+          Login
+        </Button>
+         <p className="text-center text-sm text-muted-foreground">
+          Are you a new brand?{' '}
+          <Link href="/signup" className="underline underline-offset-4 hover:text-primary">
+            Sign Up
+          </Link>
+        </p>
+      </CardFooter>
+    </Card>
   );
 }
