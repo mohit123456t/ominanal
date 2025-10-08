@@ -13,8 +13,8 @@ import {
     X,
     Sparkles
 } from 'lucide-react';
-import { useAuth, useDoc, useFirebase, useMemoFirebase, useUser } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useAuth, useDoc, useFirebase, useMemoFirebase, useUser, useCollection } from '@/firebase';
+import { doc, query, where, collection } from 'firebase/firestore';
 
 import DashboardView from '@/components/thumbnail_maker/DashboardView';
 import AssignedTasks from '@/components/thumbnail_maker/AssignedTasks';
@@ -88,6 +88,13 @@ const ThumbnailMakerPanel = () => {
     , [user, firestore]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
+    const tasksQuery = useMemoFirebase(() => {
+        if (!user?.uid || !firestore) return null;
+        return query(collection(firestore, 'work_items'), where('assignedTo', '==', user.uid), where('type', '==', 'thumbnail'));
+    }, [user, firestore]);
+
+    const { data: tasks, isLoading: tasksLoading } = useCollection(tasksQuery);
+
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedTask, setSelectedTask] = useState(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -131,9 +138,9 @@ const ThumbnailMakerPanel = () => {
             case 'communication':
                 return <CommunicationView />;
             case 'earnings':
-                return <EarningsView userProfile={userProfile} />;
+                return <EarningsView tasks={tasks || []} isLoading={tasksLoading} />;
             case 'profile':
-                return <ProfileView userProfile={userProfile} />;
+                return <ProfileView userProfile={userProfile} onProfileUpdate={() => {}} />;
             default:
                 return <DashboardView userProfile={userProfile} onTaskClick={handleTaskClick} />;
         }

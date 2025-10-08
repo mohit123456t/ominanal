@@ -18,14 +18,21 @@ const StatCard = ({ title, value, icon, color }: { title: string, value: string,
     </motion.div>
 );
 
-const EarningsView = ({ userProfile }: { userProfile: any }) => {
-    // This component now uses placeholder data.
-    // In a real app, this data would be passed down as props from a parent component that has permission to fetch it.
-    const loading = false;
-    const transactions = [
-        { id: 'tx1', date: new Date().toISOString(), amount: 1500, status: 'Paid', campaignName: 'Summer Vibes' },
-        { id: 'tx2', date: new Date(Date.now() - 2 * 86400000).toISOString(), amount: 750, status: 'Paid', campaignName: 'Tech Launch' },
-    ];
+const EarningsView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) => {
+
+    const transactions = useMemo(() => {
+        if (!tasks) return [];
+        return tasks
+            .filter(task => task.status === 'Completed' || task.status === 'Approved')
+            .map(task => ({
+                id: task.id,
+                date: task.completedAt || task.updatedAt?.toDate().toISOString(),
+                amount: 150, // Placeholder amount per task
+                status: 'Paid',
+                campaignName: task.campaignName || 'N/A'
+            }))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [tasks]);
 
     const stats = useMemo(() => {
         const total = transactions.reduce((sum, tx) => sum + tx.amount, 0);
@@ -103,14 +110,14 @@ const EarningsView = ({ userProfile }: { userProfile: any }) => {
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-slate-500 bg-slate-50">
                             <tr>
-                                <th className="p-3 font-semibold">Transaction ID</th>
+                                <th className="p-3 font-semibold">Task ID</th>
                                 <th className="p-3 font-semibold">Date</th>
                                 <th className="p-3 font-semibold text-right">Amount</th>
                                 <th className="p-3 font-semibold text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {loading ? (
+                            {isLoading ? (
                                 <tr><td colSpan={4} className="text-center py-12"><LoaderCircle className="h-8 w-8 animate-spin text-indigo-600 mx-auto" /></td></tr>
                             ) : !transactions || transactions.length === 0 ? (
                                 <tr><td colSpan={4} className="text-center p-8 text-slate-500">No transactions found.</td></tr>
