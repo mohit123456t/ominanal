@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     BarChart,
     Clipboard,
@@ -159,15 +159,17 @@ const ScriptWriterPanel = () => {
             </header>
 
             <main className="container mx-auto p-6 lg:p-8">
-                <motion.div
-                     key={activeView}
-                     initial={{ opacity: 0, y: 15 }}
-                     animate={{ opacity: 1, y: 0 }}
-                     exit={{ opacity: 0, y: -15 }}
-                     transition={{ duration: 0.25 }}
-                >
-                    {renderView()}
-                </motion.div>
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeView}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -15 }}
+                        transition={{ duration: 0.25 }}
+                    >
+                        {renderView()}
+                    </motion.div>
+                </AnimatePresence>
             </main>
         </div>
     );
