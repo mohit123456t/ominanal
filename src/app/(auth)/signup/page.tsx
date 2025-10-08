@@ -93,7 +93,7 @@ export default function SignupPage() {
   };
 
   return (
-     <div className="w-full max-w-4xl mx-auto bg-card/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-border/20 overflow-hidden">
+     <div className="w-full max-w-4xl mx-auto bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-300/70 overflow-hidden">
         <div className="grid md:grid-cols-2">
             <div className="p-8 md:p-12 flex flex-col justify-center">
                 <Logo />
