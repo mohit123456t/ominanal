@@ -40,41 +40,31 @@ const Logo = () => (
             d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z"
             fill="currentColor"
             />
-            <path
-            d="M12 17.5C15.0376 17.5 17.5 15.0376 17.5 12C17.5 8.96243 15.0376 6.5 12 6.5C8.96243 6.5 6.5 8.96243 6.5 12C6.5 15.0376 8.96243 17.5 12 17.5Z"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            />
-            <path
-            d="M12 2V22"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            />
         </svg>
-        <h2 className="font-bold text-lg text-slate-800">Admin Panel</h2>
+        <h2 className="font-bold text-lg text-slate-800">TrendXoda</h2>
     </div>
 );
 
-const NavItem = ({ icon, label, active, onClick, index }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, index: number }) => (
+const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
     <motion.button
         onClick={onClick}
-        className={`flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+        className={`relative flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
             active
-                ? 'bg-white/40 text-indigo-700 font-semibold'
-                : 'text-slate-700 hover:bg-white/20'
+                ? 'text-slate-900 font-semibold'
+                : 'text-slate-500 hover:text-slate-900'
         }`}
-        whileHover={{ x: active ? 0 : 5 }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.98 }}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.3 + index * 0.07, type: "spring", stiffness: 150, damping: 20 }}
     >
-        <span className={`mr-3 ${active ? 'text-indigo-600' : 'text-slate-600'}`}>{icon}</span>
+        <span className="mr-2">{icon}</span>
         {label}
+        {active && (
+            <motion.div
+                className="absolute inset-0 bg-white/60 rounded-lg -z-10"
+                layoutId="admin-active-nav-pill"
+                transition={{ type: 'spring', stiffness: 170, damping: 25 }}
+            />
+        )}
     </motion.button>
 );
 
@@ -130,8 +120,8 @@ function AdminPanel() {
     const expensesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'expenses')) : null, [firestore]);
     const { data: expenses, isLoading: expensesLoading } = useCollection(expensesQuery);
     
-    const transactionsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'transactions')) : null, [firestore]);
-    const { data: allTransactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
+    const allTransactions: any[] = [];
+    const transactionsLoading = false;
 
 
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
@@ -188,12 +178,10 @@ function AdminPanel() {
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-        { id: 'profile', label: 'Profile', icon: <User size={18} /> },
         { id: 'campaigns', label: 'Campaigns', icon: <Folder size={18} /> },
         { id: 'campaign-approval', label: 'Campaign Approval', icon: <CheckCircle size={18} /> },
         { id: 'users', label: 'User Management', icon: <UsersGroup size={18} /> },
         { id: 'finance', label: 'Finance', icon: <Wallet size={18} /> },
-        { id: 'communication', label: 'Communication', icon: <Bell size={18} /> },
     ];
 
     const handleLogout = async () => {
@@ -240,7 +228,6 @@ function AdminPanel() {
             case 'users': return <UserManagementView brands={brands || []} onViewBrand={onViewBrand} />;
             case 'finance': return <FinanceView transactions={allTransactions || []} expenses={expenses || []} onUpdateStatus={handleUpdateTransactionStatus} onAddExpense={handleAddExpense} />;
             case 'earnings': return <EarningsView campaigns={campaigns || []} setView={setActiveView} />; 
-            case 'communication': return <div className="text-center p-8">Communication View Coming Soon</div>;
             case 'dashboard':
             default:
                 return <DashboardView campaigns={campaigns || []} users={users || []} expenses={expenses || []} />;
@@ -248,96 +235,60 @@ function AdminPanel() {
     };
 
     return (
-        <div className="flex h-screen font-sans bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent">
-            <motion.aside
-                initial={{ x: -300, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-                className="fixed left-0 top-0 h-full w-64 bg-white/40 backdrop-blur-xl text-slate-800 flex flex-col z-50 shadow-2xl border-r border-slate-300/70"
-            >
-                <div className="h-16 flex items-center px-6 border-b border-slate-300/70 flex-shrink-0">
-                    <Logo />
-                </div>
-                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    {navItems.map((item, index) => (
-                        <NavItem
-                            key={item.id}
-                            index={index}
-                            icon={item.icon}
-                            label={item.label}
-                            active={activeView === item.id || (item.id === 'finance' && activeView === 'earnings')}
-                            onClick={() => {
-                                setSelectedCampaignId(null);
-                                setSelectedBrandId(null);
-                                setActiveView(item.id);
-                            }}
-                        />
-                    ))}
-                </nav>
-                <div className="px-4 py-6 border-t border-slate-300/70 flex-shrink-0">
-                    <motion.button
-                        whileHover={{ scale: 1.02, x: 5 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleLogout}
-                        className="flex items-center w-full text-left px-4 py-3 text-sm font-medium rounded-xl text-red-600 hover:bg-red-500/10 transition-all duration-200"
-                    >
-                        <motion.span className="mr-3" whileHover={{ rotate: 180 }} transition={{ duration: 0.3 }} >
-                            <LogOut size={18} />
-                        </motion.span>
-                        Logout
-                    </motion.button>
-                     <motion.button
-                        onClick={() => router.push('/login')}
-                        className="mt-2 flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 hover:bg-white/20 transition-all"
-                        whileHover={{ x: 5 }}
-                        whileTap={{ scale: 0.98 }}
-                    >
-                        <span className="mr-3"><ArrowLeft size={18}/></span>
-                        Back to App
-                    </motion.button>
-                </div>
-            </motion.aside>
-
-            <div className="flex-1 flex flex-col overflow-hidden ml-64">
-                <motion.header
-                    initial={{ y: -100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    className="h-16 bg-white/60 backdrop-blur-lg border-b border-slate-300/70 flex items-center justify-between px-8 flex-shrink-0 shadow-sm"
-                >
-                    <motion.h1
-                        key={activeView}
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="text-xl font-bold text-slate-800 capitalize"
-                    >
-                        {activeView.replace(/_/g, ' ')}
-                    </motion.h1>
-                    <div className="flex items-center space-x-3">
-                         <div className="relative flex items-center">
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping absolute"></div>
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                        </div>
-                        <div className="font-semibold text-sm text-slate-700">{adminProfileName}</div>
+        <div className="min-h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent font-sans text-slate-800">
+             <header className="sticky top-0 z-50 bg-white/40 backdrop-blur-xl border-b border-slate-300/70">
+                <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-8">
+                        <Logo />
+                        <nav className="hidden md:flex items-center gap-2 p-1 bg-black/5 rounded-xl">
+                             {navItems.map((item) => (
+                                <NavItem
+                                    key={item.id}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={activeView === item.id || (item.id === 'finance' && activeView === 'earnings')}
+                                    onClick={() => {
+                                        setSelectedCampaignId(null);
+                                        setSelectedBrandId(null);
+                                        setActiveView(item.id);
+                                    }}
+                                />
+                            ))}
+                        </nav>
                     </div>
-                </motion.header>
-
-                <main className="flex-1 overflow-y-auto">
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeView + (selectedBrandId || '')}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -15 }}
-                            transition={{ duration: 0.25 }}
-                            className="p-8"
+                    <div className="flex items-center gap-4">
+                       <button onClick={()=> setActiveView('profile')} className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900">
+                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                               {adminProfile?.name?.charAt(0) || 'A'}
+                            </div>
+                           <span className='hidden sm:inline'>{adminProfileName}</span>
+                       </button>
+                         <motion.button
+                            onClick={handleLogout}
+                            className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-500/10 hover:text-slate-800 transition-all"
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
                         >
-                            {renderView()}
-                        </motion.div>
-                    </AnimatePresence>
-                </main>
-            </div>
+                            <span className="mr-1.5"><LogOut size={16} /></span>
+                            Logout
+                        </motion.button>
+                    </div>
+                </div>
+            </header>
+
+            <main className="container mx-auto p-6 lg:p-8">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeView + (selectedBrandId || '')}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -15 }}
+                        transition={{ duration: 0.25 }}
+                    >
+                        {renderView()}
+                    </motion.div>
+                </AnimatePresence>
+            </main>
         </div>
     );
 };

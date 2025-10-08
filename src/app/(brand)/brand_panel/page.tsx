@@ -10,8 +10,6 @@ import {
     Wallet,
     HelpCircle,
     LogOut,
-    Menu,
-    X,
     Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,36 +39,33 @@ const Logo = () => (
             d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z"
             fill="currentColor"
             />
-            <path
-            d="M12 17.5C15.0376 17.5 17.5 15.0376 17.5 12C17.5 8.96243 15.0376 6.5 12 6.5C8.96243 6.5 6.5 8.96243 6.5 12C6.5 15.0376 8.96243 17.5 12 17.5Z"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            />
-            <path
-            d="M12 2V22"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            />
         </svg>
-        <h2 className="font-bold text-lg text-slate-800">Brand Panel</h2>
+        <h2 className="font-bold text-lg text-slate-800">TrendXoda</h2>
     </div>
 );
 
 
-const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void }) => (
-    <button
+const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
+    <motion.button
         onClick={onClick}
-        className={`flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${active ? 'bg-blue-100/50 text-blue-700 border border-blue-200/80' : 'text-slate-700 hover:bg-white/30 hover:text-slate-900'} ${!label ? 'justify-center' : ''}`}
-        aria-label={label || 'Sidebar item'}
-        tabIndex={0}
+        className={`relative flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
+            active
+                ? 'text-slate-900 font-semibold'
+                : 'text-slate-500 hover:text-slate-900'
+        }`}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.98 }}
     >
-        <span className="mr-3">{icon}</span>
-        {label ? <span>{label}</span> : null}
-    </button>
+        <span className="mr-2">{icon}</span>
+        {label}
+        {active && (
+            <motion.div
+                className="absolute inset-0 bg-white/60 rounded-lg -z-10"
+                layoutId="brand-active-nav-pill"
+                transition={{ type: 'spring', stiffness: 170, damping: 25 }}
+            />
+        )}
+    </motion.button>
 );
 
 const BrandPanel = () => {
@@ -81,7 +76,6 @@ const BrandPanel = () => {
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedCampaign, setSelectedCampaign] = useState<any | null>(null);
     
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [showNewCampaignForm, setShowNewCampaignForm] = useState(false);
     const [showOrderForm, setShowOrderForm] = useState(false);
 
@@ -166,20 +160,19 @@ const BrandPanel = () => {
         setShowOrderForm(true);
     };
     const handleCancelOrder = () => setShowOrderForm(false);
-    const toggleSidebar = () => setSidebarCollapsed(prev => !prev);
 
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'campaigns', label: 'Campaigns', icon: <Folder /> },
         { id: 'pricing', label: 'Pricing', icon: <DollarSign /> },
-        { id: 'profile', label: 'Profile', icon: <UserCircle /> },
         { id: 'analytics', label: 'Analytics', icon: <BarChart3 /> },
         { id: 'billing', label: 'Billing', icon: <Wallet /> },
     ];
-
-    const secondaryNavItems = [
+    
+     const secondaryNavItems = [
         { id: 'support', label: 'Support', icon: <HelpCircle /> },
     ];
+
 
     const renderView = () => {
         const isLoading = isDataLoading || isUserLoading || campaignsLoading;
@@ -206,65 +199,65 @@ const BrandPanel = () => {
     };
 
     return (
-        <div className="flex h-screen bg-slate-200 from-white/30 bg-gradient-to-br font-sans text-slate-800">
-             <aside className={`bg-white/40 backdrop-blur-xl text-slate-800 flex flex-col no-scrollbar transition-all duration-300 ease-in-out border-r border-slate-300/70 shadow-sm ${sidebarCollapsed ? 'w-16' : 'w-64'} flex-shrink-0`}>
-                <div className="h-16 flex items-center px-4 justify-center border-b border-slate-300/70 flex-shrink-0">
-                    <div className={`transition-all duration-300 overflow-hidden ${sidebarCollapsed ? 'w-0' : 'w-auto'}`}>
+        <div className="min-h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent font-sans text-slate-800">
+             <header className="sticky top-0 z-50 bg-white/40 backdrop-blur-xl border-b border-slate-300/70">
+                <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-8">
                         <Logo />
+                        <nav className="hidden md:flex items-center gap-2 p-1 bg-black/5 rounded-xl">
+                             {navItems.map((item) => (
+                                <NavItem
+                                    key={item.id}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={activeView === item.id}
+                                    onClick={() => { setActiveView(item.id); setSelectedCampaign(null); }}
+                                />
+                            ))}
+                            {secondaryNavItems.map((item) => (
+                                 <NavItem
+                                    key={item.id}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={activeView === item.id}
+                                    onClick={() => { setActiveView(item.id); setSelectedCampaign(null); }}
+                                />
+                            ))}
+                        </nav>
                     </div>
-                </div>
-                <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-                    {navItems.map(item => (
-                        <div key={item.id}>
-                            <NavItem
-                                icon={item.icon}
-                                label={sidebarCollapsed ? '' : item.label}
-                                active={activeView === item.id}
-                                onClick={() => { setActiveView(item.id); setSelectedCampaign(null); }}
-                            />
-                        </div>
-                    ))}
-                </nav>
-                <div className="px-4 py-4 border-t border-slate-300/70 flex-shrink-0">
-                    {secondaryNavItems.map(item => (
-                        <div key={item.id}>
-                            <NavItem
-                                icon={item.icon}
-                                label={sidebarCollapsed ? '' : item.label}
-                                active={activeView === item.id}
-                                onClick={() => { setActiveView(item.id); setSelectedCampaign(null); }}
-                            />
-                        </div>
-                    ))}
-                    <button
-                        onClick={handleLogout}
-                        className={`flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg text-slate-700 hover:bg-white/30 hover:text-slate-900 mt-2 transition-all duration-300 ${sidebarCollapsed ? 'justify-center' : ''}`}
-                    >
-                        <span className="mr-3"><LogOut /></span>
-                        {!sidebarCollapsed && <span>Logout</span>}
-                    </button>
-                </div>
-            </aside>
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 bg-white/40 backdrop-blur-xl border-b border-slate-300/70 flex items-center justify-between px-6 flex-shrink-0">
-                    <div className="flex items-center space-x-4">
-                        <button
-                            onClick={toggleSidebar}
-                            className="text-slate-600 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-white/30"
-                            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                            aria-label="Toggle sidebar"
+                     <div className="flex items-center gap-4">
+                       <button onClick={()=> setActiveView('profile')} className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900">
+                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                               {profile?.name?.charAt(0) || 'B'}
+                            </div>
+                           <span className='hidden sm:inline'>{profile?.name || "Brand"}</span>
+                       </button>
+                         <motion.button
+                            onClick={handleLogout}
+                            className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-500/10 hover:text-slate-800 transition-all"
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
                         >
-                            {sidebarCollapsed ? <Menu /> : <X />}
-                        </button>
-                        <h1 className="text-xl font-bold text-slate-900 capitalize">{activeView.replace(/_/g, ' ')}</h1>
+                            <span className="mr-1.5"><LogOut size={16} /></span>
+                            Logout
+                        </motion.button>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <button className="text-slate-600 hover:text-slate-900"><Bell/></button>
-                        <button className="text-slate-600 hover:text-slate-900"><UserCircle/></button>
-                    </div>
-                </header>
-                <main className="flex-1 overflow-y-auto p-8">{renderView()}</main>
-            </div>
+                </div>
+            </header>
+            
+            <main className="container mx-auto p-6 lg:p-8">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeView}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -15 }}
+                        transition={{ duration: 0.25 }}
+                    >
+                        {renderView()}
+                    </motion.div>
+                </AnimatePresence>
+            </main>
             
              <AnimatePresence>
                 {showNewCampaignForm && (

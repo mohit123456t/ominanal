@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
     LayoutDashboard, 
     Clipboard, 
@@ -34,45 +34,36 @@ const Logo = () => (
             d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z"
             fill="currentColor"
             />
-            <path
-            d="M12 17.5C15.0376 17.5 17.5 15.0376 17.5 12C17.5 8.96243 15.0376 6.5 12 6.5C8.96243 6.5 6.5 8.96243 6.5 12C6.5 15.0376 8.96243 17.5 12 17.5Z"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            />
-            <path
-            d="M12 2V22"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            />
         </svg>
-        <h2 className="font-bold text-lg text-slate-800">OmniPost AI</h2>
+        <h2 className="font-bold text-lg text-slate-800">TrendXoda</h2>
     </div>
 );
 
 
-// 🧩 NavItem Component — White Theme, Elegant Hover & Active States
-const NavItem = ({ icon, label, active, onClick, ...props }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, [key: string]: any }) => (
+const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
     <motion.button
-        {...props}
         onClick={onClick}
-        className={`flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+        className={`relative flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
             active
-                ? 'bg-slate-50 text-slate-800 border-r-2 border-slate-600'
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
+                ? 'text-slate-900 font-semibold'
+                : 'text-slate-500 hover:text-slate-900'
         }`}
-        whileHover={{ x: 6 }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.98 }}
     >
-        <span className={`mr-3 ${active ? 'text-slate-700' : ''}`}>{icon}</span>
+        <span className="mr-2">{icon}</span>
         {label}
+        {active && (
+            <motion.div
+                className="absolute inset-0 bg-white/60 rounded-lg -z-10"
+                layoutId="video-editor-active-nav-pill"
+                transition={{ type: 'spring', stiffness: 170, damping: 25 }}
+            />
+        )}
     </motion.button>
 );
 
-// 🖥️ Main Panel — WHITE SIDEBAR GOD MODE ACTIVATED 😎
+
 const VideoEditorPanel = () => {
     const router = useRouter();
     const { user } = useUser();
@@ -95,10 +86,6 @@ const VideoEditorPanel = () => {
         { id: 'ai_video_studio', label: 'AI Video Studio', icon: <Sparkles size={18} /> },
         { id: 'communication', label: 'Communication', icon: <MessageSquare size={18} /> },
         { id: 'earnings', label: 'Earnings', icon: <IndianRupee size={18} /> },
-    ];
-
-    const secondaryNavItems = [
-        { id: 'profile', label: 'Profile', icon: <UserCircle size={18} /> },
     ];
     
     const handleLogout = async () => {
@@ -129,72 +116,56 @@ const VideoEditorPanel = () => {
     };
 
     return (
-        <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
-            {/* 👈 WHITE GOD-MODE SIDEBAR */}
-            <aside className="w-64 flex-shrink-0 bg-white text-slate-800 flex flex-col no-scrollbar shadow-lg border-r border-slate-200">
-                {/* 🔷 Logo Section */}
-                <div className="h-16 flex items-center px-6 border-b border-slate-100 flex-shrink-0">
-                    <Logo />
+        <div className="min-h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent font-sans text-slate-800">
+             <header className="sticky top-0 z-50 bg-white/40 backdrop-blur-xl border-b border-slate-300/70">
+                <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+                    <div className="flex items-center gap-8">
+                        <Logo />
+                        <nav className="hidden md:flex items-center gap-2 p-1 bg-black/5 rounded-xl">
+                             {navItems.map((item) => (
+                                <NavItem
+                                    key={item.id}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    active={activeView === item.id}
+                                    onClick={() => setActiveView(item.id)}
+                                />
+                            ))}
+                        </nav>
+                    </div>
+                    <div className="flex items-center gap-4">
+                       <button onClick={()=> setActiveView('profile')} className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900">
+                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                               {userProfile?.name?.charAt(0) || 'V'}
+                            </div>
+                           <span className='hidden sm:inline'>{userProfile?.name || "Video Editor"}</span>
+                       </button>
+                         <motion.button
+                            onClick={handleLogout}
+                            className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-500/10 hover:text-slate-800 transition-all"
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <span className="mr-1.5"><LogOut size={16} /></span>
+                            Logout
+                        </motion.button>
+                    </div>
                 </div>
+            </header>
 
-                {/* 🧭 Primary Navigation — Animated Entry */}
-                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-                    {navItems.map((item, index) => (
-                        <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.07, type: "tween", ease: "easeOut" }}
-                        >
-                            <NavItem
-                                icon={item.icon}
-                                label={item.label}
-                                active={activeView === item.id}
-                                onClick={() => setActiveView(item.id)}
-                            />
-                        </motion.div>
-                    ))}
-                </nav>
-
-                {/* 🛠️ Secondary Nav + Logout */}
-                <div className="px-4 py-4 border-t border-slate-100 flex-shrink-0 space-y-3">
-                    {secondaryNavItems.map((item, index) => (
-                        <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: (navItems.length + index) * 0.07, type: "tween", ease: "easeOut" }}
-                        >
-                            <NavItem
-                                icon={item.icon}
-                                label={item.label}
-                                active={activeView === item.id}
-                                onClick={() => setActiveView(item.id)}
-                            />
-                        </motion.div>
-                    ))}
-
-                    {/* 🚪 Logout — Classy Red Accent */}
-                    <motion.button
-                        onClick={handleLogout}
-                        className="flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all"
-                        whileHover={{ x: 6 }}
-                        whileTap={{ scale: 0.98 }}
+            <main className="container mx-auto p-6 lg:p-8">
+                 <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeView}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -15 }}
+                        transition={{ duration: 0.25 }}
                     >
-                        <span className="mr-3"><LogOut size={18} /></span>
-                        Logout
-                    </motion.button>
-                </div>
-            </aside>
-
-            {/* ➡️ Main Content Area */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
-                    <h1 className="text-xl font-bold text-slate-900 capitalize">{activeView.replace(/_/g, ' ')}</h1>
-                    <div className="font-semibold text-slate-700">{userProfile?.name || 'User'}</div>
-                </header>
-                <main className="flex-1 overflow-y-auto bg-slate-50 p-8">{renderView()}</main>
-            </div>
+                        {renderView()}
+                    </motion.div>
+                </AnimatePresence>
+            </main>
         </div>
     );
 };
