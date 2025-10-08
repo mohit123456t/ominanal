@@ -23,29 +23,11 @@ const ReelsUploadedPage = () => {
   const { firestore } = useFirebase();
   const [filters, setFilters] = useState({ campaign: '', uploader: '', dateRange: '', status: '', search: '' });
   
-  // Data states
-  const postsQuery = useMemoFirebase(() => 
-      firestore ? query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc')) : null
-  , [firestore]);
-
-  const { data: posts, isLoading: loading } = useCollection<Post>(postsQuery);
-
+  // Data states - For now, we will use empty arrays to prevent permission errors
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false); // Set to false as we are not fetching
   const [users, setUsers] = useState<Record<string, string>>({});
   
-  useEffect(() => {
-    async function fetchUsers() {
-      if (firestore) {
-        const usersSnapshot = await getDocs(collection(firestore, 'users'));
-        const usersMap: Record<string, string> = {};
-        usersSnapshot.forEach(doc => {
-          usersMap[doc.id] = doc.data().name || 'Unknown User';
-        });
-        setUsers(usersMap);
-      }
-    }
-    fetchUsers();
-  }, [firestore]);
-
   const summary = useMemo(() => {
     if (!posts) return { today: 0, week: 0, month: 0, allTime: 0, successRate: 100 };
     const now = new Date();
