@@ -15,6 +15,7 @@ import {
     KeyRound,
     Link2,
 } from 'lucide-react';
+import { collection, doc } from 'firebase/firestore';
 
 import DashboardView from '@/components/uploader/DashboardView';
 import UploadHistoryView from '@/components/uploader/UploadHistoryView';
