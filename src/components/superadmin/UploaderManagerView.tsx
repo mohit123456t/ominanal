@@ -32,12 +32,6 @@ const UploaderManagerView = () => {
         firestore ? query(collection(firestore, 'users'), where('role', '==', 'uploader')) : null
     , [firestore]);
     const { data: uploaderData, isLoading: uploadersLoading } = useCollection<UserProfile>(uploadersQuery);
-
-    // Fetch Campaigns for assignment modal
-    const campaignsQuery = useMemoFirebase(() => 
-        firestore ? collection(firestore, 'posts') : null // Assuming posts are campaigns
-    , [firestore]);
-    const { data: campaigns, isLoading: campaignsLoading } = useCollection<any>(campaignsQuery);
     
     useEffect(() => {
         if (!uploadersLoading) {
@@ -142,7 +136,7 @@ const UploaderManagerView = () => {
                             }}>
                                 <select name="campaignId" required className="w-full p-3 bg-white/50 border border-slate-300/70 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none">
                                     <option value="">Select Campaign</option>
-                                    {campaigns && campaigns.map(c => <option key={c.id} value={c.id}>{c.content}</option>)}
+                                    
                                 </select>
                                 <div className="mt-4">
                                     <h4 className="text-md font-semibold mb-2 text-slate-700">Current Campaigns</h4>

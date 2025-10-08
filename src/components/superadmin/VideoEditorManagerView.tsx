@@ -7,17 +7,15 @@ import { collection, query, where } from 'firebase/firestore';
 
 
 // --- इंटरफ़ेस परिभाषाएं ---
-interface StaffStats { assigned: number; pending: number; completed: number; }
-interface UserProfile { 
+interface UserProfile {
     uid: string;
     name: string;
     email: string;
     mobile?: string;
     dob?: string;
 }
-interface EnrichedStaffProfile extends UserProfile { 
-    stats: StaffStats;
-}
+interface StaffStats { assigned: number; pending: number; completed: number; }
+interface EnrichedStaffProfile extends UserProfile { stats: StaffStats; }
 
 // --- मुख्य कंपोनेंट ---
 const VideoEditorManagerView = () => {
@@ -33,11 +31,6 @@ const VideoEditorManagerView = () => {
         firestore ? query(collection(firestore, 'users'), where('role', '==', 'video_editor')) : null
     , [firestore]);
     const { data: editorData, isLoading: editorsLoading } = useCollection<UserProfile>(editorsQuery);
-
-    const campaignsQuery = useMemoFirebase(() => 
-        firestore ? collection(firestore, 'posts') : null
-    , [firestore]);
-    const { data: campaigns, isLoading: campaignsLoading } = useCollection<any>(campaignsQuery);
     
     useEffect(() => {
         if (!editorsLoading) {
@@ -144,7 +137,6 @@ const VideoEditorManagerView = () => {
                             }}>
                                 <select name="campaignId" required className="w-full p-3 bg-white/50 border border-slate-300/70 rounded-lg mb-4 focus:ring-2 focus:ring-indigo-500 outline-none">
                                     <option value="">Select Campaign</option>
-                                    {campaigns && campaigns.map(c => <option key={c.id} value={c.id}>{c.content}</option>)}
                                 </select>
                                 <div className="mt-4">
                                     <h4 className="text-md font-semibold mb-2 text-slate-700">Current Campaigns</h4>

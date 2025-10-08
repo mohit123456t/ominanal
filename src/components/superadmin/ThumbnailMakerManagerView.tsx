@@ -32,10 +32,6 @@ const ThumbnailMakerManagerView = () => {
     , [firestore]);
     const { data: makerData, isLoading: makersLoading } = useCollection<UserProfile>(makersQuery);
 
-    const campaignsQuery = useMemoFirebase(() => 
-        firestore ? collection(firestore, 'posts') : null
-    , [firestore]);
-    const { data: campaigns, isLoading: campaignsLoading } = useCollection<any>(campaignsQuery);
     
     useEffect(() => {
         if (!makersLoading) {
