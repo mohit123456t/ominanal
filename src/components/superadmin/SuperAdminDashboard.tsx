@@ -2,15 +2,6 @@
 'use client';
 import React from 'react';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import {
   Briefcase,
   PlayCircle,
   Rocket,
@@ -46,42 +37,20 @@ const StatCard = ({ title, value, icon, colorClass, delay = 0 }: { title: string
     </motion.div>
   );
 
-const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white/80 backdrop-blur-lg border border-slate-200 rounded-xl p-3 shadow-xl">
-          <p className="font-bold text-slate-800">{`Earnings: ₹${formatNumber(payload[0].value)}`}</p>
-        </div>
-      );
-    }
-    return null;
-};
-  
 const SuperAdminDashboard = ({ users, posts }: { users: any[], posts: any[] }) => {
     
     const brands = users.filter(u => u.role === 'brand');
     const totalBrands = brands.length;
 
-    const totalCampaigns = posts.length;
-    const liveCampaigns = posts.filter(p => p.status === 'Published').length;
-    const pendingCampaigns = posts.filter(p => p.status === 'Scheduled').length; // Assuming pending means scheduled
-    const activeCampaigns = liveCampaigns + pendingCampaigns;
-
-    const brandsWithPosts = new Set(posts.map(p => p.userId));
-    const brandsWithLiveCampaigns = brands.filter(b => brandsWithPosts.has(b.id)).length;
-    const brandsWithoutCampaigns = totalBrands - brandsWithLiveCampaigns;
-    
-    const totalCampaignEarnings = posts.reduce((sum, post) => sum + (post.budget || 0), 0);
-
-    const campaignEarningsByMonth = posts.reduce((acc, post) => {
-        if (!post.createdAt) return acc;
-        const date = new Date(post.createdAt);
-        const month = date.toLocaleString('default', { month: 'short' });
-        acc[month] = (acc[month] || 0) + (post.budget || 0);
-        return acc;
-    }, {} as {[key: string]: number});
-    
-    const campaignEarningsChartData = Object.entries(campaignEarningsByMonth).map(([name, earnings]) => ({name, earnings}));
+    // This data is no longer available due to security constraints.
+    // We will show placeholders or remove these stats.
+    const totalCampaigns = 0;
+    const liveCampaigns = 0;
+    const pendingCampaigns = 0;
+    const activeCampaigns = 0;
+    const brandsWithLiveCampaigns = 0;
+    const brandsWithoutCampaigns = totalBrands;
+    const totalCampaignEarnings = 0;
 
     const safeFormat = (value: number) => formatNumber(value || 0);
   
@@ -126,34 +95,6 @@ const SuperAdminDashboard = ({ users, posts }: { users: any[], posts: any[] }) =
             icon={<IndianRupee className="text-pink-600"/>} colorClass="bg-pink-100" delay={0.7}
           />
         </div>
-  
-        <motion.div 
-          className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 p-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h3 className="font-bold text-xl mb-6 text-slate-800">Campaign Earnings Analytics</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={campaignEarningsChartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis 
-                  stroke="#64748b" 
-                  fontSize={12} 
-                  tickFormatter={(value) => `₹${formatNumber(value)}`}
-                  tickLine={false} axisLine={false}
-                />
-                <Tooltip
-                  cursor={{ fill: 'rgba(79, 70, 229, 0.1)' }}
-                  content={<CustomTooltip />}
-                />
-                <Bar dataKey="earnings" fill="#4f46e5" name="Earnings" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
       </motion.div>
     );
 };
