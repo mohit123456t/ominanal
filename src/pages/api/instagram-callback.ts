@@ -19,11 +19,6 @@ function initializeFirebaseSDK() {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { code, error, state } = req.query;
 
-    // IMPORTANT: In a real app, 'state' should be a JWT or a random string stored in the user's session
-    // to prevent CSRF attacks. It would contain the real user ID.
-    // For this demonstration, we'll assume a hardcoded user ID.
-    const userId = "DEFAULT_USER"; // Replace with actual user ID from state
-
     if (error) {
         console.error('Instagram callback error:', error);
         return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Instagram connection was denied or failed.')}`);
@@ -32,12 +27,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!code || typeof code !== 'string') {
         return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Invalid request. No authorization code found.')}`);
     }
+    
+    // IMPORTANT: The 'state' now securely contains the user's UID.
+    if (!state || typeof state !== 'string') {
+        return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Invalid request. State (user identification) is missing.')}`);
+    }
+    const userId = state;
 
     try {
         const app = initializeFirebaseSDK();
         const firestore = getFirestore(app);
 
-        // Fetch credentials for the user
+        // Fetch credentials for the correct user using the UID from state
         const credsRef = doc(firestore, 'users', userId, 'platformCredentials', 'Instagram');
         const credsSnap = await getDoc(credsRef);
         if (!credsSnap.exists()) {

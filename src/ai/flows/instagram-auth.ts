@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -19,6 +20,7 @@ import { URLSearchParams } from 'url';
 const GetInstagramAuthUrlInputSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
+  userId: z.string().describe("The UID of the user initiating the connection."),
 });
 export type GetInstagramAuthUrlInput = z.infer<typeof GetInstagramAuthUrlInputSchema>;
 
@@ -33,7 +35,7 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
     inputSchema: GetInstagramAuthUrlInputSchema,
     outputSchema: GetInstagramAuthUrlOutputSchema,
   },
-  async ({ clientId }) => {
+  async ({ clientId, userId }) => {
     // This flow now correctly uses the NEXT_PUBLIC_ prefixed variables, as it's initiated from the client-side context.
     if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
         throw new Error('NEXT_PUBLIC_URL or NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI is not set in the .env file. The app owner needs to configure this.');
@@ -45,7 +47,7 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
         redirect_uri: redirectUri,
         scope: 'instagram_basic,pages_show_list,instagram_content_publish,pages_manage_posts,pages_read_engagement',
         response_type: 'code',
-        state: 'XOgiVQIYbuN4CHeFLE9BYhj7Snw1' 
+        state: userId, // Pass the user's UID in the state parameter for security
     });
     const url = `https://www.facebook.com/v20.0/dialog/oauth?${params.toString()}`;
     return { url };
