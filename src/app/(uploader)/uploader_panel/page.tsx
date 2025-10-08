@@ -22,8 +22,6 @@ import ProfileView from '@/components/uploader/ProfileView';
 import UploadView from '@/components/uploader/UploadView';
 import ApiKeysView from '@/components/uploader/ApiKeysView';
 import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
-import PaymentsView from '@/components/uploader/PaymentsView';
-import CommunicationView from '@/components/uploader/CommunicationView';
 
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { PlatformCredentials, SocialMediaAccount, Post } from '@/lib/types';
@@ -108,10 +106,6 @@ const UploaderPanel = () => {
                 return <ApiKeysView credentialsList={credentialsList || []} isLoadingCreds={isLoadingCreds} accounts={accounts || []} />;
             case 'connected-accounts':
                  return <ConnectedAccountsView accounts={accounts || []} isLoadingAccounts={isLoadingAccounts} />;
-            case 'payments':
-                return <PaymentsView posts={posts || []} />;
-            case 'communication':
-                return <CommunicationView userProfile={userProfile} />;
             case 'profile':
                 return <ProfileView userProfile={userProfile} />;
             default:
@@ -207,3 +201,4 @@ const UploaderPanel = () => {
 };
 
 export default UploaderPanel;
+    

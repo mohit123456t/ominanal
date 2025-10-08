@@ -93,3 +93,4 @@ const PaymentsView = ({ posts }: { posts: Post[] }) => {
 };
 
 export default PaymentsView;
+    
