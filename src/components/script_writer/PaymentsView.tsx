@@ -52,32 +52,32 @@ const PaymentsView = ({ userProfile }: { userProfile: any }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                <div className="bg-white/40 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-slate-300/70">
                     <p className="text-sm font-medium text-slate-500">Earnings This Month</p>
                     <p className="text-3xl font-bold text-slate-800">₹{stats.thisMonth.toLocaleString()}</p>
                 </div>
-                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                 <div className="bg-white/40 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-slate-300/70">
                     <p className="text-sm font-medium text-slate-500">Performance Bonus</p>
                     <p className="text-3xl font-bold text-slate-800">₹{stats.bonus.toLocaleString()}</p>
                 </div>
-                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+                 <div className="bg-white/40 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-slate-300/70">
                     <p className="text-sm font-medium text-slate-500">Total Earned</p>
                     <p className="text-3xl font-bold text-slate-800">₹{stats.total.toLocaleString()}</p>
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+            <div className="bg-white/40 backdrop-blur-xl p-6 rounded-xl shadow-lg border border-slate-300/70">
                 <h3 className="font-bold text-xl text-slate-800">Payment History</h3>
                 <div className="overflow-x-auto mt-4">
                     <table className="w-full text-sm text-left">
-                         <thead className="text-xs text-slate-500 bg-slate-50">
+                         <thead className="text-xs text-slate-500 bg-white/30">
                             <tr>
-                                <th className="p-3 font-semibold">Date</th>
-                                <th className="p-3 font-semibold">Amount</th>
-                                <th className="p-3 font-semibold">Status</th>
+                                <th className="p-4">Date</th>
+                                <th className="p-4">Amount</th>
+                                <th className="p-4">Status</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-slate-300/50">
                             {loading ? (
                                 <tr>
                                     <td colSpan={3} className="text-center p-8">Loading...</td>
@@ -88,10 +88,10 @@ const PaymentsView = ({ userProfile }: { userProfile: any }) => {
                                 </tr>
                             ) : (
                                 payments.map((p: any) => (
-                                    <tr key={p.id} className="hover:bg-slate-50">
-                                        <td className="p-3 text-slate-600">{p.date ? new Date(p.date).toLocaleDateString() : 'N/A'}</td>
-                                        <td className="p-3 font-semibold text-slate-800">₹{p.amount?.toLocaleString() || 0}</td>
-                                        <td className="p-3">
+                                    <tr key={p.id} className="hover:bg-white/30">
+                                        <td className="p-4 text-slate-600">{p.date ? new Date(p.date).toLocaleDateString() : 'N/A'}</td>
+                                        <td className="p-4 font-semibold text-slate-800">₹{p.amount?.toLocaleString() || 0}</td>
+                                        <td className="p-4">
                                             <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{p.status || 'Paid'}</span>
                                         </td>
                                     </tr>

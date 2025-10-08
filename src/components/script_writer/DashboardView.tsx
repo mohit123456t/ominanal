@@ -1,27 +1,28 @@
 'use client';
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { BarChart, Check, Clock, Edit } from 'lucide-react';
 
 const StatCard = ({ title, value, icon, color, delay = 0 }: { title: string, value: string | number, icon: React.ReactNode, color: string, delay?: number }) => (
     <motion.div
-        className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80"
+        className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: delay * 0.1 }}
-        whileHover={{ y: -5, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}
+        whileHover={{ y: -5, scale: 1.02, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.05)' }}
     >
         <div className="flex items-center justify-between mb-2">
             <h3 className="text-md font-semibold text-slate-700">{title}</h3>
-            <div className={`p-2.5 rounded-lg ${color}`}>{icon}</div>
+            <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
         </div>
-        <p className="text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
+        <p className="text-4xl font-bold text-slate-900 tracking-tight">{value}</p>
     </motion.div>
 );
 
 const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, tasks: any[], onTaskClick: (task: any) => void }) => {
     
     const stats = useMemo(() => {
-        const pending = tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').length;
+        const pending = tasks.filter(t => t.status === 'Pending' || t.status === 'Assigned').length;
         const inProgress = tasks.filter(t => t.status === 'In Progress').length;
         const approved = tasks.filter(t => t.status === 'Approved').length;
         const completed = tasks.filter(t => t.status === 'Completed').length;
@@ -46,19 +47,19 @@ const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, 
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Pending Scripts" value={stats.pending} icon={<div className="h-6 w-6" />} color="bg-yellow-100" delay={1} />
-                <StatCard title="In Progress" value={stats.inProgress} icon={<div className="h-6 w-6" />} color="bg-blue-100" delay={2} />
-                <StatCard title="Approved Scripts" value={stats.approved} icon={<div className="h-6 w-6" />} color="bg-green-100" delay={3} />
-                <StatCard title="Total Completed" value={stats.completed} icon={<div className="h-6 w-6" />} color="bg-purple-100" delay={4} />
+                <StatCard title="Pending Scripts" value={stats.pending} icon={<Clock className="text-yellow-600" />} color="bg-yellow-100" delay={1} />
+                <StatCard title="In Progress" value={stats.inProgress} icon={<Edit className="text-blue-600"/>} color="bg-blue-100" delay={2} />
+                <StatCard title="Approved Scripts" value={stats.approved} icon={<Check className="text-green-600"/>} color="bg-green-100" delay={3} />
+                <StatCard title="Total Completed" value={stats.completed} icon={<BarChart className="text-purple-600"/>} color="bg-purple-100" delay={4} />
             </div>
 
             <motion.div 
-                className="bg-white rounded-xl shadow-sm border border-slate-200/80"
+                className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80 overflow-hidden"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
             >
-                <h3 className="font-bold text-xl p-6 border-b text-slate-800">Your Active Tasks</h3>
+                <h3 className="font-bold text-xl p-6 border-b border-slate-300/50 text-slate-800">Your Active Tasks</h3>
                 {tasks.length === 0 ? (
                     <div className="p-10 text-center">
                         <p className="text-slate-600">No tasks assigned to you yet.</p>
@@ -66,17 +67,17 @@ const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, 
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-slate-500 bg-slate-50">
+                            <thead className="text-xs text-slate-500 bg-white/20">
                                 <tr>
-                                    <th className="px-6 py-3">Video Title</th>
-                                    <th className="px-6 py-3">Status</th>
-                                    <th className="px-6 py-3">Due Date</th>
-                                    <th className="px-6 py-3"></th>
+                                    <th className="px-6 py-4">Video Title</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4">Due Date</th>
+                                    <th className="px-6 py-4"></th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-300/50">
                                 {tasks.slice(0, 5).map(task => (
-                                    <tr key={task.id} className="hover:bg-slate-50 transition-colors">
+                                    <tr key={task.id} className="hover:bg-white/30 transition-colors">
                                         <td className="px-6 py-4 font-medium text-slate-800">{task.videoTitle}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusChipStyle(task.status)}`}>
@@ -85,7 +86,7 @@ const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, 
                                         </td>
                                         <td className="px-6 py-4 text-slate-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
                                         <td className="px-6 py-4 text-right">
-                                            <button onClick={() => onTaskClick(task)} className="font-medium text-blue-600 hover:underline">View Details</button>
+                                            <button onClick={() => onTaskClick(task)} className="font-medium text-indigo-600 hover:underline">View Details</button>
                                         </td>
                                     </tr>
                                 ))}

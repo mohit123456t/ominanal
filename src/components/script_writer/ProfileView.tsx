@@ -44,7 +44,7 @@ const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userPro
         }
     };
     
-    const inputStyle = `w-full mt-1 p-3 border rounded-xl bg-white/50 border-slate-300/70 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition`;
+    const inputStyle = `w-full mt-1 p-3 border rounded-xl bg-white/40 border-slate-300/70 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition`;
     const readOnlyStyle = `cursor-not-allowed bg-slate-200/50`;
 
     return (
@@ -55,7 +55,7 @@ const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userPro
                     <button onClick={() => setIsEditing(true)} className="px-5 py-2.5 bg-slate-800 text-white rounded-xl text-sm font-medium shadow-lg hover:bg-slate-900 transition-colors">Edit Profile</button>
                 ) : (
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setIsEditing(false)} className="px-5 py-2.5 bg-slate-200/80 text-slate-800 rounded-xl text-sm font-medium hover:bg-slate-300/80 transition-colors">Cancel</button>
+                        <button onClick={() => setIsEditing(false)} className="px-5 py-2.5 bg-white/40 text-slate-800 rounded-xl text-sm font-medium hover:bg-white/60 transition-colors">Cancel</button>
                         <button onClick={handleSave} disabled={isSaving} className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium flex items-center disabled:bg-indigo-400 shadow-lg shadow-indigo-500/20">
                              {isSaving && <LoaderCircle className="animate-spin mr-2"/>}
                             {isSaving ? 'Saving...' : 'Save Changes'}
@@ -64,7 +64,7 @@ const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userPro
                 )}
             </div>
             
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200/80 space-y-6">
+            <div className="bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-300/70 space-y-6">
                  <div>
                     <label className="text-sm font-semibold text-slate-600 flex items-center"><User size={14} className="mr-2"/>Full Name</label>
                     <input

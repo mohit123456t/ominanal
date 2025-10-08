@@ -79,7 +79,7 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 font-sans" onClick={onClose}>
         <motion.div 
-            className="bg-slate-100/90 rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col border border-slate-300/70" 
+            className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col border border-slate-300/70" 
             onClick={e => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -95,7 +95,7 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
             <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1">
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white/60 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="bg-white/40 p-5 rounded-2xl border border-slate-200 shadow-sm">
                             <h3 className="font-bold text-lg mb-3 text-slate-800 flex items-center">
                                 <BrainCircuit className="mr-2 text-indigo-600"/>AI-Powered Script Editor
                             </h3>
@@ -119,14 +119,14 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
                         </div>
                     </div>
                      <div className="space-y-6">
-                        <div className="bg-white/60 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="bg-white/40 p-5 rounded-2xl border border-slate-200 shadow-sm">
                              <h3 className="font-bold text-lg mb-4 text-slate-800">Task Info</h3>
                               <div className="space-y-3 text-sm">
                                 <p><strong className="text-slate-600 block">Deadline:</strong> <span className="font-semibold text-red-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</span></p>
                                 <p><strong className="text-slate-600 block">Brand:</strong> <span className="font-semibold text-slate-800">{task.brandName}</span></p>
                               </div>
                         </div>
-                        <div className="bg-white/60 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div className="bg-white/40 p-5 rounded-2xl border border-slate-200 shadow-sm">
                              <h3 className="font-bold text-lg mb-3 text-slate-800">Description</h3>
                              <p className="text-sm text-slate-600 leading-relaxed">{task.description || "No description provided."}</p>
                         </div>
@@ -153,8 +153,8 @@ const TasksView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) =
     };
 
     return (
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-            <div className="p-0">
+        <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80">
+            <div className="p-6">
                  <h3 className="font-bold text-xl text-slate-800">Assigned Tasks for Script Review</h3>
             </div>
             <div className="mt-4">
@@ -172,22 +172,22 @@ const TasksView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) =
                 ) : (
                      <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-slate-500 bg-slate-50">
+                            <thead className="text-xs text-slate-500 bg-white/30">
                                 <tr>
-                                    <th className="px-6 py-3">Video Title</th>
-                                    <th className="px-6 py-3">Status</th>
-                                    <th className="px-6 py-3">Due Date</th>
-                                    <th className="px-6 py-3 text-right">Actions</th>
+                                    <th className="px-6 py-4">Video Title</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4">Due Date</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-slate-300/50">
                                 {tasks.map((task) => (
-                                    <tr key={task.id} className="hover:bg-slate-50 transition-colors">
+                                    <tr key={task.id} className="hover:bg-white/30 transition-colors">
                                         <td className="px-6 py-4 font-medium text-slate-800">{task.videoTitle}</td>
                                         <td className="px-6 py-4"><StatusBadge status={task.status} /></td>
                                         <td className="px-6 py-4 text-slate-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
                                         <td className="px-6 py-4 text-right">
-                                            <button onClick={() => handleOpenModal(task)} className="font-medium text-blue-600 hover:underline">
+                                            <button onClick={() => handleOpenModal(task)} className="font-medium text-indigo-600 hover:underline">
                                                 Review AI Script
                                             </button>
                                         </td>
