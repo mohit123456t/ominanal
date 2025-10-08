@@ -24,7 +24,7 @@ import ProfileView from '@/components/uploader/ProfileView';
 import UploadView from '@/components/uploader/UploadView';
 import ApiKeysView from '@/components/uploader/ApiKeysView';
 import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
-import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { PlatformCredentials, SocialMediaAccount, Post } from '@/lib/types';
 
 
