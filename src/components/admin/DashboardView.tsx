@@ -7,7 +7,6 @@ import {
   Users as UsersGroup,
   DollarSign,
 } from 'lucide-react';
-import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const StatCard = ({ title, value, icon, color }: { title: string; value: string; icon: React.ReactNode; color: string; }) => (
     <motion.div
@@ -39,49 +38,7 @@ const DashboardView = ({ campaigns, users, expenses }: { campaigns: any[], users
     };
   }, [campaigns, users]);
 
-  const revenueData = useMemo(() => {
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      const monthlyData: { [key: string]: { name: string; revenue: number; expenses: number } } = {};
-  
-      // Initialize all months
-      monthNames.forEach(month => {
-          monthlyData[month] = { name: month, revenue: 0, expenses: 0 };
-      });
-  
-      // Process revenue from campaigns
-      campaigns.forEach(campaign => {
-          if (campaign.createdAt?.seconds) {
-              const date = new Date(campaign.createdAt.seconds * 1000);
-              const monthName = monthNames[date.getMonth()];
-              if (monthName) {
-                  monthlyData[monthName].revenue += campaign.budget || 0;
-              }
-          }
-      });
-  
-      // Process expenses
-      expenses.forEach(expense => {
-          if (expense.date) {
-              const date = new Date(expense.date);
-              const monthName = monthNames[date.getMonth()];
-              if (monthName) {
-                  monthlyData[monthName].expenses += expense.amount || 0;
-              }
-          }
-      });
-  
-      // Return sorted array of months that have data
-      return Object.values(monthlyData).filter(m => m.revenue > 0 || m.expenses > 0);
-  }, [campaigns, expenses]);
-
   const brands = useMemo(() => users.filter(u => u.role === 'brand'), [users]);
-
-  const formatYAxis = (tickItem: number) => {
-    if (tickItem >= 1000) {
-      return `₹${tickItem / 1000}k`;
-    }
-    return `₹${tickItem}`;
-  };
 
   return (
     <div className="min-h-screen">
@@ -107,33 +64,7 @@ const DashboardView = ({ campaigns, users, expenses }: { campaigns: any[], users
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                  <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
-                    <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
-                    <div className="h-80">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RechartsBarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis}/>
-                                <Tooltip
-                                    cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
-                                    contentStyle={{ 
-                                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                        backdropFilter: 'blur(5px)',
-                                        border: '1px solid rgba(0, 0, 0, 0.1)', 
-                                        borderRadius: '12px'
-                                    }}
-                                    formatter={(value: number) => `₹${value.toLocaleString()}`}
-                                />
-                                <Legend wrapperStyle={{ fontSize: '14px' }}/>
-                                <RechartsBar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
-                                <RechartsBar dataKey="expenses" fill="#f59e0b" name="Expenses" radius={[4, 4, 0, 0]} />
-                            </RechartsBarChart>
-                        </ResponsiveContainer>
-                    </div>
-                  </motion.div>
-
-                  <motion.div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
+                  <motion.div className="xl:col-span-3 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" >
                     <h3 className="font-bold text-xl mb-6 text-slate-800">Recent Brands</h3>
                     <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                        {brands.length > 0 ? brands.slice(0, 5).map((brand: any, index) => (
