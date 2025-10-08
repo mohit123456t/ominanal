@@ -1,6 +1,6 @@
 'use client';
 import React, { useMemo } from 'react';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { motion } from 'framer-motion';
 import { IndianRupee, ChartBar, Tag, ArrowUp, ArrowDown } from 'lucide-react';
 
