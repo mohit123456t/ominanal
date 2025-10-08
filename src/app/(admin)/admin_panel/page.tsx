@@ -50,7 +50,7 @@ const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, labe
         onClick={onClick}
         className={`relative flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
             active
-                ? 'text-slate-900 font-semibold'
+                ? 'text-indigo-600 font-semibold'
                 : 'text-slate-500 hover:text-slate-900'
         }`}
         whileHover={{ scale: 1.05 }}
@@ -60,7 +60,7 @@ const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, labe
         {label}
         {active && (
             <motion.div
-                className="absolute inset-0 bg-white/60 rounded-lg -z-10"
+                className="absolute inset-0 bg-indigo-500/10 rounded-lg -z-10"
                 layoutId="admin-active-nav-pill"
                 transition={{ type: 'spring', stiffness: 170, damping: 25 }}
             />

@@ -85,24 +85,16 @@ const FinanceView = ({ transactions, expenses, onUpdateStatus, onAddExpense }: {
 
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-slate-800">Financial Transactions</h1>
-                <div className='flex items-center gap-4'>
-                    <button
-                        onClick={() => setShowAddExpense(true)}
-                        className="flex items-center font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors shadow-md"
-                    >
-                        <Plus size={18} className="mr-2"/>
-                        Add Expense
-                    </button>
-                    <button
-                        onClick={() => { /* setView('earnings') - This needs to be passed in if needed */ }}
-                        className="font-semibold text-white bg-sky-600 hover:bg-sky-700 px-5 py-2.5 rounded-lg transition-colors shadow-md"
-                    >
-                        Campaign Earnings
-                    </button>
-                </div>
+                <button
+                    onClick={() => setShowAddExpense(true)}
+                    className="flex items-center font-semibold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg transition-colors shadow-md"
+                >
+                    <Plus size={18} className="mr-2"/>
+                    Add Expense
+                </button>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80">
                 <h3 className="text-lg font-semibold text-slate-700 p-4 border-b border-slate-200">Brand Deposits</h3>
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -118,7 +110,7 @@ const FinanceView = ({ transactions, expenses, onUpdateStatus, onAddExpense }: {
                         </thead>
                         <tbody>
                             {transactions.length === 0 ? (
-                                <tr><td colSpan={6} className="p-4 text-center text-slate-500">No transactions found.</td></tr>
+                                <tr><td colSpan={6} className="p-4 text-center text-slate-500">No pending transactions found.</td></tr>
                             ) : (
                                 transactions.map(tx => (
                                     <tr key={tx.id} className="border-b border-slate-200 last:border-0 hover:bg-slate-50">
@@ -147,7 +139,7 @@ const FinanceView = ({ transactions, expenses, onUpdateStatus, onAddExpense }: {
                 </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
+            <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80">
                 <h3 className="text-lg font-semibold text-slate-700 p-4 border-b border-slate-200">Recorded Expenses</h3>
                  <div className="overflow-x-auto">
                     <table className="w-full text-sm">
