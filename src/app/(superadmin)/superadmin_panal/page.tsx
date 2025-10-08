@@ -21,9 +21,10 @@ import {
   Clipboard,
   UserCircle,
   Contact,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth, useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, collectionGroup, query } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 
 import SuperAdminDashboard from '@/components/superadmin/SuperAdminDashboard';
 import SuperAdminFinance from '@/components/superadmin/SuperAdminFinance';
@@ -36,6 +37,12 @@ import ScriptWriterManagerView from '@/components/superadmin/ScriptWriterManager
 import ReelsUploadedPage from '@/components/superadmin/ReelsUploadedPage';
 import SuperAdminProfileView from '@/components/superadmin/SuperAdminProfileView';
 import LeadsPanel from '@/components/superadmin/LeadsPanel';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 
 const Logo = () => (
@@ -55,7 +62,7 @@ const Logo = () => (
     </div>
 );
 
-const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
+const NavItem = ({ icon, label, active, onClick, children }: { icon?: React.ReactNode, label: string, active: boolean, onClick: () => void, children?: React.ReactNode }) => (
     <motion.button
         onClick={onClick}
         className={`relative flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
@@ -66,8 +73,9 @@ const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, labe
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.98 }}
     >
-        <span className="mr-2">{icon}</span>
+        {icon && <span className="mr-2">{icon}</span>}
         {label}
+        {children}
         {active && (
             <motion.div
                 className="absolute inset-0 bg-white/60 rounded-lg -z-10"
@@ -88,10 +96,6 @@ function SuperAdminPanel() {
     const usersCollection = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
     const { data: usersData, isLoading: usersLoading } = useCollection(usersCollection);
 
-    // This is not a secure query and should be avoided.
-    // Firestore security rules will likely block this.
-    // For a production app, this kind of aggregation should be done via Cloud Functions.
-    // We will pass an empty array for posts to avoid the permission error for now.
     const postsData: any[] = [];
     const postsLoading = false;
     
@@ -106,7 +110,7 @@ function SuperAdminPanel() {
             return <div className="flex justify-center items-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div></div>;
         }
         switch (activeView) {
-            case 'dashboard': return <SuperAdminDashboard users={usersData || []} posts={postsData || []} />;
+            case 'dashboard': return <SuperAdminDashboard users={usersData || []} />;
             case 'staff_management': return <StaffManagementView />;
             case 'uploader_manager': return <UploaderManagerView />;
             case 'script_writer_manager': return <ScriptWriterManagerView />;
@@ -117,22 +121,15 @@ function SuperAdminPanel() {
             case 'pricing_management': return <PricingManagement />;
             case 'profile': return <SuperAdminProfileView />;
             case 'leads_panel': return <LeadsPanel />;
-            default: return <SuperAdminDashboard users={usersData || []} posts={postsData || []} />;
+            default: return <SuperAdminDashboard users={usersData || []} />;
         }
     };
 
-     const superAdminNavItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} /> },
-        { id: 'finance', label: 'Finance', icon: <IndianRupee size={16} /> },
-        { id: 'staff_management', label: 'Staff', icon: <UsersGroup size={16} /> },
-        { id: 'leads_panel', label: 'Leads', icon: <Contact size={16} /> },
-        { id: 'uploader_manager', label: 'Uploaders', icon: <Upload size={16} /> },
-        { id: 'script_writer_manager', label: 'Writers', icon: <Pencil size={16} /> },
-        { id: 'thumbnail_maker_manager', label: 'Thumbnails', icon: <ImageIcon size={16} /> },
-        { id: 'video_editor_manager', label: 'Editors', icon: <Video size={16} /> },
-        { id: 'reels_uploaded', label: 'Reels', icon: <FileText size={16} /> },
-    ];
-    
+    const isManagerViewActive = [
+        'uploader_manager', 'script_writer_manager', 
+        'thumbnail_maker_manager', 'video_editor_manager'
+    ].includes(activeView);
+
     const adminProfileName = user?.displayName || 'Super Admin';
 
     return (
@@ -141,16 +138,70 @@ function SuperAdminPanel() {
                 <div className="container mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
-                        <nav className="hidden md:flex items-center gap-2 p-1 bg-black/5 rounded-xl overflow-x-auto">
-                             {superAdminNavItems.map((item) => (
-                                <NavItem
-                                    key={item.id}
-                                    icon={item.icon}
-                                    label={item.label}
-                                    active={activeView === item.id}
-                                    onClick={() => setActiveView(item.id)}
-                                />
-                            ))}
+                        <nav className="hidden md:flex items-center gap-1 p-1 bg-black/5 rounded-xl">
+                            <NavItem
+                                key="dashboard"
+                                icon={<LayoutDashboard size={16} />}
+                                label="Dashboard"
+                                active={activeView === 'dashboard'}
+                                onClick={() => setActiveView('dashboard')}
+                            />
+                            <NavItem
+                                key="finance"
+                                icon={<IndianRupee size={16} />}
+                                label="Finance"
+                                active={activeView === 'finance'}
+                                onClick={() => setActiveView('finance')}
+                            />
+                            <NavItem
+                                key="staff_management"
+                                icon={<UsersGroup size={16} />}
+                                label="Staff"
+                                active={activeView === 'staff_management'}
+                                onClick={() => setActiveView('staff_management')}
+                            />
+                             <NavItem
+                                key="leads_panel"
+                                icon={<Contact size={16} />}
+                                label="Leads"
+                                active={activeView === 'leads_panel'}
+                                onClick={() => setActiveView('leads_panel')}
+                            />
+
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                     <div
+                                        className={`relative flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 cursor-pointer ${
+                                            isManagerViewActive
+                                                ? 'text-slate-900 font-semibold'
+                                                : 'text-slate-500 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        Staff Managers <ChevronDown size={16} className="ml-1" />
+                                        {isManagerViewActive && (
+                                            <motion.div
+                                                className="absolute inset-0 bg-white/60 rounded-lg -z-10"
+                                                layoutId="superadmin-active-nav-pill"
+                                                transition={{ type: 'spring', stiffness: 170, damping: 25 }}
+                                            />
+                                        )}
+                                    </div>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="bg-white/70 backdrop-blur-lg border-slate-300/50">
+                                    <DropdownMenuItem onClick={() => setActiveView('uploader_manager')}>Uploaders</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setActiveView('script_writer_manager')}>Writers</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setActiveView('thumbnail_maker_manager')}>Thumbnail Makers</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setActiveView('video_editor_manager')}>Video Editors</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <NavItem
+                                key="reels_uploaded"
+                                icon={<FileText size={16} />}
+                                label="Reels"
+                                active={activeView === 'reels_uploaded'}
+                                onClick={() => setActiveView('reels_uploaded')}
+                            />
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">

@@ -37,7 +37,7 @@ const StatCard = ({ title, value, icon, colorClass, delay = 0 }: { title: string
     </motion.div>
   );
 
-const SuperAdminDashboard = ({ users, posts }: { users: any[], posts: any[] }) => {
+const SuperAdminDashboard = ({ users }: { users: any[] }) => {
     
     const brands = users.filter(u => u.role === 'brand');
     const totalBrands = brands.length;
