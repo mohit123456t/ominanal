@@ -11,7 +11,7 @@ import {
   UserX,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const formatNumber = (value: number) => {
     if (!value && value !== 0) return '0';
@@ -119,12 +119,12 @@ const SuperAdminDashboard = ({ users, campaigns }: { users: any[], campaigns: an
                 <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
                 <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                        <LineChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                             <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value / 1000}k`}/>
                             <Tooltip
-                                cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
+                                cursor={{ stroke: 'rgba(79, 70, 229, 0.1)', strokeWidth: 2, strokeDasharray: '3 3' }}
                                 contentStyle={{ 
                                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                                     backdropFilter: 'blur(5px)',
@@ -134,9 +134,9 @@ const SuperAdminDashboard = ({ users, campaigns }: { users: any[], campaigns: an
                                 formatter={(value: number) => `₹${value.toLocaleString()}`}
                             />
                             <Legend wrapperStyle={{ fontSize: '14px' }}/>
-                            <Bar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="expenses" fill="#f59e0b" name="Expenses" radius={[4, 4, 0, 0]} />
-                        </BarChart>
+                            <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={2} name="Revenue" dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                            <Line type="monotone" dataKey="expenses" stroke="#f59e0b" strokeWidth={2} name="Expenses" dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                        </LineChart>
                     </ResponsiveContainer>
                 </div>
             </motion.div>
