@@ -1,11 +1,11 @@
 'use client';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Bot, BarChart, Clock, Search, Mail, Layers, Trophy } from 'lucide-react';
+import { ArrowRight, Bot, BarChart, Clock, Search, Mail, Layers, Trophy, Instagram, Facebook, Youtube, Twitter } from 'lucide-react';
 import Link from 'next/link';
 import React, { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-
+import { InfiniteScroll } from '@/components/layout/infinite-scroll';
 
 const MotionCard = ({ children, delay = 0, className }: { children: React.ReactNode, delay?: number, className?: string }) => (
     <motion.div
@@ -25,7 +25,14 @@ const StatCard = ({ icon, value, label, delay = 0 }: { icon: React.ReactNode, va
         <div className="text-4xl font-bold text-foreground">{value}</div>
         <div className="text-muted-foreground text-sm mt-1">{label}</div>
     </MotionCard>
-)
+);
+
+const socialIcons = [
+    { icon: <Instagram />, name: 'Instagram' },
+    { icon: <Facebook />, name: 'Facebook' },
+    { icon: <Youtube />, name: 'YouTube' },
+    { icon: <Twitter />, name: 'Twitter / X' },
+];
 
 export default function RootPage() {
   return (
@@ -60,6 +67,27 @@ export default function RootPage() {
                 </MotionCard>
            </div>
         </div>
+
+        <section className="py-12">
+            <h3 className="text-center text-muted-foreground font-semibold uppercase tracking-wider mb-8">Powering Content Across All Major Platforms</h3>
+            <div className="relative">
+                <div
+                    className="absolute inset-0 z-10"
+                    style={{
+                        background:
+                        'linear-gradient(to right, hsl(var(--background)), transparent 20%, transparent 80%, hsl(var(--background)))',
+                    }}
+                />
+                 <InfiniteScroll className="flex items-center gap-12 md:gap-20">
+                    {socialIcons.map((item) => (
+                        <div key={item.name} className="flex items-center gap-3 text-muted-foreground text-2xl">
+                            {item.icon}
+                            <span className="text-lg font-medium hidden sm:block">{item.name}</span>
+                        </div>
+                    ))}
+                </InfiniteScroll>
+            </div>
+        </section>
         
         {/* Stats Section */}
         <div className="py-10 md:py-16">
