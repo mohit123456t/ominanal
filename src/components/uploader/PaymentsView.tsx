@@ -1,6 +1,7 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { IndianRupee, Banknote, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { IndianRupee, Banknote, Calendar, LoaderCircle } from 'lucide-react';
+import { Post } from '@/lib/types';
 
 const StatCard = ({ title, value, icon, color }: { title: string, value: string, icon: React.ReactNode, color: string }) => (
     <div className={`bg-white p-6 rounded-xl shadow-sm border-l-4 ${color}`}>
@@ -14,41 +15,39 @@ const StatCard = ({ title, value, icon, color }: { title: string, value: string,
     </div>
 );
 
-const PaymentsView = ({ userProfile }: { userProfile: any }) => {
-    const [payments, setPayments] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ thisMonth: 0, total: 0, lastPayout: 0 });
+const PaymentsView = ({ posts }: { posts: Post[] }) => {
+    
+    const transactions = useMemo(() => {
+        if (!posts) return [];
+        return posts
+            .filter(post => post.status === 'Published')
+            .map(post => ({
+                id: post.id,
+                date: post.createdAt,
+                amount: 75, // Placeholder earning per post
+                status: 'Paid',
+            }))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [posts]);
 
-    useEffect(() => {
-        setLoading(true);
-        // Placeholder data
-        const placeholderPayments = [
-            { id: 'pay1', date: new Date(Date.now() - 5 * 86400000).toISOString(), amount: 20000, status: 'Paid' },
-            { id: 'pay2', date: new Date(Date.now() - 35 * 86400000).toISOString(), amount: 25000, status: 'Paid' },
-        ];
+    const stats = useMemo(() => {
+        const total = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+        const thisMonth = transactions.reduce((sum, tx) => {
+             const txDate = new Date(tx.date);
+             const today = new Date();
+             if (txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear()) {
+                 return sum + tx.amount;
+             }
+             return sum;
+        }, 0);
+        const lastPayout = transactions[0] || { amount: 0 };
         
-        let totalThisMonth = 0;
-        let totalEarned = 0;
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-
-        placeholderPayments.forEach(p => {
-            const paymentDate = new Date(p.date);
-            if (paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear) {
-                totalThisMonth += p.amount;
-            }
-            totalEarned += p.amount;
-        });
-
-        setPayments(placeholderPayments);
-        setStats({
+        return {
             thisMonth: totalThisMonth,
-            total: totalEarned,
-            lastPayout: placeholderPayments[0]?.amount || 0,
-        });
-        setLoading(false);
-    }, []);
+            total: total,
+            lastPayout: lastPayout.amount,
+        };
+    }, [transactions]);
 
     const formatCurrency = (amount: number) => `₹${amount.toLocaleString('en-IN')}`;
 
@@ -67,31 +66,27 @@ const PaymentsView = ({ userProfile }: { userProfile: any }) => {
 
             <div className="bg-white rounded-xl shadow-sm border border-slate-200/80">
                 <h3 className="font-bold text-lg p-6 border-b text-slate-800">Payment History</h3>
-                {loading ? (
-                    <div className="p-6 text-center">Loading payments...</div>
-                ) : (
-                    <table className="w-full text-sm text-left text-slate-600">
-                        <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                            <tr>
-                                <th className="px-6 py-3">Date</th>
-                                <th className="px-6 py-3">Amount</th>
-                                <th className="px-6 py-3">Status</th>
+                <table className="w-full text-sm text-left text-slate-600">
+                    <thead className="text-xs text-slate-700 uppercase bg-slate-50">
+                        <tr>
+                            <th className="px-6 py-3">Date</th>
+                            <th className="px-6 py-3">Amount</th>
+                            <th className="px-6 py-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {transactions.map(p => (
+                            <tr key={p.id} className="border-b">
+                                <td className="px-6 py-4">{new Date(p.date).toLocaleDateString()}</td>
+                                <td className="px-6 py-4 font-semibold text-slate-800">{formatCurrency(p.amount)}</td>
+                                <td className="px-6 py-4">
+                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{p.status}</span>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {payments.map(p => (
-                                <tr key={p.id} className="border-b">
-                                    <td className="px-6 py-4">{new Date(p.date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 font-semibold text-slate-800">{formatCurrency(p.amount)}</td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">{p.status}</span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-                 {payments.length === 0 && !loading && <p className="text-center p-8 text-slate-500">No payments found.</p>}
+                        ))}
+                    </tbody>
+                </table>
+                 {transactions.length === 0 && <p className="text-center p-8 text-slate-500">No payments found.</p>}
             </div>
         </div>
     );

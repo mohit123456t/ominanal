@@ -24,9 +24,9 @@ import ProfileView from '@/components/uploader/ProfileView';
 import UploadView from '@/components/uploader/UploadView';
 import ApiKeysView from '@/components/uploader/ApiKeysView';
 import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
+import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
+import { PlatformCredentials, SocialMediaAccount, Post } from '@/lib/types';
 
 
 const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void, collapsed: boolean }) => (
@@ -48,11 +48,14 @@ const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.Reac
 
 const UploaderPanel = () => {
     const router = useRouter();
-    const { user } = useUser();
-    const firestore = useFirestore();
-    const [userProfile, setUserProfile] = useState({ name: 'Uploader User', role: 'uploader' });
+    const { user, isUserLoading } = useUser();
+    const { auth, firestore } = useFirebase();
+
     const [activeView, setActiveView] = useState('dashboard');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+    const userDocRef = useMemoFirebase(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
     const credsCollectionRef = useMemoFirebase(() => {
         if (!user || !firestore) return null;
@@ -68,42 +71,57 @@ const UploaderPanel = () => {
 
     const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
 
+    const postsCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, `users/${user.uid}/posts`);
+    }, [user, firestore]);
+    
+    const { data: posts, isLoading: isLoadingPosts } = useCollection<Post>(postsCollectionRef);
+
 
     useEffect(() => {
+        if (!isUserLoading && !user) {
+             router.push('/login');
+        }
         const savedView = localStorage.getItem('uploaderActiveView');
         if (savedView) {
             setActiveView(savedView);
         }
-    }, []);
+    }, [isUserLoading, user, router]);
     
     useEffect(() => {
         localStorage.setItem('uploaderActiveView', activeView);
     }, [activeView]);
 
     const handleLogout = async () => {
+        if (auth) {
+            await auth.signOut();
+        }
         router.push('/login');
     };
+    
+    const isLoading = isProfileLoading || isLoadingCreds || isLoadingAccounts || isLoadingPosts;
 
     const renderView = () => {
         switch (activeView) {
             case 'dashboard':
-                return <DashboardView userProfile={userProfile} onNavigate={(view) => setActiveView(view)} />;
+                return <DashboardView userProfile={userProfile} onNavigate={(view) => setActiveView(view)} posts={posts || []} isLoading={isLoadingPosts} />;
             case 'create-upload':
                 return <UploadView />;
             case 'upload-history':
-                return <UploadHistoryView userProfile={userProfile} />;
+                return <UploadHistoryView posts={posts || []} isLoading={isLoadingPosts} />;
             case 'api-keys':
                 return <ApiKeysView credentialsList={credentialsList || []} isLoadingCreds={isLoadingCreds} accounts={accounts || []} />;
             case 'connected-accounts':
                 return <ConnectedAccountsView accounts={accounts || []} credentialsList={credentialsList || []} isLoading={isLoadingAccounts || isLoadingCreds} />;
             case 'payments':
-                return <PaymentsView userProfile={userProfile} />;
+                return <PaymentsView posts={posts || []} />;
             case 'communication':
                 return <CommunicationView userProfile={userProfile} />;
             case 'profile':
-                return <ProfileView userProfile={userProfile} onProfileUpdate={setUserProfile} />;
+                return <ProfileView userProfile={userProfile} />;
             default:
-                return <DashboardView userProfile={userProfile} onNavigate={(view) => setActiveView(view)} />;
+                return <DashboardView userProfile={userProfile} onNavigate={(view) => setActiveView(view)} posts={posts || []} isLoading={isLoadingPosts} />;
         }
     };
 
@@ -184,13 +202,13 @@ const UploaderPanel = () => {
                         </div>
                         <div>
                              <p className="text-sm font-semibold text-slate-800">{userProfile?.name}</p>
-                             <p className="text-xs text-slate-500">{userProfile?.role?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                             <p className="text-xs text-slate-500">{userProfile?.role?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}</p>
                         </div>
                     </div>
                 </header>
                 {/* Page Content */}
                 <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
-                    {renderView()}
+                    {isLoading && !userProfile ? <div className="flex h-full w-full items-center justify-center"><LoaderCircle className="animate-spin h-10 w-10 text-primary" /></div> : renderView()}
                 </div>
             </main>
         </div>
