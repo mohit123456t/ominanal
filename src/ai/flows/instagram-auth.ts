@@ -19,7 +19,6 @@ import { URLSearchParams } from 'url';
 // #################### Get Auth URL Flow ####################
 const GetInstagramAuthUrlInputSchema = z.object({
   clientId: z.string(),
-  clientSecret: z.string(),
   userId: z.string().describe("The UID of the user initiating the connection."),
 });
 export type GetInstagramAuthUrlInput = z.infer<typeof GetInstagramAuthUrlInputSchema>;
@@ -170,7 +169,7 @@ export type GetInstagramUserDetailsInput = z.infer<typeof GetInstagramUserDetail
 
 const GetInstagramUserDetailsOutputSchema = z.object({
     username: z.string(),
-    instagramId: z.string(),
+    instagramId: z.string().optional(),
     facebookPageId: z.string().optional(),
     facebookPageName: z.string().optional(),
     pageAccessToken: z.string().optional(),
@@ -200,7 +199,18 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     const pageWithIg = pagesData.data.find((page: any) => page.instagram_business_account);
 
     if (!pageWithIg) {
-        throw new Error('No linked Instagram Business Account found on any of your Facebook Pages. Please check your Facebook Page settings.');
+        // Fallback to basic display API if no business account is linked
+        const basicUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`;
+        const basicResponse = await fetch(basicUrl);
+        if (!basicResponse.ok) {
+             const errorData: any = await basicResponse.json();
+            throw new Error(`Failed to get Instagram user details: ${errorData.error?.message || 'Unknown error'}`);
+        }
+        const basicData: any = await basicResponse.json();
+        return {
+            username: basicData.username,
+            instagramId: basicData.id
+        }
     }
 
     const instagramBusinessAccountId = pageWithIg.instagram_business_account.id;

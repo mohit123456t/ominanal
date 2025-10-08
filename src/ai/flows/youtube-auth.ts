@@ -19,6 +19,7 @@ const YOUTUBE_SCOPES = [
 const GetYoutubeAuthUrlInputSchema = z.object({
   clientId: z.string(),
   clientSecret: z.string(),
+  userId: z.string().describe("The UID of the user initiating the connection."),
 });
 export type GetYoutubeAuthUrlInput = z.infer<typeof GetYoutubeAuthUrlInputSchema>;
 
@@ -30,7 +31,7 @@ const getYoutubeAuthUrlFlow = ai.defineFlow(
       url: z.string().url().describe('The URL to redirect the user to for authentication.'),
     }),
   },
-  async ({ clientId, clientSecret }) => {
+  async ({ clientId, clientSecret, userId }) => {
     // This flow uses the NEXT_PUBLIC_ prefixed variables as it's initiated from the client-side context.
     if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
         throw new Error('YouTube redirect URI or public URL is not configured in the .env file. The app owner needs to set these.');
@@ -48,6 +49,7 @@ const getYoutubeAuthUrlFlow = ai.defineFlow(
       access_type: 'offline',
       scope: YOUTUBE_SCOPES,
       prompt: 'consent',
+      state: userId,
     });
     return { url };
   }
@@ -72,7 +74,7 @@ const getYoutubeTokensFlow = ai.defineFlow({
     outputSchema: z.object({
       accessToken: z.string(),
       refreshToken: z.string().optional(),
-      expiryDate: z.number(),
+      expiryDate: z.number().nullable(),
     }),
 }, async ({ code, clientId, clientSecret, redirectUri }) => {
     
