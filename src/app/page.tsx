@@ -4,7 +4,8 @@ import { ArrowRight, Bot, BarChart, Clock, Search, Mail, Layers, Trophy } from '
 import Link from 'next/link';
 import React, { Suspense } from 'react';
 import { motion } from 'framer-motion';
-import Globe from "@/components/magicui/globe";
+import Image from 'next/image';
+
 
 const MotionCard = ({ children, delay = 0, className }: { children: React.ReactNode, delay?: number, className?: string }) => (
     <motion.div
@@ -18,91 +19,93 @@ const MotionCard = ({ children, delay = 0, className }: { children: React.ReactN
     </motion.div>
 );
 
-const features = [
-    {
-      icon: <Bot />,
-      title: "AI-Powered Content",
-      description: "Generate engaging captions, viral video scripts, and brilliant campaign ideas in seconds.",
-    },
-    {
-      icon: <Clock />,
-      title: "Smart Scheduling",
-      description: "Automate your content calendar and let our AI determine the best time to post for maximum reach.",
-    },
-    {
-      icon: <BarChart />,
-      title: "In-depth Analytics",
-      description: "Track your growth, engagement, and reach with our beautiful and easy-to-understand analytics.",
-    },
-    {
-      icon: <Search />,
-      title: "Trend Analysis",
-      description: "Discover trending topics and hashtags in your niche to stay ahead of the curve.",
-    },
-     {
-      icon: <Layers />,
-      title: "Multi-Platform Support",
-      description: "Manage all your social media accounts including Instagram, Facebook, X, and more from one place.",
-    },
-    {
-      icon: <Trophy />,
-      title: "Competitor Tracking",
-      description: "Keep an eye on your competitors' strategies and performance to gain a competitive edge.",
-    },
-  ];
+const StatCard = ({ icon, value, label, delay = 0 }: { icon: React.ReactNode, value: string, label: string, delay?: number }) => (
+    <MotionCard delay={delay} className="bg-card p-6 rounded-2xl shadow-lg border border-border/10 flex flex-col items-center text-center">
+        <div className="text-primary mb-3">{icon}</div>
+        <div className="text-4xl font-bold text-foreground">{value}</div>
+        <div className="text-muted-foreground text-sm mt-1">{label}</div>
+    </MotionCard>
+)
 
 export default function RootPage() {
   return (
     <div className="w-full font-sans bg-background text-foreground overflow-x-hidden">
         {/* Hero Section */}
-        <div className="relative overflow-hidden">
-            <div className="container mx-auto px-6 py-24 md:py-32 text-center relative z-10">
+        <div className="container mx-auto px-6 py-20 md:py-28">
+           <div className="grid md:grid-cols-2 gap-12 items-center">
                 <MotionCard>
-                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-                        The Future of Social Media is Here.
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-tight text-foreground">
+                       Automate The Manual, Achieve The Results.
                     </h1>
-                    <p className="mt-6 max-w-2xl mx-auto text-lg text-muted-foreground">
-                        TrendXoda is your intelligent, all-in-one platform to create, schedule, and analyze your social media presence, freeing you to focus on what matters most: growth.
+                    <p className="mt-6 max-w-xl text-lg text-muted-foreground">
+                        TrendXoda is your all-in-one platform to create, schedule, and analyze your social media, freeing you to focus on growth.
                     </p>
-                    <div className="mt-8 flex items-center justify-center gap-4">
-                        <Button size="lg" asChild className="shadow-lg hover:shadow-primary/30 transition-shadow">
+                    <div className="mt-8">
+                        <Button size="lg" asChild className="shadow-lg hover:shadow-primary/20 transition-shadow">
                             <Link href="/signup">
                                 Get Started For Free <ArrowRight className="ml-2 h-5 w-5" />
                             </Link>
                         </Button>
-                        <Button size="lg" variant="outline" asChild>
-                            <Link href="#features">
-                                Learn More
-                            </Link>
-                        </Button>
                     </div>
                 </MotionCard>
-            </div>
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full z-0">
-                <Suspense fallback={<div className="w-full h-full bg-black" />}>
-                  <Globe />
-                </Suspense>
-              </div>
+                 <MotionCard delay={0.2}>
+                    <Image 
+                        src="https://picsum.photos/seed/hero/800/600" 
+                        alt="Dashboard preview" 
+                        width={800} 
+                        height={600}
+                        className="rounded-2xl shadow-2xl"
+                        data-ai-hint="dashboard preview"
+                    />
+                </MotionCard>
+           </div>
         </div>
         
-        {/* Features Section */}
-        <div id="features" className="py-20 md:py-28">
+        {/* Stats Section */}
+        <div className="py-10 md:py-16">
+            <div className="container mx-auto px-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <StatCard icon={<Bot size={32}/>} value="10x" label="Faster Content Creation" delay={0.1} />
+                    <StatCard icon={<Clock size={32}/>} value="20+" label="Hours Saved Weekly" delay={0.2} />
+                    <StatCard icon={<BarChart size={32}/>} value="300%" label="Engagement Boost" delay={0.3} />
+                    <StatCard icon={<Layers size={32}/>} value="All" label="Platforms in One" delay={0.4} />
+                </div>
+            </div>
+        </div>
+
+        {/* How it works Section */}
+        <div id="features" className="py-20 md:py-28 bg-secondary/30">
             <div className="container mx-auto px-4">
                 <MotionCard className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold">Everything You Need. All in One Place.</h2>
-                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">From content creation to performance analysis, TrendXoda provides the tools to elevate your social media game.</p>
+                    <h2 className="text-3xl md:text-4xl font-bold">How TrendXoda Works</h2>
+                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">Transform your social media strategy in three simple, powerful steps.</p>
                 </MotionCard>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {features.map((feature, index) => (
-                        <MotionCard key={index} delay={index * 0.1}>
-                           <div className="p-8 rounded-lg bg-secondary/50 border border-border h-full">
-                                <div className="text-primary mb-4">{React.cloneElement(feature.icon, { className: "h-8 w-8" })}</div>
-                                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                                <p className="text-muted-foreground">{feature.description}</p>
-                            </div>
-                        </MotionCard>
-                    ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
+                    {/* Step 1 */}
+                     <MotionCard delay={0.1} className="flex flex-col md:flex-row items-center gap-6 col-span-3">
+                        <Image src="https://picsum.photos/seed/step1/600/400" alt="Create with AI" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="AI creation interface"/>
+                        <div className="md:w-1/2">
+                            <h3 className="text-2xl font-bold mb-2">1. Create with AI</h3>
+                            <p className="text-muted-foreground">Generate viral-worthy captions, scripts, and campaign ideas in seconds. Our AI is your new creative partner, always ready with fresh ideas.</p>
+                        </div>
+                    </MotionCard>
+                     {/* Step 2 */}
+                      <MotionCard delay={0.2} className="flex flex-col-reverse md:flex-row items-center gap-6 col-span-3">
+                        <div className="md:w-1/2">
+                            <h3 className="text-2xl font-bold mb-2">2. Schedule with Ease</h3>
+                            <p className="text-muted-foreground">Plan your content calendar visually. Let our AI determine the optimal posting times to maximize reach and engagement, automatically.</p>
+                        </div>
+                         <Image src="https://picsum.photos/seed/step2/600/400" alt="Schedule content" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="content calendar schedule"/>
+                    </MotionCard>
+                     {/* Step 3 */}
+                      <MotionCard delay={0.3} className="flex flex-col md:flex-row items-center gap-6 col-span-3">
+                        <Image src="https://picsum.photos/seed/step3/600/400" alt="Track Performance" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="analytics dashboard charts"/>
+                        <div className="md:w-1/2">
+                            <h3 className="text-2xl font-bold mb-2">3. Track Performance</h3>
+                            <p className="text-muted-foreground">Gain deep insights with our beautiful and intuitive analytics. Understand what's working and make data-driven decisions to fuel your growth.</p>
+                        </div>
+                    </MotionCard>
                 </div>
             </div>
         </div>
