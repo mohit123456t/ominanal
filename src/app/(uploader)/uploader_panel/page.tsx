@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
     LayoutDashboard,
@@ -41,8 +41,9 @@ const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.Reac
     </button>
 );
 
-const UploaderPanel = () => {
+function UploaderPanelContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { user, isUserLoading } = useUser();
     const { auth, firestore } = useFirebase();
 
@@ -75,15 +76,24 @@ const UploaderPanel = () => {
         if (!isUserLoading && !user) {
              router.push('/login');
         }
-        const savedView = localStorage.getItem('uploaderActiveView');
-        if (savedView) {
-            setActiveView(savedView);
+        
+        const viewFromUrl = searchParams.get('view');
+        if (viewFromUrl) {
+            setActiveView(viewFromUrl);
+        } else {
+            const savedView = localStorage.getItem('uploaderActiveView');
+            if (savedView) {
+                setActiveView(savedView);
+            }
         }
-    }, [isUserLoading, user, router]);
+    }, [isUserLoading, user, router, searchParams]);
     
     useEffect(() => {
-        localStorage.setItem('uploaderActiveView', activeView);
-    }, [activeView]);
+        const viewFromUrl = searchParams.get('view');
+        if (!viewFromUrl) { // Only update localStorage if not navigating via URL
+            localStorage.setItem('uploaderActiveView', activeView);
+        }
+    }, [activeView, searchParams]);
 
     const handleLogout = async () => {
         if (auth) {
@@ -124,13 +134,11 @@ const UploaderPanel = () => {
 
     return (
         <div className="flex h-screen bg-gray-50 font-sans">
-            {/* Sidebar */}
             <aside 
                 className={`bg-white border-r border-gray-200 transition-all duration-300 ease-in-out ${
                     sidebarCollapsed ? 'w-20' : 'w-64'
                 } flex flex-col flex-shrink-0`}
             >
-                {/* Logo and collapse button */}
                 <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200">
                     {!sidebarCollapsed && <h1 className="font-bold text-lg text-slate-800">Uploader Panel</h1>}
                     <button
@@ -141,7 +149,6 @@ const UploaderPanel = () => {
                     </button>
                 </div>
 
-                {/* Navigation */}
                 <nav className="flex-1 p-4 space-y-2">
                     {navItems.map(item => (
                         <NavItem
@@ -155,7 +162,6 @@ const UploaderPanel = () => {
                     ))}
                 </nav>
 
-                {/* Logout section */}
                 <div className="p-4 border-t border-gray-200">
                     <button
                         onClick={handleLogout}
@@ -169,9 +175,7 @@ const UploaderPanel = () => {
                 </div>
             </aside>
 
-            {/* Main Content */}
             <main className="flex-1 flex flex-col overflow-hidden">
-                {/* Header */}
                 <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
                     <div className="flex items-center space-x-4">
                         <h1 className="text-xl font-bold text-slate-800 capitalize">
@@ -191,7 +195,6 @@ const UploaderPanel = () => {
                         </div>
                     </div>
                 </header>
-                {/* Page Content */}
                 <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
                     {isLoading && !userProfile ? <div className="flex h-full w-full items-center justify-center"><LoaderCircle className="animate-spin h-10 w-10 text-primary" /></div> : renderView()}
                 </div>
@@ -200,5 +203,11 @@ const UploaderPanel = () => {
     );
 };
 
-export default UploaderPanel;
+export default function UploaderPanel() {
+    return (
+        <React.Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><LoaderCircle className="h-12 w-12 animate-spin" /></div>}>
+            <UploaderPanelContent />
+        </React.Suspense>
+    );
+}
     
