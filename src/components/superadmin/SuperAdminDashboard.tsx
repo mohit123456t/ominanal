@@ -6,12 +6,15 @@ import {
   Users,
   IndianRupee,
   BarChart as BarChartIcon,
+  Clock,
+  UserPlus,
+  UserX,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const formatNumber = (value: number) => {
-    if (!value) return '0';
+    if (!value && value !== 0) return '0';
     if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
     return value.toString();
@@ -35,15 +38,30 @@ const StatCard = ({ title, value, icon, colorClass, delay = 0 }: { title: string
     </motion.div>
   );
 
-const SuperAdminDashboard = ({ users }: { users: any[] }) => {
+const SuperAdminDashboard = ({ users, campaigns }: { users: any[], campaigns: any[] }) => {
     
-    const brands = useMemo(() => users.filter(u => u.role === 'brand'), [users]);
-    const totalBrands = brands.length;
-    
-    // Placeholder data as real-time multi-user data is restricted by security rules.
-    const totalCampaigns = 0;
-    const activeCampaigns = 0;
-    const totalCampaignEarnings = 0;
+    const stats = useMemo(() => {
+        const brands = users.filter(u => u.role === 'brand');
+        const totalBrands = brands.length;
+        
+        const activeCampaigns = campaigns.filter(c => c.status === 'Active').length;
+        const pendingCampaigns = campaigns.filter(c => c.status === 'Pending Approval').length;
+        
+        const totalCampaignEarnings = campaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
+        
+        const brandIdsWithCampaigns = new Set(campaigns.map(c => c.brandId));
+        const brandsWithCampaigns = brands.filter(b => brandIdsWithCampaigns.has(b.uid)).length;
+        const brandsWithoutCampaigns = totalBrands - brandsWithCampaigns;
+
+        return {
+            totalBrands,
+            activeCampaigns,
+            pendingCampaigns,
+            brandsWithCampaigns,
+            brandsWithoutCampaigns,
+            totalCampaignEarnings,
+        };
+    }, [users, campaigns]);
 
     const safeFormat = (value: number) => formatNumber(value || 0);
 
@@ -70,16 +88,28 @@ const SuperAdminDashboard = ({ users }: { users: any[] }) => {
   
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
-            title="Total Brands" value={safeFormat(totalBrands)}
+            title="Total Brands" value={safeFormat(stats.totalBrands)}
             icon={<Users className="text-blue-600"/>} colorClass="bg-blue-100" delay={0.1}
           />
           <StatCard
-            title="Active Campaigns" value={safeFormat(activeCampaigns)}
+            title="Active Campaigns" value={safeFormat(stats.activeCampaigns)}
             icon={<PlayCircle className="text-green-600"/>} colorClass="bg-green-100" delay={0.2}
           />
            <StatCard
-            title="Total Revenue" value={`₹${safeFormat(totalCampaignEarnings)}`}
-            icon={<IndianRupee className="text-purple-600"/>} colorClass="bg-purple-100" delay={0.3}
+            title="Pending Campaigns" value={safeFormat(stats.pendingCampaigns)}
+            icon={<Clock className="text-yellow-600"/>} colorClass="bg-yellow-100" delay={0.3}
+          />
+           <StatCard
+            title="Brands with Campaigns" value={safeFormat(stats.brandsWithCampaigns)}
+            icon={<UserPlus className="text-sky-600"/>} colorClass="bg-sky-100" delay={0.4}
+          />
+           <StatCard
+            title="Brands without Campaigns" value={safeFormat(stats.brandsWithoutCampaigns)}
+            icon={<UserX className="text-orange-600"/>} colorClass="bg-orange-100" delay={0.5}
+          />
+           <StatCard
+            title="Total Campaign Earnings" value={`₹${safeFormat(stats.totalCampaignEarnings)}`}
+            icon={<IndianRupee className="text-purple-600"/>} colorClass="bg-purple-100" delay={0.6}
           />
         </div>
 
@@ -115,7 +145,7 @@ const SuperAdminDashboard = ({ users }: { users: any[] }) => {
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
                 <h3 className="font-bold text-xl mb-6 text-slate-800">Recent Brands</h3>
                 <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
-                    {brands.length > 0 ? brands.slice(0, 5).map((brand: any, index) => (
+                    {users.filter(u => u.role === 'brand').length > 0 ? users.filter(u => u.role === 'brand').slice(0, 5).map((brand: any, index) => (
                     <motion.div
                         key={brand.id}
                         className="p-4 bg-white/30 rounded-lg border border-slate-300/50 hover:bg-white/70 transition-colors"

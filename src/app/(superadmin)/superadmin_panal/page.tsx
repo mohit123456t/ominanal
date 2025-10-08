@@ -96,10 +96,10 @@ function SuperAdminPanel() {
     const usersCollection = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
     const { data: usersData, isLoading: usersLoading } = useCollection(usersCollection);
 
-    const postsData: any[] = [];
-    const postsLoading = false;
+    const campaignsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'campaigns') : null, [firestore]);
+    const { data: campaignsData, isLoading: campaignsLoading } = useCollection(campaignsCollection);
     
-    const isLoading = usersLoading || postsLoading;
+    const isLoading = usersLoading || campaignsLoading;
 
     const handleLogout = async () => {
         router.push('/login');
@@ -110,18 +110,18 @@ function SuperAdminPanel() {
             return <div className="flex justify-center items-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div></div>;
         }
         switch (activeView) {
-            case 'dashboard': return <SuperAdminDashboard users={usersData || []} />;
+            case 'dashboard': return <SuperAdminDashboard users={usersData || []} campaigns={campaignsData || []} />;
             case 'staff_management': return <StaffManagementView />;
             case 'uploader_manager': return <UploaderManagerView />;
             case 'script_writer_manager': return <ScriptWriterManagerView />;
             case 'thumbnail_maker_manager': return <ThumbnailMakerManagerView />;
             case 'video_editor_manager': return <VideoEditorManagerView />;
             case 'reels_uploaded': return <ReelsUploadedPage />;
-            case 'finance': return <SuperAdminFinance posts={postsData || []} onNavigate={setActiveView} />;
+            case 'finance': return <SuperAdminFinance posts={[]} onNavigate={setActiveView} />;
             case 'pricing_management': return <PricingManagement />;
             case 'profile': return <SuperAdminProfileView />;
             case 'leads_panel': return <LeadsPanel />;
-            default: return <SuperAdminDashboard users={usersData || []} />;
+            default: return <SuperAdminDashboard users={usersData || []} campaigns={campaignsData || []} />;
         }
     };
 
