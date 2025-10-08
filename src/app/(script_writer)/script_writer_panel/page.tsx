@@ -122,7 +122,7 @@ const ScriptWriterPanel = () => {
 
     return (
         <div className="min-h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent font-sans text-slate-800">
-             <header className="sticky top-0 z-50 bg-white/60 backdrop-blur-xl border-b border-slate-300/70">
+             <header className="sticky top-0 z-50 bg-white/40 backdrop-blur-xl border-b border-slate-300/70">
                 <div className="container mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
