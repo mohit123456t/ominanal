@@ -17,9 +17,7 @@ function initializeFirebaseSDK() {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { code, error } = req.query;
-
-    const userId = "DEFAULT_USER"; // Replace with actual user ID from state
+    const { code, error, state } = req.query;
 
     if (error) {
         console.error('YouTube callback error:', error);
@@ -29,6 +27,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!code || typeof code !== 'string') {
         return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Invalid request. No authorization code found.')}`);
     }
+
+    if (!state || typeof state !== 'string') {
+        return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Invalid request. State (user identification) is missing.')}`);
+    }
+    const userId = state;
 
     try {
         const app = initializeFirebaseSDK();
