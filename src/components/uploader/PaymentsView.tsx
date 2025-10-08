@@ -43,7 +43,7 @@ const PaymentsView = ({ posts }: { posts: Post[] }) => {
         const lastPayout = transactions[0] || { amount: 0 };
         
         return {
-            thisMonth: totalThisMonth,
+            thisMonth: thisMonth,
             total: total,
             lastPayout: lastPayout.amount,
         };
