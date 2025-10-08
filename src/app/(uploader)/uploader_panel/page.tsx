@@ -11,6 +11,8 @@ import {
     X,
     FilePlus,
     LoaderCircle,
+    KeyRound,
+    Users
 } from 'lucide-react';
 import { collection, doc } from 'firebase/firestore';
 
@@ -18,6 +20,8 @@ import DashboardView from '@/components/uploader/DashboardView';
 import UploadHistoryView from '@/components/uploader/UploadHistoryView';
 import ProfileView from '@/components/uploader/ProfileView';
 import UploadView from '@/components/uploader/UploadView';
+import ApiKeysView from '@/components/uploader/ApiKeysView';
+import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { PlatformCredentials, SocialMediaAccount, Post } from '@/lib/types';
 
@@ -51,8 +55,19 @@ const UploaderPanel = () => {
         if (!user || !firestore) return null;
         return collection(firestore, `users/${user.uid}/posts`);
     }, [user, firestore]);
-    
     const { data: posts, isLoading: isLoadingPosts } = useCollection<Post>(postsCollectionRef);
+    
+    const accountsCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'socialMediaAccounts');
+    }, [user, firestore]);
+    const { data: accounts, isLoading: isLoadingAccounts } = useCollection<SocialMediaAccount>(accountsCollectionRef);
+
+    const credsCollectionRef = useMemoFirebase(() => {
+        if (!user || !firestore) return null;
+        return collection(firestore, 'users', user.uid, 'platformCredentials');
+    }, [user, firestore]);
+    const { data: credentialsList, isLoading: isLoadingCreds } = useCollection<PlatformCredentials>(credsCollectionRef);
 
 
     useEffect(() => {
@@ -76,7 +91,7 @@ const UploaderPanel = () => {
         router.push('/login');
     };
     
-    const isLoading = isProfileLoading || isLoadingPosts;
+    const isLoading = isProfileLoading || isLoadingPosts || isLoadingAccounts || isLoadingCreds;
 
     const renderView = () => {
         switch (activeView) {
@@ -86,6 +101,10 @@ const UploaderPanel = () => {
                 return <UploadView />;
             case 'upload-history':
                 return <UploadHistoryView posts={posts || []} isLoading={isLoadingPosts} />;
+            case 'api-keys':
+                return <ApiKeysView credentialsList={credentialsList || []} isLoadingCreds={isLoadingCreds} accounts={accounts || []} />;
+            case 'connected-accounts':
+                return <ConnectedAccountsView accounts={accounts || []} credentialsList={credentialsList || []} isLoading={isLoadingAccounts} />;
             case 'profile':
                 return <ProfileView userProfile={userProfile} />;
             default:
@@ -97,6 +116,8 @@ const UploaderPanel = () => {
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'create-upload', label: 'Create Upload', icon: <FilePlus /> },
         { id: 'upload-history', label: 'Upload History', icon: <Upload /> },
+        { id: 'connected-accounts', label: 'Connected Accounts', icon: <Users /> },
+        { id: 'api-keys', label: 'API Keys', icon: <KeyRound /> },
         { id: 'profile', label: 'Profile', icon: <UserCircle /> },
     ];
 
@@ -179,3 +200,5 @@ const UploaderPanel = () => {
 };
 
 export default UploaderPanel;
+
+    
