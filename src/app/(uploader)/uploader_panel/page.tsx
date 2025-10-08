@@ -20,6 +20,11 @@ import DashboardView from '@/components/uploader/DashboardView';
 import UploadHistoryView from '@/components/uploader/UploadHistoryView';
 import ProfileView from '@/components/uploader/ProfileView';
 import UploadView from '@/components/uploader/UploadView';
+import ApiKeysView from '@/components/uploader/ApiKeysView';
+import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
+import PaymentsView from '@/components/uploader/PaymentsView';
+import CommunicationView from '@/components/uploader/CommunicationView';
+
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useFirebase } from '@/firebase';
 import { PlatformCredentials, SocialMediaAccount, Post } from '@/lib/types';
 
@@ -99,6 +104,14 @@ const UploaderPanel = () => {
                 return <UploadView />;
             case 'upload-history':
                 return <UploadHistoryView posts={posts || []} isLoading={isLoadingPosts} />;
+            case 'api-keys':
+                return <ApiKeysView credentialsList={credentialsList || []} isLoadingCreds={isLoadingCreds} accounts={accounts || []} />;
+            case 'connected-accounts':
+                 return <ConnectedAccountsView accounts={accounts || []} isLoadingAccounts={isLoadingAccounts} />;
+            case 'payments':
+                return <PaymentsView posts={posts || []} />;
+            case 'communication':
+                return <CommunicationView userProfile={userProfile} />;
             case 'profile':
                 return <ProfileView userProfile={userProfile} />;
             default:
@@ -110,6 +123,8 @@ const UploaderPanel = () => {
         { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard /> },
         { id: 'create-upload', label: 'Create Upload', icon: <FilePlus /> },
         { id: 'upload-history', label: 'Upload History', icon: <Upload /> },
+        { id: 'api-keys', label: 'API Keys', icon: <KeyRound /> },
+        { id: 'connected-accounts', label: 'Connected Accounts', icon: <Users /> },
         { id: 'profile', label: 'Profile', icon: <UserCircle /> },
     ];
 
