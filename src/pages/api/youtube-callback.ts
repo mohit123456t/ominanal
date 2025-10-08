@@ -38,6 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         const credentials = credsSnap.data() as PlatformCredentials;
         
+        // CRITICAL: Use the server-side environment variables to construct the redirect URI.
         const redirectUri = `${process.env.APP_URL}${process.env.YOUTUBE_REDIRECT_URI}`;
         if(!process.env.APP_URL || !process.env.YOUTUBE_REDIRECT_URI){
              throw new Error("Server environment variables for redirect URI are not set.");

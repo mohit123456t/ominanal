@@ -34,6 +34,7 @@ const getInstagramAuthUrlFlow = ai.defineFlow(
     outputSchema: GetInstagramAuthUrlOutputSchema,
   },
   async ({ clientId }) => {
+    // This flow now correctly uses the NEXT_PUBLIC_ prefixed variables, as it's initiated from the client-side context.
     if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
         throw new Error('NEXT_PUBLIC_URL or NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI is not set in the .env file. The app owner needs to configure this.');
     }

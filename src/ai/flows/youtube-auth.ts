@@ -31,6 +31,7 @@ const getYoutubeAuthUrlFlow = ai.defineFlow(
     }),
   },
   async ({ clientId, clientSecret }) => {
+    // This flow uses the NEXT_PUBLIC_ prefixed variables as it's initiated from the client-side context.
     if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
         throw new Error('YouTube redirect URI or public URL is not configured in the .env file. The app owner needs to set these.');
     }
