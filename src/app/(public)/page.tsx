@@ -55,7 +55,7 @@ export default function RootPage() {
             </div>
              <div className="absolute inset-0 z-0">
                 <Suspense fallback={<div className="h-full w-full bg-slate-100" />}>
-                     <Globe className="h-full w-full opacity-20" />
+                     <Globe />
                 </Suspense>
              </div>
         </div>

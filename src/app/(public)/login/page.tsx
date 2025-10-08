@@ -135,7 +135,7 @@ export default function LoginPage() {
 
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+    <div className="flex min-h-[calc(100vh-12rem)] flex-col items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Client & Staff Login</CardTitle>
