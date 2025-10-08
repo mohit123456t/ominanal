@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,6 +8,7 @@ import { getInstagramAccessToken, exchangeForLongLivedToken, getInstagramUserDet
 import { useFirestore, useUser } from '@/firebase';
 import { doc, getDoc, collection, setDoc } from 'firebase/firestore';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 export default function InstagramCallbackPage() {
     const searchParams = useSearchParams();
@@ -61,8 +63,8 @@ export default function InstagramCallbackPage() {
                 const credentials = credsSnap.data() as PlatformCredentials;
 
                 // 2. Construct the exact same redirect URI that was used to initiate the auth flow
-                const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}`;
-                if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
+                const redirectUri = `${window.location.origin}${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}`;
+                if (!process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
                      throw new Error("Client-side environment variables for redirect URI are not set.");
                 }
                

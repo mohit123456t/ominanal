@@ -219,7 +219,7 @@ export default function ApiKeysView({ credentialsList, isLoadingCreds, accounts 
         if (platform === 'YouTube') {
             authUrlResult = await getYoutubeAuthUrl({clientId: creds.clientId, clientSecret: creds.clientSecret, userId: user.uid});
         } else if (platform === 'Instagram') {
-            authUrlResult = await getInstagramAuthUrl({clientId: creds.clientId, clientSecret: creds.clientSecret, userId: user.uid});
+            authUrlResult = await getInstagramAuthUrl({clientId: creds.clientId, userId: user.uid});
         } else {
              throw new Error("This platform does not support OAuth connection.");
         }

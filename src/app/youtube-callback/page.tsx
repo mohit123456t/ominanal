@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -61,8 +62,8 @@ export default function YouTubeCallbackPage() {
                 const credentials = credsSnap.data() as PlatformCredentials;
 
                 // 2. Construct redirect URI
-                const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI}`;
-                if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
+                const redirectUri = `${window.location.origin}${process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI}`;
+                if (!process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
                      throw new Error("Client-side environment variables for YouTube redirect URI are not set.");
                 }
 
