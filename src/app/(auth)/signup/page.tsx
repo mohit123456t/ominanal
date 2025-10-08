@@ -3,15 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth, useFirestore } from '@/firebase';
@@ -25,9 +18,9 @@ import { doc, setDoc } from 'firebase/firestore';
 
 
 const Logo = () => (
-    <div className="flex items-center justify-center gap-2 mb-4">
+    <div className="flex items-center gap-2 mb-4">
         <svg
-            className="size-10 text-primary"
+            className="size-8 text-primary"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -37,7 +30,7 @@ const Logo = () => (
             fill="currentColor"
             />
         </svg>
-        <h2 className="font-bold text-2xl text-foreground">TrendXoda</h2>
+        <h2 className="font-bold text-xl text-foreground">TrendXoda</h2>
     </div>
 );
 
@@ -68,10 +61,8 @@ export default function SignupPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const newUser = userCredential.user;
 
-      // Update Firebase Auth profile
       await updateProfile(newUser, { displayName: name });
 
-      // Create user document in Firestore
       const userDocRef = doc(firestore, 'users', newUser.uid);
       await setDoc(userDocRef, {
         uid: newUser.uid,
@@ -79,7 +70,7 @@ export default function SignupPage() {
         email: email,
         brandName: brandName,
         mobileNumber: mobileNumber,
-        role: 'brand', // Assign the brand role
+        role: 'brand',
         createdAt: new Date().toISOString(),
       });
 
@@ -88,7 +79,6 @@ export default function SignupPage() {
         description: "You've been successfully signed up. Redirecting to your Brand Panel...",
       });
       
-      // Explicitly redirect to brand_panel after successful signup
       router.push('/brand_panel');
 
     } catch (error: any) {
@@ -98,92 +88,65 @@ export default function SignupPage() {
         title: 'Signup Error',
         description: error.message,
       });
-      setIsLoading(false); // Only set loading to false on error
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card className="w-full max-w-sm border-border/50">
-      <CardHeader className="text-center">
-        <Logo />
-        <CardTitle>Create Brand Account</CardTitle>
-        <CardDescription>
-          Join our platform to manage your campaigns.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-         <div className="space-y-2">
-          <Label htmlFor="signup-name">Your Name</Label>
-          <Input
-            id="signup-name"
-            type="text"
-            placeholder="John Doe"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={isLoading}
-            required
-          />
+     <div className="w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-slate-300/20 overflow-hidden">
+        <div className="grid md:grid-cols-2">
+            <div className="p-8 md:p-12 flex flex-col justify-center">
+                <Logo />
+                <h1 className="text-2xl font-bold text-foreground mt-4">Create your Brand Account</h1>
+                <p className="text-muted-foreground mt-2 text-sm">Join us to boost your social media presence.</p>
+
+                <div className="mt-8 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-name">Your Name</Label>
+                        <Input id="signup-name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} disabled={isLoading} required />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="signup-brand-name">Brand Name</Label>
+                        <Input id="signup-brand-name" type="text" placeholder="My Brand" value={brandName} onChange={(e) => setBrandName(e.target.value)} disabled={isLoading} required />
+                    </div>
+                  </div>
+                   <div className="space-y-2">
+                        <Label htmlFor="signup-email">Email</Label>
+                        <Input id="signup-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="signup-password">Password</Label>
+                        <Input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="signup-mobile">Mobile Number</Label>
+                        <Input id="signup-mobile" type="tel" placeholder="Your mobile number" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} disabled={isLoading} required />
+                    </div>
+                    
+                     <Button onClick={handleSignup} className="w-full" size="lg" disabled={isLoading}>
+                        {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <UserPlus className="mr-2"/>}
+                        Create Account
+                    </Button>
+                </div>
+                 <p className="text-center text-sm text-muted-foreground mt-8">
+                    Already have an account?{' '}
+                    <Link href="/login" className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80">
+                        Log In
+                    </Link>
+                </p>
+            </div>
+             <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 p-8">
+                 <Image
+                    src="https://picsum.photos/seed/signup/600/450"
+                    alt="Signup illustration"
+                    width={600}
+                    height={450}
+                    className="rounded-xl shadow-2xl"
+                    data-ai-hint="team collaboration illustration"
+                />
+            </div>
         </div>
-         <div className="space-y-2">
-          <Label htmlFor="signup-brand-name">Brand Name</Label>
-          <Input
-            id="signup-brand-name"
-            type="text"
-            placeholder="My Awesome Brand"
-            value={brandName}
-            onChange={(e) => setBrandName(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="signup-mobile">Mobile Number</Label>
-          <Input
-            id="signup-mobile"
-            type="tel"
-            placeholder="Your mobile number"
-            value={mobileNumber}
-            onChange={(e) => setMobileNumber(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="signup-email">Email</Label>
-          <Input
-            id="signup-email"
-            type="email"
-            placeholder="m@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="signup-password">Password</Label>
-          <Input
-            id="signup-password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            required
-          />
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4">
-        <Button onClick={handleSignup} className="w-full" disabled={isLoading}>
-           {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <UserPlus className="mr-2"/>}
-          Create Account
-        </Button>
-         <p className="text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
-          <Link href="/login" className="underline underline-offset-4 hover:text-primary">
-            Log In
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    </div>
   );
 }

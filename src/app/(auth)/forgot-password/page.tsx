@@ -2,15 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/firebase';
@@ -20,9 +13,9 @@ import { LoaderCircle, Mail } from 'lucide-react';
 
 
 const Logo = () => (
-    <div className="flex items-center justify-center gap-2 mb-4">
+    <div className="flex items-center gap-2 mb-4">
         <svg
-            className="size-10 text-primary"
+            className="size-8 text-primary"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -32,7 +25,7 @@ const Logo = () => (
             fill="currentColor"
             />
         </svg>
-        <h2 className="font-bold text-2xl text-foreground">TrendXoda</h2>
+        <h2 className="font-bold text-xl text-foreground">TrendXoda</h2>
     </div>
 );
 
@@ -64,7 +57,6 @@ export default function ForgotPasswordPage() {
       });
     } catch (error: any) {
       console.error(error);
-      // We show a generic message to prevent email enumeration
       toast({
         title: 'Success!',
         description:
@@ -77,47 +69,58 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <Card className="w-full max-w-sm border-border/50">
-      <CardHeader className="text-center">
-        <Logo />
-        <CardTitle>Reset Password</CardTitle>
-        <CardDescription>
-          Enter your email to receive a password reset link.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {!isSent ? (
-          <div className="space-y-2">
-            <Label htmlFor="reset-email">Email</Label>
-            <Input
-              id="reset-email"
-              type="email"
-              placeholder="m@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-        ) : (
-           <div className="text-center text-sm text-muted-foreground p-4 bg-primary/10 rounded-md">
-              <p>A reset link has been sent to your email address if an account exists. Please check your inbox (and spam folder).</p>
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4">
-          {!isSent && (
-               <Button onClick={handlePasswordReset} className="w-full" disabled={isLoading || !email}>
-                  {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <Mail className="mr-2"/>}
-                  Send Reset Link
-              </Button>
-          )}
-        <p className="text-center text-sm text-muted-foreground">
-          Remember your password?{' '}
-          <Link href="/login" className="underline underline-offset-4 hover:text-primary">
-            Log In
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <div className="w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-slate-300/20 overflow-hidden">
+        <div className="grid md:grid-cols-2">
+            <div className="p-8 md:p-12 flex flex-col justify-center">
+                <Logo />
+                <h1 className="text-2xl font-bold text-foreground mt-4">Reset Password</h1>
+                <p className="text-muted-foreground mt-2 text-sm">
+                 Enter your email to receive a password reset link.
+                </p>
+
+                <div className="mt-8 space-y-6">
+                    {!isSent ? (
+                    <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="m@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        disabled={isLoading}
+                        />
+                    </div>
+                    ) : (
+                    <div className="text-center text-sm text-muted-foreground p-4 bg-primary/10 rounded-md">
+                        <p>A reset link has been sent to your email address if an account exists. Please check your inbox (and spam folder).</p>
+                    </div>
+                    )}
+                     {!isSent && (
+                        <Button onClick={handlePasswordReset} className="w-full" size="lg" disabled={isLoading || !email}>
+                            {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <Mail className="mr-2"/>}
+                            Send Reset Link
+                        </Button>
+                    )}
+                </div>
+                 <p className="text-center text-sm text-muted-foreground mt-8">
+                    Remember your password?{' '}
+                    <Link href="/login" className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80">
+                        Log In
+                    </Link>
+                </p>
+            </div>
+             <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 p-8">
+                 <Image
+                    src="https://picsum.photos/seed/forgot/600/450"
+                    alt="Forgot password illustration"
+                    width={600}
+                    height={450}
+                    className="rounded-xl shadow-2xl"
+                    data-ai-hint="security lock illustration"
+                />
+            </div>
+        </div>
+    </div>
   );
 }
