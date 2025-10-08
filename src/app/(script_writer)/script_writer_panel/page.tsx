@@ -23,21 +23,54 @@ import { useAuth, useCollection, useFirebase, useMemoFirebase, useUser, useDoc }
 import { collection, query, where, doc } from 'firebase/firestore';
 
 
-const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.ReactNode, label: string, active: boolean, onClick: ()=>void, collapsed: boolean }) => (
+const Logo = () => (
+    <div className="flex items-center gap-2">
+        <svg
+            className="size-8 text-primary"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <path
+            d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2Z"
+            fill="currentColor"
+            />
+            <path
+            d="M12 17.5C15.0376 17.5 17.5 15.0376 17.5 12C17.5 8.96243 15.0376 6.5 12 6.5C8.96243 6.5 6.5 8.96243 6.5 12C6.5 15.0376 8.96243 17.5 12 17.5Z"
+            stroke="white"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            />
+            <path
+            d="M12 2V22"
+            stroke="white"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            />
+        </svg>
+        <h2 className="font-bold text-lg text-slate-800">TrendXoda</h2>
+    </div>
+);
+
+const NavItem = ({ icon, label, active, onClick, ...props }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void, [key: string]: any }) => (
     <motion.button
+        {...props}
         onClick={onClick}
         className={`flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-            active 
-                ? 'bg-white/40 text-indigo-700 font-semibold' 
-                : 'text-slate-700 hover:bg-white/20'
+            active
+                ? 'bg-slate-50 text-slate-800 border-r-2 border-slate-600'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
         }`}
-        whileHover={{ x: active ? 0 : 5 }}
+        whileHover={{ x: 6 }}
         whileTap={{ scale: 0.98 }}
     >
-        <span className={`mr-3 ${collapsed ? 'mx-auto' : ''} ${active ? 'text-indigo-600' : 'text-slate-600'}`}>{icon}</span>
-        {!collapsed && <span>{label}</span>}
+        <span className={`mr-3 ${active ? 'text-slate-700' : ''}`}>{icon}</span>
+        {label}
     </motion.button>
 );
+
 
 const ScriptWriterPanel = () => {
     const router = useRouter();
@@ -94,95 +127,78 @@ const ScriptWriterPanel = () => {
     };
     
     const navItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: <BarChart /> },
-        { id: 'tasks', label: 'Tasks', icon: <Clipboard /> },
-        { id: 'ai-generator', label: 'AI Script Generator', icon: <Sparkles /> },
-        { id: 'payments', label: 'Payments', icon: <IndianRupee /> },
-        { id: 'collaboration', label: 'Collaboration', icon: <MessageSquare /> },
-        { id: 'profile', label: 'Profile', icon: <UserCircle /> },
+        { id: 'dashboard', label: 'Dashboard', icon: <BarChart size={18} /> },
+        { id: 'tasks', label: 'Tasks', icon: <Clipboard size={18} /> },
+        { id: 'ai-generator', label: 'AI Script Generator', icon: <Sparkles size={18} /> },
+        { id: 'payments', label: 'Payments', icon: <IndianRupee size={18} /> },
+        { id: 'collaboration', label: 'Collaboration', icon: <MessageSquare size={18} /> },
+    ];
+    
+     const secondaryNavItems = [
+        { id: 'profile', label: 'Profile', icon: <UserCircle size={18} /> },
     ];
 
     return (
-        <div className="flex h-screen font-sans bg-slate-200 bg-gradient-to-br from-white via-blue-50 to-purple-50">
-            <motion.aside 
-                className={`flex-shrink-0 bg-white/40 backdrop-blur-xl flex flex-col z-50 shadow-2xl border-r border-slate-300/70 transition-all duration-300`}
-                initial={{ width: '16rem' }}
-                animate={{ width: sidebarCollapsed ? '5rem' : '16rem' }}
-            >
-                 <div className="h-16 flex items-center justify-between px-4 border-b border-gray-200 flex-shrink-0">
-                    {!sidebarCollapsed && <h1 className="font-bold text-lg text-slate-800">Script Panel</h1>}
-                    <button
-                        onClick={() => setSidebarCollapsed(p => !p)}
-                        className="text-slate-500 hover:text-slate-900 p-1 rounded-full hover:bg-gray-100 transition-all"
-                        aria-label="Toggle sidebar"
-                    >
-                        {sidebarCollapsed ? <Menu /> : <X />}
-                    </button>
+        <div className="flex h-screen bg-slate-50 font-sans text-slate-800">
+             <aside className="w-64 flex-shrink-0 bg-white text-slate-800 flex flex-col no-scrollbar shadow-lg border-r border-slate-200">
+                <div className="h-16 flex items-center px-6 border-b border-slate-100 flex-shrink-0">
+                    <Logo />
                 </div>
-                
-                <nav className="flex-1 p-4 space-y-2">
+
+                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                     {navItems.map((item, index) => (
-                        <NavItem
+                        <motion.div
                             key={item.id}
-                            icon={item.icon}
-                            label={item.label}
-                            active={activeView === item.id}
-                            onClick={() => setActiveView(item.id)}
-                            collapsed={sidebarCollapsed}
-                        />
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.07, type: "tween", ease: "easeOut" }}
+                        >
+                            <NavItem
+                                icon={item.icon}
+                                label={item.label}
+                                active={activeView === item.id}
+                                onClick={() => setActiveView(item.id)}
+                            />
+                        </motion.div>
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-gray-200">
-                    <NavItem
-                        icon={<LogOut />}
-                        label="Logout"
-                        active={false}
-                        onClick={handleLogout}
-                        collapsed={sidebarCollapsed}
-                    />
-                </div>
-            </motion.aside>
-
-            <main className="flex-1 flex flex-col overflow-hidden">
-                <motion.header 
-                    className="h-16 bg-white/60 backdrop-blur-lg border-b border-slate-300/70 flex items-center justify-between px-8 flex-shrink-0 shadow-sm"
-                     initial={{ y: -100, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                >
-                    <motion.h1
-                        key={activeView}
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="text-xl font-bold text-slate-800 capitalize"
-                    >
-                        {activeView.replace(/_/g, ' ')}
-                    </motion.h1>
-                    <div className="flex items-center space-x-3">
-                         <div className="relative flex items-center">
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping absolute"></div>
-                            <div className="w-2.5 h-2.5 bg-green-500 rounded-full"></div>
-                        </div>
-                        <div className="font-semibold text-sm text-slate-700">{userProfile?.name}</div>
-                    </div>
-                </motion.header>
-                
-                <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
-                    <AnimatePresence mode="wait">
+                <div className="px-4 py-4 border-t border-slate-100 flex-shrink-0 space-y-3">
+                    {secondaryNavItems.map((item, index) => (
                         <motion.div
-                            key={activeView}
-                            initial={{ opacity: 0, y: 15 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -15 }}
-                            transition={{ duration: 0.25 }}
+                            key={item.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: (navItems.length + index) * 0.07, type: "tween", ease: "easeOut" }}
                         >
-                            {renderView()}
+                            <NavItem
+                                icon={item.icon}
+                                label={item.label}
+                                active={activeView === item.id}
+                                onClick={() => setActiveView(item.id)}
+                            />
                         </motion.div>
-                    </AnimatePresence>
+                    ))}
+
+                    <motion.button
+                        onClick={handleLogout}
+                        className="flex items-center w-full text-left px-4 py-2.5 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700 transition-all"
+                        whileHover={{ x: 6 }}
+                        whileTap={{ scale: 0.98 }}
+                    >
+                        <span className="mr-3"><LogOut size={18} /></span>
+                        Logout
+                    </motion.button>
                 </div>
-            </main>
+            </aside>
+
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 flex-shrink-0 shadow-sm">
+                    <h1 className="text-xl font-bold text-slate-900 capitalize">{activeView.replace(/_/g, ' ')}</h1>
+                    <div className="font-semibold text-slate-700">{userProfile?.name || 'User'}</div>
+                </header>
+                <main className="flex-1 overflow-y-auto bg-slate-50 p-8">{renderView()}</main>
+            </div>
         </div>
     );
 };

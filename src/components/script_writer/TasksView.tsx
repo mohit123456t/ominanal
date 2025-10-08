@@ -153,11 +153,11 @@ const TasksView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) =
     };
 
     return (
-        <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80">
-            <div className="p-6 border-b border-slate-300/50">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
+            <div className="p-0">
                  <h3 className="font-bold text-xl text-slate-800">Assigned Tasks for Script Review</h3>
             </div>
-            <div className="p-6">
+            <div className="mt-4">
                 {isLoading ? (
                     <div className="text-center py-12">
                         <LoaderCircle className="h-10 w-10 animate-spin text-indigo-600 mx-auto" />
@@ -172,22 +172,22 @@ const TasksView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) =
                 ) : (
                      <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="border-b-2 border-slate-300/50">
+                            <thead className="text-xs text-slate-500 bg-slate-50">
                                 <tr>
-                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Video Title</th>
-                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Due Date</th>
-                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Actions</th>
+                                    <th className="px-6 py-3">Video Title</th>
+                                    <th className="px-6 py-3">Status</th>
+                                    <th className="px-6 py-3">Due Date</th>
+                                    <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-300/50">
+                            <tbody className="divide-y divide-slate-100">
                                 {tasks.map((task) => (
-                                    <tr key={task.id} className="hover:bg-white/30 transition-colors">
-                                        <td className="p-4 font-medium text-slate-800">{task.videoTitle}</td>
-                                        <td className="p-4"><StatusBadge status={task.status} /></td>
-                                        <td className="p-4 text-slate-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
-                                        <td className="p-4 text-right">
-                                            <button onClick={() => handleOpenModal(task)} className="font-semibold text-indigo-600 hover:underline">
+                                    <tr key={task.id} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-slate-800">{task.videoTitle}</td>
+                                        <td className="px-6 py-4"><StatusBadge status={task.status} /></td>
+                                        <td className="px-6 py-4 text-slate-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={() => handleOpenModal(task)} className="font-medium text-blue-600 hover:underline">
                                                 Review AI Script
                                             </button>
                                         </td>

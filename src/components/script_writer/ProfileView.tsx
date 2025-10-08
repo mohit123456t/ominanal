@@ -64,7 +64,7 @@ const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userPro
                 )}
             </div>
             
-            <div className="bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-lg border border-slate-300/70 space-y-6">
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200/80 space-y-6">
                  <div>
                     <label className="text-sm font-semibold text-slate-600 flex items-center"><User size={14} className="mr-2"/>Full Name</label>
                     <input
