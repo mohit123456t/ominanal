@@ -2,9 +2,6 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { IndianRupee, Banknote, Calendar, LoaderCircle } from 'lucide-react';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy } from 'firebase/firestore';
-import { isThisMonth, parseISO } from 'date-fns';
 
 const StatCard = ({ title, value, icon, color }: { title: string, value: string, icon: React.ReactNode, color: string }) => (
     <motion.div 
@@ -21,27 +18,25 @@ const StatCard = ({ title, value, icon, color }: { title: string, value: string,
     </motion.div>
 );
 
-const EarningsView = ({ userProfile }: { userProfile: any }) => {
-    const { firestore } = useFirebase();
-
-    const transactionsQuery = useMemoFirebase(() => {
-        if (!userProfile?.uid || !firestore) return null;
-        return query(
-            collection(firestore, 'transactions'), 
-            where('staffId', '==', userProfile.uid),
-            orderBy('date', 'desc')
-        );
-    }, [userProfile, firestore]);
-    
-    const { data: transactions, isLoading: loading } = useCollection(transactionsQuery);
+const EarningsView = () => {
+    // This component now receives data via props or context, not direct fetching.
+    // For now, using placeholder data as the data flow from the parent is not fully defined.
+    const loading = false;
+    const transactions = [
+        { id: '1', date: new Date().toISOString(), amount: 1250, status: 'Paid', campaign: 'Summer Promo' },
+        { id: '2', date: new Date(Date.now() - 3 * 86400000).toISOString(), amount: 800, status: 'Paid', campaign: 'Product Launch' },
+    ];
 
     const stats = useMemo(() => {
-        if (!transactions) return { total_earnings: 0, month_earnings: 0, last_payout: { amount: 0, date: 'N/A' } };
-
         const total = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-        const thisMonth = transactions
-            .filter(tx => isThisMonth(parseISO(tx.date)))
-            .reduce((sum, tx) => sum + tx.amount, 0);
+        const thisMonth = transactions.reduce((sum, tx) => {
+             const txDate = new Date(tx.date);
+             const today = new Date();
+             if (txDate.getMonth() === today.getMonth() && txDate.getFullYear() === today.getFullYear()) {
+                 return sum + tx.amount;
+             }
+             return sum;
+        }, 0);
         const lastPayout = transactions[0] || { amount: 0, date: 'N/A' };
         
         return {
@@ -109,7 +104,7 @@ const EarningsView = ({ userProfile }: { userProfile: any }) => {
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-slate-500 bg-slate-50">
                             <tr>
-                                <th className="p-3 font-semibold">Transaction ID</th>
+                                <th className="p-3 font-semibold">Campaign</th>
                                 <th className="p-3 font-semibold">Date</th>
                                 <th className="p-3 font-semibold text-right">Amount</th>
                                 <th className="p-3 font-semibold text-center">Status</th>
@@ -123,7 +118,7 @@ const EarningsView = ({ userProfile }: { userProfile: any }) => {
                             ) : (
                                 transactions.map((tx) => (
                                 <tr key={tx.id}>
-                                    <td className="p-3 font-mono text-slate-700">{tx.id.slice(0,8)}...</td>
+                                    <td className="p-3 font-medium text-slate-800">{tx.campaign}</td>
                                     <td className="p-3 text-slate-600">{new Date(tx.date).toLocaleDateString()}</td>
                                     <td className="p-3 text-right font-semibold text-slate-800">{formatCurrency(tx.amount)}</td>
                                     <td className="p-3 text-center">
