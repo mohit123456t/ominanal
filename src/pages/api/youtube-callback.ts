@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
-import { getFirestore, doc, collection, addDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, collection, addDoc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
@@ -14,7 +14,9 @@ const firestore = getFirestore();
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { code, error } = req.query;
 
-    const userId = "DEFAULT_USER"; // Replace with actual user management
+    // In a real app, the state parameter should contain the user's UID to prevent CSRF and identify the user.
+    // For this demo, we're assuming a default or single-user context for the uploader.
+    const userId = "DEFAULT_USER"; 
 
      if (error) {
         console.error('YouTube callback error:', error);
@@ -25,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Invalid request. No authorization code found.')}`);
     }
      if (!userId) {
-        return res.status(400).json({ error: 'Invalid request', description: 'User session not found.' });
+        return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('User could not be identified.')}`);
     }
 
     try {
@@ -48,11 +50,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         if (!channelResponse.ok || !channelData.items || channelData.items.length === 0) {
             console.error("YouTube API Error:", channelData);
-            throw new Error("Could not fetch YouTube channel details.");
+            throw new Error("Could not fetch YouTube channel details. The access token might be invalid or permissions are missing.");
         }
+        
+        const channelId = channelData.items[0].id;
         const channelName = channelData.items[0]?.snippet?.title || 'YouTube Account';
 
         const socialMediaAccountsCollection = collection(firestore, 'users', userId, 'socialMediaAccounts');
+        const accountDocRef = doc(socialMediaAccountsCollection, channelId); // Use channel ID as doc ID
+
         const newAccountData: Omit<SocialMediaAccount, 'id'> = {
             userId: userId,
             platform: 'YouTube',
@@ -64,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             updatedAt: new Date().toISOString(),
         };
 
-        await addDoc(socialMediaAccountsCollection, newAccountData);
+        await setDoc(accountDocRef, newAccountData, { merge: true });
 
         res.redirect('/uploader_panel?view=connected-accounts&success=true');
 

@@ -1,22 +1,26 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getInstagramAccessToken, getInstagramUserDetails, exchangeForLongLivedToken } from '@/ai/flows/instagram-auth';
-import { getFirestore, doc, collection, addDoc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, collection, addDoc, getDoc, setDoc } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
+import { getAuth, signInWithCustomToken } from 'firebase/auth';
+
 
 // Initialize Firebase Admin SDK
 if (!getApps().length) {
     initializeApp(firebaseConfig);
 }
 const firestore = getFirestore();
+const auth = getAuth();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { code, error, state, error_description } = req.query;
-
-    // This is a temporary measure to get a UID.
-    // In a real app, you would have the user's session or pass the UID in the state.
-    const userId = "DEFAULT_USER"; // Replace with actual user management
+    
+    // In a real app, the state parameter should contain the user's UID to prevent CSRF and identify the user.
+    // For this demo, we're assuming a default or single-user context for the uploader.
+    // THIS IS A MAJOR SIMPLIFICATION AND NOT PRODUCTION-READY.
+    const userId = "DEFAULT_USER";
 
     if (error) {
         console.error('Instagram callback error:', error_description);
@@ -27,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Invalid request', description: 'No authorization code found.' });
     }
      if (!userId) {
-        return res.status(400).json({ error: 'Invalid request', description: 'User session not found.' });
+        return res.status(400).json({ error: 'Invalid request', description: 'User could not be identified.' });
     }
 
 
@@ -65,7 +69,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const socialMediaAccountsCollection = collection(firestore, `users/${userId}/socialMediaAccounts`);
         
-        const newAccountData: Omit<SocialMediaAccount, 'id'> = {
+        // Use the Instagram ID as the document ID to prevent duplicates
+        const accountDocRef = doc(socialMediaAccountsCollection, instagramId);
+
+        const accountData: Omit<SocialMediaAccount, 'id'> = {
           userId: userId,
           platform: 'Instagram',
           accessToken: longLivedToken,
@@ -79,7 +86,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: new Date().toISOString(),
         };
 
-        await addDoc(socialMediaAccountsCollection, newAccountData);
+        // Use setDoc with merge to create or update the account
+        await setDoc(accountDocRef, accountData, { merge: true });
+
+        // Check if a Facebook Page was also returned and create/update it
+        if (facebookPageId && facebookPageName) {
+            const fbAccountDocRef = doc(socialMediaAccountsCollection, facebookPageId);
+            const fbAccountData: Omit<SocialMediaAccount, 'id'> = {
+              userId: userId,
+              platform: 'Facebook',
+              accessToken: longLivedToken,
+              pageAccessToken: pageAccessToken,
+              username: facebookPageName,
+              instagramId: instagramId, // link back to the IG account
+              facebookPageId: facebookPageId,
+              facebookPageName: facebookPageName,
+              connected: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+             await setDoc(fbAccountDocRef, fbAccountData, { merge: true });
+        }
+
 
         // Redirect user back to the app
         res.redirect('/uploader_panel?view=connected-accounts&success=true');
