@@ -38,7 +38,7 @@ const StatCard = ({ title, value, icon, colorClass, delay = 0 }: { title: string
     </motion.div>
   );
 
-const SuperAdminDashboard = ({ users, campaigns }: { users: any[], campaigns: any[] }) => {
+const SuperAdminDashboard = ({ users, campaigns, expenses }: { users: any[], campaigns: any[], expenses: any[] }) => {
     
     const stats = useMemo(() => {
         const brands = users.filter(u => u.role === 'brand');
@@ -65,14 +65,40 @@ const SuperAdminDashboard = ({ users, campaigns }: { users: any[], campaigns: an
 
     const safeFormat = (value: number) => formatNumber(value || 0);
 
-    const revenueData = [
-        { name: 'Jan', revenue: 4000, expenses: 2400 },
-        { name: 'Feb', revenue: 3000, expenses: 1398 },
-        { name: 'Mar', revenue: 9800, expenses: 2000 },
-        { name: 'Apr', revenue: 3908, expenses: 2780 },
-        { name: 'May', revenue: 4800, expenses: 1890 },
-        { name: 'Jun', revenue: 3800, expenses: 2390 },
-      ];
+    const revenueData = useMemo(() => {
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const monthlyData: { [key: string]: { name: string; revenue: number; expenses: number } } = {};
+  
+      // Initialize all months
+      monthNames.forEach(month => {
+          monthlyData[month] = { name: month, revenue: 0, expenses: 0 };
+      });
+  
+      // Process revenue from campaigns
+      campaigns.forEach(campaign => {
+          if (campaign.createdAt?.seconds) {
+              const date = new Date(campaign.createdAt.seconds * 1000);
+              const monthName = monthNames[date.getMonth()];
+              if (monthName) {
+                  monthlyData[monthName].revenue += campaign.budget || 0;
+              }
+          }
+      });
+  
+      // Process expenses
+      expenses.forEach(expense => {
+          if (expense.date) {
+              const date = new Date(expense.date);
+              const monthName = monthNames[date.getMonth()];
+              if (monthName) {
+                  monthlyData[monthName].expenses += expense.amount || 0;
+              }
+          }
+      });
+  
+      // Return sorted array of months for the current year
+      return Object.values(monthlyData);
+  }, [campaigns, expenses]);
 
   
     return (

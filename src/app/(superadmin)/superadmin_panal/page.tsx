@@ -98,8 +98,11 @@ function SuperAdminPanel() {
 
     const campaignsCollection = useMemoFirebase(() => firestore ? collection(firestore, 'campaigns') : null, [firestore]);
     const { data: campaignsData, isLoading: campaignsLoading } = useCollection(campaignsCollection);
+
+    const expensesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'expenses')) : null, [firestore]);
+    const { data: expensesData, isLoading: expensesLoading } = useCollection(expensesQuery);
     
-    const isLoading = usersLoading || campaignsLoading;
+    const isLoading = usersLoading || campaignsLoading || expensesLoading;
 
     const handleLogout = async () => {
         router.push('/login');
@@ -110,7 +113,7 @@ function SuperAdminPanel() {
             return <div className="flex justify-center items-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800"></div></div>;
         }
         switch (activeView) {
-            case 'dashboard': return <SuperAdminDashboard users={usersData || []} campaigns={campaignsData || []} />;
+            case 'dashboard': return <SuperAdminDashboard users={usersData || []} campaigns={campaignsData || []} expenses={expensesData || []} />;
             case 'staff_management': return <StaffManagementView />;
             case 'uploader_manager': return <UploaderManagerView />;
             case 'script_writer_manager': return <ScriptWriterManagerView />;
@@ -121,7 +124,7 @@ function SuperAdminPanel() {
             case 'pricing_management': return <PricingManagement />;
             case 'profile': return <SuperAdminProfileView />;
             case 'leads_panel': return <LeadsPanel />;
-            default: return <SuperAdminDashboard users={usersData || []} campaigns={campaignsData || []} />;
+            default: return <SuperAdminDashboard users={usersData || []} campaigns={campaignsData || []} expenses={expensesData || []} />;
         }
     };
 
