@@ -1,24 +1,27 @@
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getYoutubeTokens } from '@/ai/flows/youtube-auth';
-import { getFirestore, doc, collection, addDoc, getDoc, setDoc } from 'firebase/firestore';
-import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, doc, collection, getDoc, setDoc } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
+import { getAuth } from 'firebase/auth';
 
-
-if (!getApps().length) {
-    initializeApp(firebaseConfig);
+// Helper to initialize Firebase Admin SDK
+function initializeFirebaseSDK() {
+  if (!getApps().length) {
+    return initializeApp(firebaseConfig);
+  } else {
+    return getApp();
+  }
 }
-const firestore = getFirestore();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { code, error } = req.query;
 
-    // In a real app, the state parameter should contain the user's UID to prevent CSRF and identify the user.
-    // For this demo, we're assuming a default or single-user context for the uploader.
-    const userId = "DEFAULT_USER"; 
+    const userId = "DEFAULT_USER"; // Replace with actual user ID from state
 
-     if (error) {
+    if (error) {
         console.error('YouTube callback error:', error);
         return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('YouTube connection was denied or failed.')}`);
     }
@@ -26,24 +29,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!code || typeof code !== 'string') {
         return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Invalid request. No authorization code found.')}`);
     }
-     if (!userId) {
-        return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('User could not be identified.')}`);
-    }
 
     try {
+        const app = initializeFirebaseSDK();
+        const firestore = getFirestore(app);
+
+        // Fetch credentials
         const credsRef = doc(firestore, 'users', userId, 'platformCredentials', 'YouTube');
         const credsSnap = await getDoc(credsRef);
         if (!credsSnap.exists()) {
-          throw new Error("Could not find YouTube credentials. Please save them on the API Keys page first.");
+            throw new Error("YouTube credentials are not configured for this user. Please save them on the API Keys page.");
         }
         const credentials = credsSnap.data() as PlatformCredentials;
         
-        // CRITICAL: Use the server-side environment variables to construct the redirect URI.
+        // Construct the redirect URI using server-side environment variables
         const redirectUri = `${process.env.APP_URL}${process.env.YOUTUBE_REDIRECT_URI}`;
         if(!process.env.APP_URL || !process.env.YOUTUBE_REDIRECT_URI){
-             throw new Error("Server environment variables for redirect URI are not set.");
+            throw new Error("Server environment variables for YouTube redirect URI are not correctly set by the app owner.");
         }
-        
+
         const { accessToken, refreshToken } = await getYoutubeTokens({
             code,
             clientId: credentials.clientId!,
@@ -51,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             redirectUri: redirectUri,
         });
 
+        // Use the obtained access token to get channel details
         const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&access_token=${accessToken}`;
         const channelResponse = await fetch(youtubeApiUrl);
         const channelData = await channelResponse.json();
@@ -63,8 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const channelId = channelData.items[0].id;
         const channelName = channelData.items[0]?.snippet?.title || 'YouTube Account';
 
+        // Save the account to Firestore
         const socialMediaAccountsCollection = collection(firestore, 'users', userId, 'socialMediaAccounts');
-        const accountDocRef = doc(socialMediaAccountsCollection, channelId); // Use channel ID as doc ID
+        const accountDocRef = doc(socialMediaAccountsCollection, channelId); // Use channel ID as the document ID for uniqueness
 
         const newAccountData: Omit<SocialMediaAccount, 'id'> = {
             userId: userId,
@@ -78,11 +84,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         await setDoc(accountDocRef, newAccountData, { merge: true });
-
+        
+        // Redirect back to the app on success
         res.redirect('/uploader_panel?view=connected-accounts&success=true');
 
     } catch (err: any) {
-        console.error('Failed to exchange YouTube token or save account:', err);
+        console.error('Full YouTube callback error:', err);
         const errorMessage = err.message || 'An unknown error occurred while connecting to YouTube.';
         res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent(errorMessage)}`);
     }

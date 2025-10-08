@@ -1,21 +1,28 @@
+
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { getInstagramAccessToken, getInstagramUserDetails, exchangeForLongLivedToken } from '@/ai/flows/instagram-auth';
 import { getFirestore, doc, collection, getDoc, setDoc } from 'firebase/firestore';
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { firebaseConfig } from '@/firebase/config';
 import { PlatformCredentials, SocialMediaAccount } from '@/lib/types';
+import { getAuth, signInWithCustomToken } from 'firebase/auth';
 
-if (!getApps().length) {
-    initializeApp(firebaseConfig);
+// Helper to initialize Firebase Admin SDK
+function initializeFirebaseSDK() {
+  if (!getApps().length) {
+    return initializeApp(firebaseConfig);
+  } else {
+    return getApp();
+  }
 }
-const firestore = getFirestore();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const { code, error, state } = req.query;
 
-    // In a real app, the state parameter should contain the user's UID to prevent CSRF and identify the user.
-    // For this demo, we're assuming a default or single-user context for the uploader.
-    const userId = "DEFAULT_USER"; 
+    // IMPORTANT: In a real app, 'state' should be a JWT or a random string stored in the user's session
+    // to prevent CSRF attacks. It would contain the real user ID.
+    // For this demonstration, we'll assume a hardcoded user ID.
+    const userId = "DEFAULT_USER"; // Replace with actual user ID from state
 
     if (error) {
         console.error('Instagram callback error:', error);
@@ -26,22 +33,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('Invalid request. No authorization code found.')}`);
     }
 
-    if (!userId) {
-        return res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent('User could not be identified.')}`);
-    }
-
     try {
+        const app = initializeFirebaseSDK();
+        const firestore = getFirestore(app);
+
+        // Fetch credentials for the user
         const credsRef = doc(firestore, 'users', userId, 'platformCredentials', 'Instagram');
         const credsSnap = await getDoc(credsRef);
         if (!credsSnap.exists()) {
-            throw new Error("Instagram credentials are not configured. Please save your App ID and Secret on the API Keys page.");
+            throw new Error("Instagram credentials are not configured for this user. Please save them on the API Keys page.");
         }
         const credentials = credsSnap.data() as PlatformCredentials;
-
-        // Use server-side variables to construct the redirect URI
+        
+        // Construct the redirect URI using server-side environment variables for security
         const redirectUri = `${process.env.APP_URL}${process.env.INSTAGRAM_REDIRECT_URI}`;
-        if (!process.env.APP_URL || !process.env.INSTAGRAM_REDIRECT_URI) {
-            throw new Error("Server environment variables for redirect URI are not set.");
+        if(!process.env.APP_URL || !process.env.INSTAGRAM_REDIRECT_URI){
+            throw new Error("Server environment variables for redirect URI are not correctly set by the app owner.");
         }
 
         const { accessToken: shortLivedToken } = await getInstagramAccessToken({
@@ -63,13 +70,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         const socialMediaAccountsCollection = collection(firestore, `users/${userId}/socialMediaAccounts`);
 
+        // Save Instagram Business Account
         if (instagramId) {
             const accountDocRef = doc(socialMediaAccountsCollection, instagramId);
             const accountData: Omit<SocialMediaAccount, 'id'> = {
                 userId: userId,
                 platform: 'Instagram',
-                accessToken: longLivedToken,
-                pageAccessToken: pageAccessToken,
+                accessToken: longLivedToken, // User's long-lived token
+                pageAccessToken: pageAccessToken, // Page-specific token
                 username: username,
                 instagramId: instagramId,
                 facebookPageId: facebookPageId,
@@ -81,6 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             await setDoc(accountDocRef, accountData, { merge: true });
         }
 
+        // Save linked Facebook Page
         if (facebookPageId && facebookPageName) {
             const fbAccountDocRef = doc(socialMediaAccountsCollection, facebookPageId);
             const fbAccountData: Omit<SocialMediaAccount, 'id'> = {
@@ -99,10 +108,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
              await setDoc(fbAccountDocRef, fbAccountData, { merge: true });
         }
         
+        // Redirect back to the app on success
         res.redirect('/uploader_panel?view=connected-accounts&success=true');
 
     } catch (err: any) {
-        console.error('Failed to exchange Instagram token or save account:', err);
+        console.error('Full Instagram callback error:', err);
         const errorMessage = err.message || 'An unknown error occurred while connecting to Instagram.';
         res.redirect(`/uploader_panel?view=api-keys&error=${encodeURIComponent(errorMessage)}`);
     }
