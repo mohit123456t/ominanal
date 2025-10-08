@@ -15,7 +15,7 @@ const Logo = () => (
             fill="currentColor"
             />
         </svg>
-        <h2 className="font-bold text-lg text-foreground">OmniPost AI</h2>
+        <h2 className="font-bold text-lg text-foreground">TrendXoda</h2>
     </div>
 );
 
@@ -53,7 +53,7 @@ export default function PublicLayout({
         </main>
          <footer className="bg-background border-t border-border/50">
             <div className="container mx-auto py-6 px-6 text-center text-sm text-muted-foreground">
-                © {new Date().getFullYear()} OmniPost AI. All Rights Reserved.
+                © {new Date().getFullYear()} TrendXoda. All Rights Reserved.
             </div>
         </footer>
     </div>

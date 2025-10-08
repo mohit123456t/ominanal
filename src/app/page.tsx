@@ -41,7 +41,7 @@ export default function RootPage() {
                         Automate Your <span className="text-primary">Social Media,</span> Elevate Your Brand.
                     </h1>
                     <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-                        OmniPost is your intelligent, all-in-one platform to create, schedule, and analyze your social media presence, freeing you to focus on growth.
+                        TrendXoda is your intelligent, all-in-one platform to create, schedule, and analyze your social media presence, freeing you to focus on growth.
                     </p>
                     <div className="mt-8 flex items-center gap-4">
                          <Button size="lg" asChild className="shadow-lg hover:shadow-primary/30 transition-shadow">
@@ -76,7 +76,7 @@ export default function RootPage() {
                            </div>
                         </div>
                         <p className="text-xs text-muted-foreground font-medium">
-                            <span className="font-bold text-foreground">12,000+ happy clients</span> are automating their social media presence with OmniPost AI.
+                            <span className="font-bold text-foreground">12,000+ happy clients</span> are automating their social media presence with TrendXoda.
                         </p>
                     </div>
                 </MotionCard>
@@ -108,7 +108,7 @@ export default function RootPage() {
         <div id="about" className="py-20 md:py-28 bg-secondary/30">
             <div className="container mx-auto px-4 text-center">
                 <MotionCard>
-                     <h2 className="text-3xl md:text-4xl font-bold">About OmniPost AI</h2>
+                     <h2 className="text-3xl md:text-4xl font-bold">About TrendXoda</h2>
                     <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">This is where you can talk about your company's mission and vision. More content coming soon!</p>
                 </MotionCard>
             </div>
@@ -128,7 +128,7 @@ export default function RootPage() {
             <div className="container mx-auto px-4 text-center">
                  <MotionCard>
                     <h2 className="text-3xl md:text-4xl font-bold">Ready to Elevate Your Digital Strategy?</h2>
-                    <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Let's make things happen. Join OmniPost today and start automating your success.</p>
+                    <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Let's make things happen. Join TrendXoda today and start automating your success.</p>
                     <div className="mt-8">
                         <Button size="lg" asChild className="shadow-lg shadow-primary/20 transition-all">
                              <Link href="/signup">

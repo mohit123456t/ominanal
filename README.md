@@ -1,2 +1,2 @@
-# ominanal
+# TrendXoda
 # omin-app

@@ -32,7 +32,7 @@ const getPageTitle = (pathname: string): string => {
     case '/admin_panel':
       return 'Admin Dashboard';
     default:
-      return 'OmniPost AI';
+      return 'TrendXoda';
   }
 };
 

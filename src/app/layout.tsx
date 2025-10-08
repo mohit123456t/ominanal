@@ -11,7 +11,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: 'OmniPost AI',
+  title: 'TrendXoda',
   description: 'An intelligent, all-in-one Social Media Management SaaS platform.',
 };
 
