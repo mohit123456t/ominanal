@@ -130,11 +130,8 @@ function AdminPanel() {
     const expensesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'expenses')) : null, [firestore]);
     const { data: expenses, isLoading: expensesLoading } = useCollection(expensesQuery);
     
-    // Consolidate all transactions from all users
-    const allTransactions = useMemo(() => {
-        if (!users) return [];
-        return users.flatMap(u => (u.transactions || []).map((t: any) => ({ ...t, brandId: u.id })));
-    }, [users]);
+    const transactionsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'transactions')) : null, [firestore]);
+    const { data: allTransactions, isLoading: transactionsLoading } = useCollection(transactionsQuery);
 
 
     const brands = useMemo(() => users?.filter(u => u.role === 'brand') || [], [users]);
@@ -221,7 +218,7 @@ function AdminPanel() {
         setActiveView('brand_view');
     };
 
-    const isLoading = usersLoading || campaignsLoading || isProfileLoading || expensesLoading;
+    const isLoading = usersLoading || campaignsLoading || isProfileLoading || expensesLoading || transactionsLoading;
 
     const renderView = () => {
         if (isLoading && !adminProfile) { // Show loading only on initial load
