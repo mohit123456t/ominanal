@@ -33,12 +33,12 @@ export default function RootPage() {
         <div className="relative overflow-hidden bg-background">
              <div className="container mx-auto px-6 py-24 md:py-32 grid lg:grid-cols-2 gap-12 items-center">
                 <MotionCard>
-                    <div className="inline-flex items-center bg-blue-100 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-4">
+                    <div className="inline-flex items-center bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-4">
                         <Sparkles className="w-4 h-4 mr-2"/>
-                        Working for your success
+                        #1 AI Social Media Tool
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-tight">
-                        Automate Your <span className="text-primary">Social Media,</span> Elevate Your Brand.
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+                        Automate The Manual Work, Not The Results.
                     </h1>
                     <p className="mt-6 max-w-xl text-lg text-muted-foreground">
                         TrendXoda is your intelligent, all-in-one platform to create, schedule, and analyze your social media presence, freeing you to focus on growth.
@@ -46,85 +46,80 @@ export default function RootPage() {
                     <div className="mt-8 flex items-center gap-4">
                          <Button size="lg" asChild className="shadow-lg hover:shadow-primary/30 transition-shadow">
                             <Link href="/signup">
-                                Get Started <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                        </Button>
-                         <Button size="lg" variant="ghost" asChild>
-                            <Link href="#services">
-                                <PlayCircle className="mr-2 h-5 w-5" />
-                                Watch Demo
+                                Get Started For Free <ArrowRight className="ml-2 h-5 w-5" />
                             </Link>
                         </Button>
                     </div>
                 </MotionCard>
-                 <MotionCard delay={0.1} className="hidden lg:block relative">
+                 <MotionCard delay={0.1} className="hidden lg:block relative h-[450px]">
                     <Image 
-                        src="https://picsum.photos/seed/collab/800/600"
-                        alt="Team collaborating on social media analytics"
+                        src="https://picsum.photos/seed/dashboard/800/600"
+                        alt="Dashboard preview of TrendXoda"
                         width={800}
                         height={600}
-                        className="rounded-2xl shadow-2xl"
-                        data-ai-hint="team collaborating"
+                        className="rounded-2xl shadow-2xl absolute top-0 left-0 w-full h-full object-cover"
+                        data-ai-hint="dashboard ui"
                     />
-                     <div className="absolute -bottom-8 right-8 bg-white/70 backdrop-blur-lg p-4 rounded-xl shadow-xl border w-72">
-                        <div className="flex items-center mb-2">
-                           <div className="flex -space-x-2">
-                            <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white" src="https://picsum.photos/seed/avatar1/40/40" alt="User 1"/>
-                            <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white" src="https://picsum.photos/seed/avatar2/40/40" alt="User 2"/>
-                            <img className="inline-block h-8 w-8 rounded-full ring-2 ring-white" src="https://picsum.photos/seed/avatar3/40/40" alt="User 3"/>
-                             <div className="h-8 w-8 rounded-full ring-2 ring-white bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">+12k</div>
-                           </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground font-medium">
-                            <span className="font-bold text-foreground">12,000+ happy clients</span> are automating their social media presence with TrendXoda.
-                        </p>
-                    </div>
                 </MotionCard>
             </div>
         </div>
         
-        {/* Stats Section */}
-        <div className="py-20 md:py-24">
-            <div className="container mx-auto px-6">
-                <div className="bg-white/50 backdrop-blur-lg rounded-2xl shadow-xl border p-8 grid grid-cols-2 lg:grid-cols-4 gap-8">
-                    {statCards.map((card, index) => (
-                        <MotionCard key={card.title} delay={index * 0.1}>
-                           <div className="text-center lg:text-left flex flex-col lg:flex-row items-center gap-4">
-                             <div className="p-4 bg-blue-100 rounded-lg">
-                                {card.icon}
-                             </div>
-                             <div>
-                                <p className="text-3xl font-bold text-foreground">{card.value}</p>
-                                <p className="text-sm font-semibold text-muted-foreground mt-1">{card.title}</p>
-                             </div>
-                           </div>
+        {/* How It Works Section */}
+        <div id="how-it-works" className="py-20 md:py-28 bg-secondary/30">
+            <div className="container mx-auto px-4">
+                <MotionCard className="text-center mb-16">
+                     <h2 className="text-3xl md:text-4xl font-bold">How It Works</h2>
+                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">Three simple steps to automate your social media and supercharge your growth with TrendXoda.</p>
+                </MotionCard>
+
+                <div className="space-y-20">
+                    {/* Step 1 */}
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <MotionCard>
+                            <div className="mb-4">
+                                <span className="inline-block px-4 py-2 bg-primary/10 text-primary font-bold rounded-full">Step 1</span>
+                            </div>
+                            <h3 className="text-3xl font-bold mb-4">Create with AI</h3>
+                            <p className="text-muted-foreground text-lg">Generate engaging captions, viral video scripts, and brilliant campaign ideas in seconds. Our AI is trained to understand your brand and create content that converts.</p>
                         </MotionCard>
-                    ))}
+                        <MotionCard delay={0.2}>
+                            <Image src="https://picsum.photos/seed/ai-creation/800/600" alt="AI content creation" width={800} height={600} className="rounded-2xl shadow-xl" data-ai-hint="ai content" />
+                        </MotionCard>
+                    </div>
+
+                    {/* Step 2 */}
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                         <MotionCard delay={0.2} className="md:order-last">
+                             <div className="mb-4">
+                                <span className="inline-block px-4 py-2 bg-primary/10 text-primary font-bold rounded-full">Step 2</span>
+                            </div>
+                            <h3 className="text-3xl font-bold mb-4">Schedule with Ease</h3>
+                            <p className="text-muted-foreground text-lg">Plan your content calendar across all your platforms from one simple interface. Our AI can even suggest the best time to post for maximum engagement.</p>
+                        </MotionCard>
+                        <MotionCard>
+                            <Image src="https://picsum.photos/seed/scheduling/800/600" alt="Social media scheduling calendar" width={800} height={600} className="rounded-2xl shadow-xl" data-ai-hint="calendar schedule" />
+                        </MotionCard>
+                    </div>
+
+                     {/* Step 3 */}
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <MotionCard>
+                             <div className="mb-4">
+                                <span className="inline-block px-4 py-2 bg-primary/10 text-primary font-bold rounded-full">Step 3</span>
+                            </div>
+                            <h3 className="text-3xl font-bold mb-4">Track Performance</h3>
+                            <p className="text-muted-foreground text-lg">Get deep insights into what's working. Track your growth, engagement, and reach with our beautiful and easy-to-understand analytics dashboard.</p>
+                        </MotionCard>
+                        <MotionCard delay={0.2}>
+                            <Image src="https://picsum.photos/seed/analytics-graph/800/600" alt="Analytics dashboard with graphs" width={800} height={600} className="rounded-2xl shadow-xl" data-ai-hint="analytics graph" />
+                        </MotionCard>
+                    </div>
                 </div>
             </div>
         </div>
 
-        {/* Placeholder sections for future content */}
-        <div id="about" className="py-20 md:py-28 bg-secondary/30">
-            <div className="container mx-auto px-4 text-center">
-                <MotionCard>
-                     <h2 className="text-3xl md:text-4xl font-bold">About TrendXoda</h2>
-                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">This is where you can talk about your company's mission and vision. More content coming soon!</p>
-                </MotionCard>
-            </div>
-        </div>
-
-        <div id="features" className="py-20 md:py-28">
-            <div className="container mx-auto px-4 text-center">
-                <MotionCard>
-                     <h2 className="text-3xl md:text-4xl font-bold">Features That Set Us Apart</h2>
-                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">This section will detail all the amazing features of your platform. More content coming soon!</p>
-                </MotionCard>
-            </div>
-        </div>
-        
         {/* CTA Section */}
-        <div className="py-20 md:py-28 bg-secondary/30">
+        <div className="py-20 md:py-28">
             <div className="container mx-auto px-4 text-center">
                  <MotionCard>
                     <h2 className="text-3xl md:text-4xl font-bold">Ready to Elevate Your Digital Strategy?</h2>
