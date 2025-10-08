@@ -5,7 +5,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, User, AtSign, Key } from 'lucide-react';
 
-const ProfileView = ({ userProfile: initialProfile }: { userProfile: any, onProfileUpdate: (profile: any) => void }) => {
+const ProfileView = ({ userProfile: initialProfile, onProfileUpdate }: { userProfile: any, onProfileUpdate: (profile: any) => void }) => {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
