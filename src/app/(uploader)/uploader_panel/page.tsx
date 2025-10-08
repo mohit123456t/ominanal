@@ -25,7 +25,6 @@ import UploadView from '@/components/uploader/UploadView';
 import ApiKeysView from '@/components/uploader/ApiKeysView';
 import ConnectedAccountsView from '@/components/uploader/ConnectedAccountsView';
 import { useAuth, useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
 import { PlatformCredentials, SocialMediaAccount, Post } from '@/lib/types';
 
 
@@ -36,10 +35,7 @@ const NavItem = ({ icon, label, active, onClick, collapsed }: { icon: React.Reac
             active 
                 ? 'bg-blue-50 text-blue-600 shadow-sm' 
                 : 'text-slate-500 hover:bg-gray-100 hover:text-slate-900'
-        } ${collapsed ? 'justify-center' : ''}`
-    }
-        aria-label={label}
-        tabIndex={0}
+        } ${collapsed ? 'justify-center' : ''}`}
     >
         <span className={collapsed ? '' : 'mr-3'}>{icon}</span>
         {!collapsed && <span>{label}</span>}
@@ -150,7 +146,6 @@ const UploaderPanel = () => {
                     <button
                         onClick={() => setSidebarCollapsed(p => !p)}
                         className="text-slate-500 hover:text-slate-900 p-1 rounded-full hover:bg-gray-100 transition-all"
-                        aria-label="Toggle sidebar"
                     >
                         {sidebarCollapsed ? <Menu /> : <X />}
                     </button>
