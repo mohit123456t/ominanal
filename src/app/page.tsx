@@ -9,7 +9,7 @@ const Globe = React.lazy(() => import('@/components/magicui/globe'));
 
 const FeatureCard = ({ icon, title, description, delay }: { icon: React.ReactNode, title: string, description: string, delay: number }) => (
     <motion.div 
-        className="bg-white/50 backdrop-blur-lg p-6 rounded-2xl border border-slate-200 shadow-lg text-center"
+        className="bg-white/30 backdrop-blur-lg p-6 rounded-2xl border border-slate-200/50 shadow-lg text-center transition-all duration-300 hover:shadow-primary/20 hover:border-primary/30 hover:-translate-y-1"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -24,7 +24,7 @@ const FeatureCard = ({ icon, title, description, delay }: { icon: React.ReactNod
 );
 
 const StepCard = ({ step, title, description }: { step: string, title: string, description: string }) => (
-    <div className="bg-slate-100 p-6 rounded-xl border border-slate-200">
+    <div className="bg-white/40 backdrop-blur-sm p-6 rounded-xl border border-slate-200/60 shadow-md">
          <div className="text-4xl font-black text-primary/20 mb-2">{step}</div>
         <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
         <p className="text-sm text-slate-600 mt-1">{description}</p>
@@ -33,19 +33,19 @@ const StepCard = ({ step, title, description }: { step: string, title: string, d
 
 export default function RootPage() {
   return (
-    <div className="w-full font-sans">
+    <div className="w-full font-sans bg-slate-50">
         {/* Hero Section */}
-        <div className="relative overflow-hidden bg-gradient-to-b from-slate-50 to-slate-200/50">
+        <div className="relative overflow-hidden bg-gradient-to-b from-slate-100 via-slate-50 to-white">
              <div className="container mx-auto px-4 py-20 md:py-32 text-center relative z-10">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                     <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tighter">
-                        <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Eliminate Manual Work</span>, Automate Results.
+                        <span className="bg-gradient-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent">Eliminate Manual Work</span>, Automate Results.
                     </h1>
                     <p className="mt-6 max-w-2xl mx-auto text-lg text-slate-600">
                         OmniPost is your all-in-one AI-powered platform to create, schedule, and analyze your social media presence, freeing you to focus on what matters most.
                     </p>
                     <div className="mt-8 flex justify-center gap-4">
-                         <Button size="lg" asChild>
+                         <Button size="lg" asChild className="shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-shadow">
                             <Link href="/signup">
                                 Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
                             </Link>
@@ -61,7 +61,7 @@ export default function RootPage() {
         </div>
         
         {/* Features Section */}
-        <div className="py-20 md:py-28 bg-white">
+        <div className="py-20 md:py-28 bg-white/50 backdrop-blur-sm">
             <div className="container mx-auto px-4">
                  <div className="text-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold text-slate-800">Everything You Need, All in One Place</h2>
@@ -91,7 +91,7 @@ export default function RootPage() {
         </div>
 
         {/* How it Works Section */}
-         <div className="py-20 md:py-28 bg-slate-50">
+         <div className="py-20 md:py-28 bg-slate-100/70">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl md:text-4xl font-bold text-slate-800">Get Started in 3 Simple Steps</h2>
