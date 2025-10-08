@@ -34,13 +34,13 @@ function InstagramCallback() {
         title: 'Connection Failed',
         description: 'The connection was denied or an error occurred.',
       });
-      setTimeout(() => router.push('/connected-accounts'), 3000);
+      setTimeout(() => router.push('/uploader_panel?view=connected-accounts'), 3000);
       return;
     }
 
     if (!code) {
         setError('Invalid request. No authorization code found.');
-        setTimeout(() => router.push('/connected-accounts'), 3000);
+        setTimeout(() => router.push('/uploader_panel?view=connected-accounts'), 3000);
         return;
     }
 
@@ -107,7 +107,7 @@ function InstagramCallback() {
           description: `Successfully connected Instagram as @${username} and Facebook Page "${facebookPageName}".`,
         });
 
-        router.push('/connected-accounts');
+        router.push('/uploader_panel?view=connected-accounts');
 
       } catch (err: any) {
         console.error('Failed to exchange token or save account:', err);
@@ -117,7 +117,7 @@ function InstagramCallback() {
           title: 'Connection Failed',
           description: err.message || 'Could not save your account connection. Please try again.',
         });
-        setTimeout(() => router.push('/api-keys'), 5000);
+        setTimeout(() => router.push('/uploader_panel?view=api-keys'), 5000);
       }
     };
 
@@ -151,5 +151,3 @@ export default function InstagramCallbackPage() {
         </Suspense>
     )
 }
-
-    
