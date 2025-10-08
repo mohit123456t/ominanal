@@ -93,7 +93,7 @@ export default function SignupPage() {
   };
 
   return (
-     <div className="w-full max-w-4xl mx-auto bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-slate-300/20 overflow-hidden">
+     <div className="w-full max-w-4xl mx-auto bg-card/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-border/20 overflow-hidden">
         <div className="grid md:grid-cols-2">
             <div className="p-8 md:p-12 flex flex-col justify-center">
                 <Logo />
@@ -136,7 +136,7 @@ export default function SignupPage() {
                     </Link>
                 </p>
             </div>
-             <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-indigo-100 to-purple-100 p-8">
+             <div className="hidden md:flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-8">
                  <Image
                     src="https://picsum.photos/seed/signup/600/450"
                     alt="Signup illustration"
