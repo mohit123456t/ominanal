@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, CheckCircle, Download, File, LoaderCircle, MessageSquare, Scissors, Upload, XCircle, BrainCircuit } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Download, File, LoaderCircle, MessageSquare, Scissors, Upload, XCircle, BrainCircuit, Clipboard } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -18,7 +18,7 @@ const StatusBadge = ({ status }: { status: string }) => {
         "Approved": "bg-green-100 text-green-800",
         "Revision": "bg-orange-100 text-orange-800",
     };
-    return <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${statusClasses[status] || 'bg-gray-100'}`}>{status}</span>;
+    return <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusClasses[status] || 'bg-gray-100'}`}>{status}</span>;
 };
 
 const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: () => void }) => {
@@ -51,7 +51,6 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
     }, [task.videoTitle, toast]);
 
     useEffect(() => {
-        // Automatically generate script if content is empty when component mounts
         if (!initialTask.content) {
             handleGenerateAIScript();
         }
@@ -86,55 +85,57 @@ const TaskDetailsView = ({ task: initialTask, onClose }: { task: any, onClose: (
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
         >
-            <div className="p-5 border-b border-slate-300/50 flex justify-between items-center flex-shrink-0">
+            <div className="p-6 border-b border-slate-300/50 flex justify-between items-center flex-shrink-0">
                 <div>
-                    <h2 className="text-xl font-bold text-slate-800">Task: {task.videoTitle}</h2>
+                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Task: {task.videoTitle}</h2>
                     <p className="text-sm text-slate-500">Campaign: {task.campaignName}</p>
                 </div>
                 <StatusBadge status={task.status} />
             </div>
-            <div className="p-6 overflow-y-auto space-y-6 flex-1">
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="p-6 md:p-8 overflow-y-auto space-y-6 flex-1">
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white/50 p-4 rounded-lg border border-slate-200">
-                            <h3 className="font-bold text-lg mb-2 text-slate-800">AI-Powered Script Editor</h3>
-                            <div className="flex justify-end mb-2">
+                        <div className="bg-white/60 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <h3 className="font-bold text-lg mb-3 text-slate-800 flex items-center">
+                                <BrainCircuit className="mr-2 text-indigo-600"/>AI-Powered Script Editor
+                            </h3>
+                            <div className="flex justify-end mb-3">
                                 <button
                                     onClick={handleGenerateAIScript}
                                     disabled={isGenerating}
-                                    className="flex items-center text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-md hover:bg-indigo-200 disabled:opacity-50"
+                                    className="flex items-center text-xs font-semibold bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg hover:bg-indigo-200 disabled:opacity-50"
                                 >
-                                    {isGenerating ? <LoaderCircle size={14} className="animate-spin mr-1.5" /> : <BrainCircuit size={14} className="mr-1.5" />}
+                                    {isGenerating ? <LoaderCircle size={16} className="animate-spin mr-1.5" /> : <BrainCircuit size={16} className="mr-1.5" />}
                                     {isGenerating ? 'Regenerating...' : 'Regenerate with AI'}
                                 </button>
                             </div>
                              <textarea 
                                 placeholder={isGenerating ? "AI is writing, please wait..." : "Your script will appear here. You can edit it before submitting."} 
                                 rows={15} 
-                                className="w-full p-3 border border-slate-300 rounded-md text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500 outline-none"
+                                className="w-full p-4 border border-slate-300 rounded-xl text-sm leading-relaxed focus:ring-2 focus:ring-indigo-500 outline-none bg-white/70"
                                 value={scriptContent}
                                 onChange={(e) => setScriptContent(e.target.value)}
                             ></textarea>
                         </div>
                     </div>
                      <div className="space-y-6">
-                        <div className="bg-white/50 p-4 rounded-lg border border-slate-200">
-                             <h3 className="font-bold text-lg mb-3 text-slate-800">Task Info</h3>
-                              <div className="space-y-2 text-sm">
-                                <p><strong className="text-slate-600">Deadline:</strong> <span className="font-semibold text-red-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</span></p>
-                                <p><strong className="text-slate-600">Brand:</strong> <span className="font-semibold">{task.brandName}</span></p>
+                        <div className="bg-white/60 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                             <h3 className="font-bold text-lg mb-4 text-slate-800">Task Info</h3>
+                              <div className="space-y-3 text-sm">
+                                <p><strong className="text-slate-600 block">Deadline:</strong> <span className="font-semibold text-red-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</span></p>
+                                <p><strong className="text-slate-600 block">Brand:</strong> <span className="font-semibold text-slate-800">{task.brandName}</span></p>
                               </div>
                         </div>
-                        <div className="bg-white/50 p-4 rounded-lg border border-slate-200">
+                        <div className="bg-white/60 p-5 rounded-2xl border border-slate-200 shadow-sm">
                              <h3 className="font-bold text-lg mb-3 text-slate-800">Description</h3>
-                             <p className="text-sm text-slate-600">{task.description || "No description provided."}</p>
+                             <p className="text-sm text-slate-600 leading-relaxed">{task.description || "No description provided."}</p>
                         </div>
                      </div>
                  </div>
             </div>
-            <div className="p-5 flex justify-end space-x-3 border-t border-slate-300/50 bg-slate-100/80 rounded-b-2xl">
-                <button onClick={onClose} className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-slate-200 hover:bg-slate-300 rounded-lg">Cancel</button>
-                <button onClick={handleSaveChanges} disabled={isSaving || !scriptContent} className="flex items-center px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 shadow-lg shadow-indigo-500/20">
+            <div className="p-5 flex justify-end space-x-3 border-t border-slate-300/50 bg-slate-100/80 rounded-b-2xl flex-shrink-0">
+                <button onClick={onClose} className="px-6 py-2.5 text-sm font-semibold text-slate-700 rounded-lg hover:bg-slate-900/10 transition-colors">Cancel</button>
+                <button onClick={handleSaveChanges} disabled={isSaving || !scriptContent} className="flex items-center px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 shadow-lg shadow-indigo-500/30">
                      {isSaving ? <LoaderCircle size={18} className="animate-spin mr-2"/> : <CheckCircle size={16} className="mr-2"/>}
                     {isSaving ? 'Submitting...' : 'Approve & Submit Script'}
                 </button>
@@ -152,36 +153,48 @@ const TasksView = ({ tasks, isLoading }: { tasks: any[], isLoading: boolean }) =
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200/80">
-            <div className="p-4 border-b">
-                 <h3 className="font-bold text-lg text-slate-800 mb-2">Assigned Tasks for Script Review</h3>
+        <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80">
+            <div className="p-6 border-b border-slate-300/50">
+                 <h3 className="font-bold text-xl text-slate-800">Assigned Tasks for Script Review</h3>
             </div>
-            <div className="p-4">
+            <div className="p-6">
                 {isLoading ? (
-                    <div className="text-center py-8">
-                        <LoaderCircle className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
-                        <h3 className="text-lg font-semibold text-slate-900 mt-4">Loading Tasks...</h3>
+                    <div className="text-center py-12">
+                        <LoaderCircle className="h-10 w-10 animate-spin text-indigo-600 mx-auto" />
+                        <h3 className="text-lg font-semibold text-slate-700 mt-4">Loading Tasks...</h3>
                     </div>
                 ) : tasks.length === 0 ? (
-                    <div className="text-center py-12">
-                        <div className="text-slate-400 mb-4 text-4xl mx-auto w-fit">📝</div>
-                        <h3 className="text-lg font-semibold text-slate-900 mb-2">No tasks assigned</h3>
-                        <p className="text-slate-600">You have no active script-writing tasks.</p>
+                    <div className="text-center py-16">
+                        <div className="text-slate-400 mb-4 text-5xl mx-auto w-fit">📝</div>
+                        <h3 className="text-xl font-semibold text-slate-800 mb-2">No tasks assigned</h3>
+                        <p className="text-slate-500">You're all caught up! Check back later for new script assignments.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {tasks.map((task) => (
-                            <div key={task.id} className="bg-slate-50 p-4 rounded-lg border border-slate-200 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-semibold text-slate-800">{task.videoTitle}</h4>
-                                    <StatusBadge status={task.status} />
-                                </div>
-                                <p className="text-xs text-slate-500 mb-2">Due: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'No deadline'}</p>
-                                <button onClick={() => handleOpenModal(task)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    Review AI Script
-                                </button>
-                            </div>
-                        ))}
+                     <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="border-b-2 border-slate-300/50">
+                                <tr>
+                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Video Title</th>
+                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">Due Date</th>
+                                    <th className="p-4 text-xs font-semibold text-slate-600 uppercase tracking-wider text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-300/50">
+                                {tasks.map((task) => (
+                                    <tr key={task.id} className="hover:bg-white/30 transition-colors">
+                                        <td className="p-4 font-medium text-slate-800">{task.videoTitle}</td>
+                                        <td className="p-4"><StatusBadge status={task.status} /></td>
+                                        <td className="p-4 text-slate-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
+                                        <td className="p-4 text-right">
+                                            <button onClick={() => handleOpenModal(task)} className="font-semibold text-indigo-600 hover:underline">
+                                                Review AI Script
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
             </div>

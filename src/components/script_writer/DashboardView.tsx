@@ -1,5 +1,22 @@
 'use client';
 import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
+
+const StatCard = ({ title, value, icon, color, delay = 0 }: { title: string, value: string | number, icon: React.ReactNode, color: string, delay?: number }) => (
+    <motion.div
+        className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: delay * 0.1 }}
+        whileHover={{ y: -5, scale: 1.02 }}
+    >
+        <div className="flex items-center justify-between mb-2">
+            <h3 className="text-md font-semibold text-slate-700">{title}</h3>
+            <div className={`p-2.5 rounded-lg ${color}`}>{icon}</div>
+        </div>
+        <p className="text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
+    </motion.div>
+);
 
 const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, tasks: any[], onTaskClick: (task: any) => void }) => {
     
@@ -7,7 +24,8 @@ const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, 
         const pending = tasks.filter(t => t.status === 'Pending' || t.status === 'In Progress').length;
         const inProgress = tasks.filter(t => t.status === 'In Progress').length;
         const approved = tasks.filter(t => t.status === 'Approved').length;
-        return { pending, inProgress, approved };
+        const completed = tasks.filter(t => t.status === 'Completed').length;
+        return { pending, inProgress, approved, completed };
     }, [tasks]);
 
     const getStatusChipStyle = (status: string) => {
@@ -22,64 +40,60 @@ const DashboardView = ({ userProfile, tasks, onTaskClick }: { userProfile: any, 
 
     return (
         <div className="space-y-8">
-            {/* Welcome Header */}
             <div>
-                <h1 className="text-2xl font-bold text-slate-900">Welcome back, {userProfile?.name?.split(' ')[0]}!</h1>
-                <p className="text-slate-600">Here's what's happening with your scripts today.</p>
+                <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Good morning, {userProfile?.name?.split(' ')[0]}!</h1>
+                <p className="text-slate-500 mt-1">Here's your script writing overview.</p>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-                    <p className="text-sm font-medium text-slate-500">Pending Scripts</p>
-                    <p className="text-3xl font-bold text-slate-800">{stats.pending}</p>
-                </div>
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-                    <p className="text-sm font-medium text-slate-500">Scripts In Progress</p>
-                    <p className="text-3xl font-bold text-slate-800">{stats.inProgress}</p>
-                </div>
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200/80">
-                    <p className="text-sm font-medium text-slate-500">Approved Scripts</p>
-                    <p className="text-3xl font-bold text-slate-800">{stats.approved}</p>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="Pending Scripts" value={stats.pending} icon={<div className="h-6 w-6 bg-yellow-500 rounded-sm" />} color="bg-yellow-100" delay={1} />
+                <StatCard title="In Progress" value={stats.inProgress} icon={<div className="h-6 w-6 bg-blue-500 rounded-sm" />} color="bg-blue-100" delay={2} />
+                <StatCard title="Approved Scripts" value={stats.approved} icon={<div className="h-6 w-6 bg-green-500 rounded-sm" />} color="bg-green-100" delay={3} />
+                <StatCard title="Total Completed" value={stats.completed} icon={<div className="h-6 w-6 bg-purple-500 rounded-sm" />} color="bg-purple-100" delay={4} />
             </div>
 
-            {/* Recent Tasks Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200/80">
-                <h3 className="font-bold text-lg p-6 border-b text-slate-800">Your Active Tasks</h3>
+            <motion.div 
+                className="bg-white/40 backdrop-blur-xl rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+            >
+                <h3 className="font-bold text-xl p-6 border-b border-slate-300/50 text-slate-800">Your Active Tasks</h3>
                 {tasks.length === 0 ? (
-                    <div className="p-6 text-center">
+                    <div className="p-10 text-center">
                         <p className="text-slate-600">No tasks assigned to you yet.</p>
                     </div>
                 ) : (
-                    <table className="w-full text-sm text-left text-slate-600">
-                        <thead className="text-xs text-slate-700 uppercase bg-slate-50">
-                            <tr>
-                                <th className="px-6 py-3">Video Title</th>
-                                <th className="px-6 py-3">Status</th>
-                                <th className="px-6 py-3">Due Date</th>
-                                <th className="px-6 py-3"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tasks.slice(0, 5).map(task => ( // Show only top 5 recent tasks
-                                <tr key={task.id} className="border-b hover:bg-slate-50">
-                                    <td className="px-6 py-4 font-medium text-slate-900">{task.videoTitle}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusChipStyle(task.status)}`}>
-                                            {task.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button onClick={() => onTaskClick(task)} className="font-medium text-blue-600 hover:underline">View Details</button>
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="border-b border-slate-300/50">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase">Video Title</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase">Status</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase">Due Date</th>
+                                    <th className="px-6 py-4 text-xs font-semibold text-slate-600 uppercase"></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-300/50">
+                                {tasks.slice(0, 5).map(task => (
+                                    <tr key={task.id} className="hover:bg-white/30 transition-colors">
+                                        <td className="px-6 py-4 font-medium text-slate-800">{task.videoTitle}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusChipStyle(task.status)}`}>
+                                                {task.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-600">{task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={() => onTaskClick(task)} className="font-semibold text-indigo-600 hover:underline">View Details</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 )}
-            </div>
+            </motion.div>
         </div>
     );
 };
