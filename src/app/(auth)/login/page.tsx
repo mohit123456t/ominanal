@@ -136,7 +136,7 @@ export default function LoginPage() {
             <div className="p-8 md:p-12 flex flex-col justify-center">
                 <Logo />
                 <h1 className="text-2xl font-bold text-foreground mt-4">Login to your account</h1>
-                <p className="text-muted-foreground mt-2 text-sm">Welcome back! Please enter your details.</p>
+                <p className="text-slate-500 mt-2 text-sm">Welcome back! Please enter your details.</p>
 
                 <div className="mt-8 space-y-6">
                     <div className="space-y-2">
@@ -174,7 +174,7 @@ export default function LoginPage() {
                         Login
                     </Button>
                 </div>
-                 <p className="text-center text-sm text-muted-foreground mt-8">
+                 <p className="text-center text-sm text-slate-500 mt-8">
                     Are you a new brand?{' '}
                     <Link href="/signup" className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80">
                         Sign Up

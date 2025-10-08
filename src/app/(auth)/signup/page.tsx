@@ -98,7 +98,7 @@ export default function SignupPage() {
             <div className="p-8 md:p-12 flex flex-col justify-center">
                 <Logo />
                 <h1 className="text-2xl font-bold text-foreground mt-4">Create your Brand Account</h1>
-                <p className="text-muted-foreground mt-2 text-sm">Join us to boost your social media presence.</p>
+                <p className="text-slate-500 mt-2 text-sm">Join us to boost your social media presence.</p>
 
                 <div className="mt-8 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -129,7 +129,7 @@ export default function SignupPage() {
                         Create Account
                     </Button>
                 </div>
-                 <p className="text-center text-sm text-muted-foreground mt-8">
+                 <p className="text-center text-sm text-slate-500 mt-8">
                     Already have an account?{' '}
                     <Link href="/login" className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80">
                         Log In

@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
             <div className="p-8 md:p-12 flex flex-col justify-center">
                 <Logo />
                 <h1 className="text-2xl font-bold text-foreground mt-4">Reset Password</h1>
-                <p className="text-muted-foreground mt-2 text-sm">
+                <p className="text-slate-500 mt-2 text-sm">
                  Enter your email to receive a password reset link.
                 </p>
 
@@ -92,7 +92,7 @@ export default function ForgotPasswordPage() {
                         />
                     </div>
                     ) : (
-                    <div className="text-center text-sm text-muted-foreground p-4 bg-primary/10 rounded-md">
+                    <div className="text-center text-sm text-slate-600 p-4 bg-primary/10 rounded-md">
                         <p>A reset link has been sent to your email address if an account exists. Please check your inbox (and spam folder).</p>
                     </div>
                     )}
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
                         </Button>
                     )}
                 </div>
-                 <p className="text-center text-sm text-muted-foreground mt-8">
+                 <p className="text-center text-sm text-slate-500 mt-8">
                     Remember your password?{' '}
                     <Link href="/login" className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80">
                         Log In
