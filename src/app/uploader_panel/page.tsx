@@ -75,6 +75,7 @@ function UploaderPanelContent() {
     useEffect(() => {
         if (!isUserLoading && !user) {
              router.push('/login');
+             return;
         }
         
         const viewFromUrl = searchParams.get('view');
@@ -89,11 +90,9 @@ function UploaderPanelContent() {
     }, [isUserLoading, user, router, searchParams]);
     
     useEffect(() => {
-        const viewFromUrl = searchParams.get('view');
-        if (!viewFromUrl) { // Only update localStorage if not navigating via URL
+        // Only update localStorage if not navigating via URL to prevent overwriting
+        if (!searchParams.get('view')) {
             localStorage.setItem('uploaderActiveView', activeView);
-        } else if (viewFromUrl !== activeView) {
-            setActiveView(viewFromUrl);
         }
     }, [activeView, searchParams]);
 
@@ -134,6 +133,15 @@ function UploaderPanelContent() {
         { id: 'profile', label: 'Profile', icon: <UserCircle /> },
     ];
 
+    const navigateToView = (view: string) => {
+        router.push(`/uploader_panel?view=${view}`, { scroll: false });
+        setActiveView(view);
+    };
+
+    if (isUserLoading || isProfileLoading) {
+       return <div className="flex h-screen w-full items-center justify-center"><LoaderCircle className="animate-spin h-10 w-10 text-primary" /></div>
+    }
+
     return (
         <div className="flex h-screen bg-gray-50 font-sans">
             <aside 
@@ -158,10 +166,7 @@ function UploaderPanelContent() {
                             icon={item.icon}
                             label={item.label}
                             active={activeView === item.id}
-                            onClick={() => {
-                                 router.push('/uploader_panel', { scroll: false });
-                                 setActiveView(item.id)
-                            }}
+                            onClick={() => navigateToView(item.id)}
                             collapsed={sidebarCollapsed}
                         />
                     ))}
@@ -201,7 +206,7 @@ function UploaderPanelContent() {
                     </div>
                 </header>
                 <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
-                    {isUserLoading && !userProfile ? <div className="flex h-full w-full items-center justify-center"><LoaderCircle className="animate-spin h-10 w-10 text-primary" /></div> : renderView()}
+                    {renderView()}
                 </div>
             </main>
         </div>
@@ -209,6 +214,9 @@ function UploaderPanelContent() {
 };
 
 export default function UploaderPanel() {
-    return <UploaderPanelContent />;
+    return (
+      <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><LoaderCircle className="animate-spin h-10 w-10 text-primary" /></div>}>
+        <UploaderPanelContent />
+      </Suspense>
+    );
 }
-    
