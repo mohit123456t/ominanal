@@ -38,10 +38,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         const credentials = credsSnap.data() as PlatformCredentials;
         
+        const redirectUri = `${process.env.APP_URL}${process.env.YOUTUBE_REDIRECT_URI}`;
+        if(!process.env.APP_URL || !process.env.YOUTUBE_REDIRECT_URI){
+             throw new Error("Server environment variables for redirect URI are not set.");
+        }
+        
         const { accessToken, refreshToken } = await getYoutubeTokens({
             code,
             clientId: credentials.clientId!,
             clientSecret: credentials.clientSecret!,
+            redirectUri: redirectUri,
         });
 
         const youtubeApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true&access_token=${accessToken}`;

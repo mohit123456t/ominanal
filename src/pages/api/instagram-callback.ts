@@ -46,11 +46,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!credentials.clientId || !credentials.clientSecret) {
           throw new Error("Client ID or Client Secret is missing from your saved credentials.");
         }
+        
+        // This is the critical fix: Ensure the server-side callback uses the same redirect URI
+        const redirectUri = `${process.env.APP_URL}${process.env.INSTAGRAM_REDIRECT_URI}`;
+        if(!process.env.APP_URL || !process.env.INSTAGRAM_REDIRECT_URI){
+             throw new Error("Server environment variables for redirect URI are not set.");
+        }
 
         const { accessToken: shortLivedToken } = await getInstagramAccessToken({ 
             code, 
             clientId: credentials.clientId, 
-            clientSecret: credentials.clientSecret 
+            clientSecret: credentials.clientSecret,
+            redirectUri: redirectUri,
         });
 
         const { longLivedToken } = await exchangeForLongLivedToken({

@@ -60,6 +60,7 @@ const GetYoutubeTokensInputSchema = z.object({
     code: z.string().describe('The authorization code from the redirect.'),
     clientId: z.string(),
     clientSecret: z.string(),
+    redirectUri: z.string().url(),
 });
 export type GetYoutubeTokensInput = z.infer<typeof GetYoutubeTokensInputSchema>;
 
@@ -72,11 +73,8 @@ const getYoutubeTokensFlow = ai.defineFlow({
       refreshToken: z.string().optional(),
       expiryDate: z.number(),
     }),
-}, async ({ code, clientId, clientSecret }) => {
-    if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI) {
-        throw new Error('YouTube redirect URI or public URL is not configured in the .env file. The app owner needs to set these.');
-    }
-    const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI}`;
+}, async ({ code, clientId, clientSecret, redirectUri }) => {
+    
     const oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,

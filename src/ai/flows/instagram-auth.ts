@@ -62,6 +62,7 @@ const GetInstagramAccessTokenInputSchema = z.object({
     code: z.string().describe('The authorization code from the redirect.'),
     clientId: z.string(),
     clientSecret: z.string(),
+    redirectUri: z.string().url(),
 });
 export type GetInstagramAccessTokenInput = z.infer<typeof GetInstagramAccessTokenInputSchema>;
 
@@ -75,11 +76,7 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
     name: 'getInstagramAccessTokenFlow',
     inputSchema: GetInstagramAccessTokenInputSchema,
     outputSchema: GetInstagramAccessTokenOutputSchema,
-}, async ({ code, clientId, clientSecret }) => {
-    if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
-        throw new Error('NEXT_PUBLIC_URL or NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI is not configured in the .env file. The app owner needs to configure this.');
-    }
-    const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}`;
+}, async ({ code, clientId, clientSecret, redirectUri }) => {
     
     const url = `https://graph.facebook.com/v20.0/oauth/access_token`;
     const params = new URLSearchParams({
@@ -140,9 +137,7 @@ const exchangeForLongLivedTokenFlow = ai.defineFlow({
         fb_exchange_token: shortLivedToken,
     });
 
-    const response = await fetch(url, {
-        method: 'GET', // Corrected from implicit GET to explicit
-    });
+    const response = await fetch(`${url}?${params.toString()}`);
 
     if (!response.ok) {
         const errorData: any = await response.json();
