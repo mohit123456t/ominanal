@@ -40,17 +40,23 @@ const Logo = () => (
 const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
     <motion.button
         onClick={onClick}
-        className={`relative flex items-center px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
+        className={`relative flex items-center px-4 py-2 text-sm rounded-lg transition-colors duration-200 ${
             active
-                ? 'text-indigo-600'
+                ? 'text-slate-900 font-semibold'
                 : 'text-slate-500 hover:text-slate-900'
         }`}
-        whileHover={{ y: -2 }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.98 }}
     >
         <span className="mr-2">{icon}</span>
         {label}
-        {active && <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" layoutId="underline" />}
+        {active && (
+            <motion.div
+                className="absolute inset-0 bg-white/60 rounded-lg -z-10"
+                layoutId="active-nav-pill"
+                transition={{ type: 'spring', stiffness: 170, damping: 25 }}
+            />
+        )}
     </motion.button>
 );
 
@@ -116,17 +122,13 @@ const ScriptWriterPanel = () => {
         { id: 'collaboration', label: 'Collaboration', icon: <MessageSquare size={18} /> },
     ];
     
-     const secondaryNavItems = [
-        { id: 'profile', label: 'Profile', icon: <UserCircle size={18} /> },
-    ];
-
     return (
         <div className="min-h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent font-sans text-slate-800">
              <header className="sticky top-0 z-50 bg-white/40 backdrop-blur-xl border-b border-slate-300/70">
                 <div className="container mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         <Logo />
-                        <nav className="hidden md:flex items-center gap-2">
+                        <nav className="hidden md:flex items-center gap-2 p-1 bg-black/5 rounded-xl">
                              {navItems.map((item) => (
                                 <NavItem
                                     key={item.id}
