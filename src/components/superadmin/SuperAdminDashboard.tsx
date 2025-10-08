@@ -1,16 +1,14 @@
-
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Briefcase,
   PlayCircle,
-  Rocket,
-  Clock,
-  CheckCircle,
   Users,
-  IndianRupee
+  IndianRupee,
+  BarChart as BarChartIcon,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const formatNumber = (value: number) => {
     if (!value) return '0';
@@ -39,20 +37,25 @@ const StatCard = ({ title, value, icon, colorClass, delay = 0 }: { title: string
 
 const SuperAdminDashboard = ({ users }: { users: any[] }) => {
     
-    const brands = users.filter(u => u.role === 'brand');
+    const brands = useMemo(() => users.filter(u => u.role === 'brand'), [users]);
     const totalBrands = brands.length;
-
-    // This data is no longer available due to security constraints.
-    // We will show placeholders or remove these stats.
+    
+    // Placeholder data as real-time multi-user data is restricted by security rules.
     const totalCampaigns = 0;
-    const liveCampaigns = 0;
-    const pendingCampaigns = 0;
     const activeCampaigns = 0;
-    const brandsWithLiveCampaigns = 0;
-    const brandsWithoutCampaigns = totalBrands;
     const totalCampaignEarnings = 0;
 
     const safeFormat = (value: number) => formatNumber(value || 0);
+
+    const revenueData = [
+        { name: 'Jan', revenue: 4000, expenses: 2400 },
+        { name: 'Feb', revenue: 3000, expenses: 1398 },
+        { name: 'Mar', revenue: 9800, expenses: 2000 },
+        { name: 'Apr', revenue: 3908, expenses: 2780 },
+        { name: 'May', revenue: 4800, expenses: 1890 },
+        { name: 'Jun', revenue: 3800, expenses: 2390 },
+      ];
+
   
     return (
       <motion.div 
@@ -65,36 +68,69 @@ const SuperAdminDashboard = ({ users }: { users: any[] }) => {
           <p className="text-md text-slate-500 mt-1">Comprehensive overview of all platform activities.</p>
         </div>
   
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Total Brands" value={safeFormat(totalBrands)}
-            icon={<Briefcase className="text-blue-600"/>} colorClass="bg-blue-100" delay={0.1}
+            icon={<Users className="text-blue-600"/>} colorClass="bg-blue-100" delay={0.1}
           />
           <StatCard
             title="Active Campaigns" value={safeFormat(activeCampaigns)}
             icon={<PlayCircle className="text-green-600"/>} colorClass="bg-green-100" delay={0.2}
           />
-          <StatCard
-            title="Live Campaigns" value={safeFormat(liveCampaigns)}
-            icon={<Rocket className="text-purple-600"/>} colorClass="bg-purple-100" delay={0.3}
-          />
-          <StatCard
-            title="Pending Campaigns" value={safeFormat(pendingCampaigns)}
-            icon={<Clock className="text-orange-600"/>} colorClass="bg-orange-100" delay={0.4}
-          />
-          <StatCard
-            title="Brands with Live Campaigns" value={safeFormat(brandsWithLiveCampaigns)}
-            icon={<CheckCircle className="text-teal-600"/>} colorClass="bg-teal-100" delay={0.5}
-          />
            <StatCard
-            title="Brands without Campaigns" value={safeFormat(brandsWithoutCampaigns)}
-            icon={<Users className="text-yellow-600"/>} colorClass="bg-yellow-100" delay={0.6}
-          />
-           <StatCard
-            title="Total Campaign Earnings" value={`₹${safeFormat(totalCampaignEarnings)}`}
-            icon={<IndianRupee className="text-pink-600"/>} colorClass="bg-pink-100" delay={0.7}
+            title="Total Revenue" value={`₹${safeFormat(totalCampaignEarnings)}`}
+            icon={<IndianRupee className="text-purple-600"/>} colorClass="bg-purple-100" delay={0.3}
           />
         </div>
+
+         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <motion.div className="xl:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80" 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+                <h3 className="font-bold text-xl mb-6 text-slate-800">Revenue Analytics</h3>
+                <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={revenueData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value / 1000}k`}/>
+                            <Tooltip
+                                cursor={{ fill: 'rgba(79, 70, 229, 0.05)' }}
+                                contentStyle={{ 
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                    backdropFilter: 'blur(5px)',
+                                    border: '1px solid rgba(0, 0, 0, 0.1)', 
+                                    borderRadius: '12px'
+                                }}
+                                formatter={(value: number) => `₹${value.toLocaleString()}`}
+                            />
+                            <Legend wrapperStyle={{ fontSize: '14px' }}/>
+                            <Bar dataKey="revenue" fill="#4f46e5" name="Revenue" radius={[4, 4, 0, 0]} />
+                            <Bar dataKey="expenses" fill="#f59e0b" name="Expenses" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </motion.div>
+
+            <motion.div className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/70 shadow-lg shadow-slate-200/80"
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                <h3 className="font-bold text-xl mb-6 text-slate-800">Recent Brands</h3>
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
+                    {brands.length > 0 ? brands.slice(0, 5).map((brand: any, index) => (
+                    <motion.div
+                        key={brand.id}
+                        className="p-4 bg-white/30 rounded-lg border border-slate-300/50 hover:bg-white/70 transition-colors"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 + 0.5 }}
+                    >
+                        <h4 className="font-semibold text-slate-800">{brand.brandName || brand.name || 'Unknown Brand'}</h4>
+                        <p className="text-sm text-slate-500">Email: {brand.email || 'N/A'}</p>
+                    </motion.div>
+                    )) : <p className="text-slate-500">No brands available.</p>}
+                </div>
+            </motion.div>
+        </div>
+
       </motion.div>
     );
 };
