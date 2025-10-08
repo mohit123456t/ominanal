@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -92,6 +92,8 @@ function UploaderPanelContent() {
         const viewFromUrl = searchParams.get('view');
         if (!viewFromUrl) { // Only update localStorage if not navigating via URL
             localStorage.setItem('uploaderActiveView', activeView);
+        } else if (viewFromUrl !== activeView) {
+            setActiveView(viewFromUrl);
         }
     }, [activeView, searchParams]);
 
@@ -156,7 +158,10 @@ function UploaderPanelContent() {
                             icon={item.icon}
                             label={item.label}
                             active={activeView === item.id}
-                            onClick={() => setActiveView(item.id)}
+                            onClick={() => {
+                                 router.push('/uploader_panel', { scroll: false });
+                                 setActiveView(item.id)
+                            }}
                             collapsed={sidebarCollapsed}
                         />
                     ))}
@@ -196,7 +201,7 @@ function UploaderPanelContent() {
                     </div>
                 </header>
                 <div className="flex-1 overflow-y-auto bg-gray-50 p-6 md:p-8">
-                    {isLoading && !userProfile ? <div className="flex h-full w-full items-center justify-center"><LoaderCircle className="animate-spin h-10 w-10 text-primary" /></div> : renderView()}
+                    {isUserLoading && !userProfile ? <div className="flex h-full w-full items-center justify-center"><LoaderCircle className="animate-spin h-10 w-10 text-primary" /></div> : renderView()}
                 </div>
             </main>
         </div>
@@ -204,10 +209,6 @@ function UploaderPanelContent() {
 };
 
 export default function UploaderPanel() {
-    return (
-        <React.Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><LoaderCircle className="h-12 w-12 animate-spin" /></div>}>
-            <UploaderPanelContent />
-        </React.Suspense>
-    );
+    return <UploaderPanelContent />;
 }
     
