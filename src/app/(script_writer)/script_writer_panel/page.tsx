@@ -40,16 +40,17 @@ const Logo = () => (
 const NavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) => (
     <motion.button
         onClick={onClick}
-        className={`flex items-center px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
+        className={`relative flex items-center px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
             active
-                ? 'bg-white/40 text-indigo-700'
-                : 'text-slate-600 hover:bg-white/20'
+                ? 'text-indigo-600'
+                : 'text-slate-500 hover:text-slate-900'
         }`}
         whileHover={{ y: -2 }}
         whileTap={{ scale: 0.98 }}
     >
         <span className="mr-2">{icon}</span>
         {label}
+        {active && <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" layoutId="underline" />}
     </motion.button>
 );
 
@@ -138,27 +139,21 @@ const ScriptWriterPanel = () => {
                         </nav>
                     </div>
                     <div className="flex items-center gap-4">
-                        {secondaryNavItems.map((item) => (
-                            <NavItem
-                                key={item.id}
-                                icon={item.icon}
-                                label={item.label}
-                                active={activeView === item.id}
-                                onClick={() => setActiveView(item.id)}
-                            />
-                        ))}
+                       <button onClick={()=> setActiveView('profile')} className="flex items-center gap-2 text-sm font-medium text-slate-700 hover:text-slate-900">
+                            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
+                               {userProfile?.name?.charAt(0) || 'S'}
+                            </div>
+                           <span className='hidden sm:inline'>{userProfile?.name || "Script Writer"}</span>
+                       </button>
                          <motion.button
                             onClick={handleLogout}
-                            className="flex items-center px-4 py-2 text-sm font-semibold rounded-lg text-red-600 hover:bg-red-500/10 transition-all"
+                            className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-slate-500 hover:bg-slate-500/10 hover:text-slate-800 transition-all"
                             whileHover={{ y: -2 }}
                             whileTap={{ scale: 0.98 }}
                         >
-                            <span className="mr-2"><LogOut size={18} /></span>
+                            <span className="mr-1.5"><LogOut size={16} /></span>
                             Logout
                         </motion.button>
-                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                           {userProfile?.name?.charAt(0) || 'S'}
-                        </div>
                     </div>
                 </div>
             </header>
