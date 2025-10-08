@@ -54,11 +54,11 @@ function InstagramCallbackContent() {
 
                 // Step 2: Construct the exact same redirect URI used to initiate the auth flow
                 // This is the critical part that must match what's in the .env file
-                const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}`;
-                
                 if (!process.env.NEXT_PUBLIC_URL || !process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI) {
                     throw new Error("Application URL or redirect URI is not configured in the environment settings.");
                 }
+                const redirectUri = `${process.env.NEXT_PUBLIC_URL}${process.env.NEXT_PUBLIC_INSTAGRAM_REDIRECT_URI}`;
+                
 
                 // Step 3: Exchange code for short-lived token
                 const { accessToken: shortLivedToken } = await getInstagramAccessToken({
