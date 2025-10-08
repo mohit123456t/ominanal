@@ -30,8 +30,11 @@ const FinanceStatCard = ({ title, value, icon, color, delay = 0 }: { title: stri
 const SuperAdminFinance = ({ campaigns, expenses, onNavigate }: { campaigns: any[], expenses: any[], onNavigate: (view: string) => void }) => {
     
     const { totalRevenue, totalExpenses, netProfit, chartData } = useMemo(() => {
-        const revenue = campaigns.reduce((sum, campaign) => sum + (campaign.budget || 0), 0);
-        const expenseTotal = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+        const safeCampaigns = campaigns || [];
+        const safeExpenses = expenses || [];
+        
+        const revenue = safeCampaigns.reduce((sum, campaign) => sum + (campaign.budget || 0), 0);
+        const expenseTotal = safeExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
         const profit = revenue - expenseTotal;
         
         const monthlyData: { [key: string]: { month: string; revenue: number; expenses: number } } = {};
@@ -43,13 +46,13 @@ const SuperAdminFinance = ({ campaigns, expenses, onNavigate }: { campaigns: any
         });
 
         // Populate with data
-        campaigns.forEach(c => {
+        safeCampaigns.forEach(c => {
             if (c.createdAt?.seconds) {
                 const month = monthNames[new Date(c.createdAt.seconds * 1000).getMonth()];
                 if(month) monthlyData[month].revenue += c.budget || 0;
             }
         });
-        expenses.forEach(e => {
+        safeExpenses.forEach(e => {
             if (e.date) {
                 const month = monthNames[new Date(e.date).getMonth()];
                 if(month) monthlyData[month].expenses += e.amount || 0;
