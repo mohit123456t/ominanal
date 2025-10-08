@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // In a real app, the state parameter should contain the user's UID to prevent CSRF and identify the user.
     // For this demo, we're assuming a default or single-user context for the uploader.
     // THIS IS A MAJOR SIMPLIFICATION AND NOT PRODUCTION-READY.
-    const userId = "DEFAULT_USER";
+    const userId = "DEFAULT_USER"; // This should be dynamically determined via state
 
     if (error) {
         console.error('Instagram callback error:', error_description);

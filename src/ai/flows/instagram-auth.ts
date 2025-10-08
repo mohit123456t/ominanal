@@ -87,10 +87,12 @@ const getInstagramAccessTokenFlow = ai.defineFlow({
         client_secret: clientSecret,
         redirect_uri: redirectUri,
         code: code,
-        grant_type: 'authorization_code',
     });
 
-    const response = await fetch(`${url}?${params.toString()}`);
+    const response = await fetch(url, {
+        method: 'POST',
+        body: params,
+    });
 
     if (!response.ok) {
         const errorData: any = await response.json();
@@ -138,7 +140,9 @@ const exchangeForLongLivedTokenFlow = ai.defineFlow({
         fb_exchange_token: shortLivedToken,
     });
 
-    const response = await fetch(`${url}?${params.toString()}`);
+    const response = await fetch(url, {
+        method: 'GET', // Corrected from implicit GET to explicit
+    });
 
     if (!response.ok) {
         const errorData: any = await response.json();
@@ -169,9 +173,9 @@ export type GetInstagramUserDetailsInput = z.infer<typeof GetInstagramUserDetail
 const GetInstagramUserDetailsOutputSchema = z.object({
     username: z.string(),
     instagramId: z.string(),
-    facebookPageId: z.string(),
-    facebookPageName: z.string(),
-    pageAccessToken: z.string(),
+    facebookPageId: z.string().optional(),
+    facebookPageName: z.string().optional(),
+    pageAccessToken: z.string().optional(),
 });
 export type GetInstagramUserDetailsOutput = z.infer<typeof GetInstagramUserDetailsOutputSchema>;
 
@@ -211,7 +215,7 @@ const getInstagramUserDetailsFlow = ai.defineFlow({
     }
 
     // Step 3: Use the Instagram Business Account ID to get the username.
-    const igUrl = `https://graph.facebook.com/${instagramBusinessAccountId}?fields=username&access_token=${accessToken}`;
+    const igUrl = `https://graph.facebook.com/v20.0/${instagramBusinessAccountId}?fields=username&access_token=${accessToken}`;
     const igResponse = await fetch(igUrl);
 
     if (!igResponse.ok) {
