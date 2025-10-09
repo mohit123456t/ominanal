@@ -11,29 +11,9 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, LogIn } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-const containerVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      duration: 0.4,
-      ease: "easeOut",
-      when: "beforeChildren",
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
-};
 
 const Logo = () => (
-  <motion.div variants={itemVariants} className="flex items-center gap-2 mb-4">
+    <div className="flex items-center justify-center gap-2 mb-8">
     <svg
       className="size-8 text-primary"
       viewBox="0 0 24 24"
@@ -46,7 +26,7 @@ const Logo = () => (
       />
     </svg>
     <h2 className="font-bold text-xl text-foreground">TrendXoda</h2>
-  </motion.div>
+  </div>
 );
 
 export default function LoginPage() {
@@ -171,88 +151,69 @@ export default function LoginPage() {
   };
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="w-full max-w-4xl mx-auto bg-white/5 backdrop-blur-lg rounded-2xl shadow-2xl border border-slate-300/10 overflow-hidden"
-    >
-      <div className="grid md:grid-cols-2">
-        <div className="p-8 md:p-12 flex flex-col justify-center">
-          <Logo />
-          <motion.h1 variants={itemVariants} className="text-2xl font-bold text-foreground mt-4">
+    <div className="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl border p-8">
+        <Logo />
+        <h1 className="text-xl font-bold text-foreground">
             Login to your account
-          </motion.h1>
-          <motion.p variants={itemVariants} className="text-slate-400 mt-2 text-sm">
+        </h1>
+        <p className="text-muted-foreground mt-2 text-sm">
             Welcome back! Please enter your details.
-          </motion.p>
+        </p>
 
-          <motion.div variants={itemVariants} className="mt-8 space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
-              <Input
-                id="login-email"
-                type="email"
-                placeholder="m@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="login-password">Password</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline underline-offset-4"
-                >
-                  Forgot Password?
-                </Link>
-              </div>
-              <Input
-                id="login-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-              />
-            </div>
-            <Button
-              onClick={handleLogin}
-              className="w-full"
-              size="lg"
-              disabled={isLoading}
+        <div className="mt-8 space-y-6">
+        <div className="space-y-2">
+            <Label htmlFor="login-email">Email</Label>
+            <Input
+            id="login-email"
+            type="email"
+            placeholder="m@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+            />
+        </div>
+        <div className="space-y-2">
+            <div className="flex items-center justify-between">
+            <Label htmlFor="login-password">Password</Label>
+            <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-primary hover:underline underline-offset-4"
             >
-              {isLoading ? (
-                <LoaderCircle className="animate-spin mr-2" />
-              ) : (
-                <LogIn className="mr-2" />
-              )}
-              Login
-            </Button>
-          </motion.div>
-          <motion.p variants={itemVariants} className="text-center text-sm text-slate-400 mt-8">
+                Forgot Password?
+            </Link>
+            </div>
+            <Input
+            id="login-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+        </div>
+        <Button
+            onClick={handleLogin}
+            className="w-full"
+            size="lg"
+            disabled={isLoading}
+        >
+            {isLoading ? (
+            <LoaderCircle className="animate-spin mr-2" />
+            ) : (
+            <LogIn className="mr-2" />
+            )}
+            Login
+        </Button>
+        </div>
+        <p className="text-center text-sm text-muted-foreground mt-8">
             Are you a new brand?{' '}
             <Link
-              href="/signup"
-              className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80"
+                href="/signup"
+                className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80"
             >
-              Sign Up
+                Sign Up
             </Link>
-          </motion.p>
-        </div>
-        <motion.div variants={itemVariants} className="hidden md:flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-8">
-          <Image
-            src="https://picsum.photos/seed/login/600/450"
-            alt="Login illustration"
-            width={600}
-            height={450}
-            className="rounded-xl shadow-2xl"
-            data-ai-hint="digital illustration productivity"
-          />
-        </motion.div>
-      </div>
-    </motion.div>
+        </p>
+    </div>
   );
 }
