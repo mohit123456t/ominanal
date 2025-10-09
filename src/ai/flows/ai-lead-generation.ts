@@ -45,9 +45,20 @@ const searchWebForLeads = ai.defineTool(
     outputSchema: FindLeadsOutputSchema,
   },
   async (input) => {
-    // This prompt asks the LLM to act as a search engine.
+    // This prompt asks the LLM to act as a market researcher, synthesizing real-world data.
     const leadsGenerator = await ai.generate({
-      prompt: `Imagine you are a web search engine. Based on the query "${input.query}", generate a list of 10 plausible, even if fictional, business leads that match the request. For each lead, provide a realistic-sounding name, email, mobile number, address, and a short description.`,
+      prompt: `You are an expert market researcher. Your task is to generate a list of 10 real, existing business leads based on the user's query: "${input.query}". 
+      
+      To do this, you must act as if you are analyzing real-world public data from sources like Google Maps, LinkedIn, and official business directories. 
+      
+      For each lead, provide a realistic and accurate-as-possible:
+      - Company Name
+      - A plausible corporate contact email (e.g., contact@company.com, marketing@brand.com)
+      - A plausible business phone number (including country code)
+      - The company's real physical address
+      - A concise, one-sentence description of the company's business.
+      
+      The data must look authentic and directly correspond to the user's query. Do not invent fictional companies. Provide the best possible real-world data you can synthesize.`,
       output: {
         schema: FindLeadsOutputSchema,
       },
