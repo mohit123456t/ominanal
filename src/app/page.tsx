@@ -124,7 +124,7 @@ const socialIcons = [
 
 function LandingPage() {
   return (
-     <div className="flex flex-col min-h-screen text-foreground bg-slate-50">
+     <div className="flex flex-col min-h-screen text-foreground bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent">
         <PublicHeader />
         <main className="flex-grow">
             <div className="w-full font-sans text-foreground overflow-x-hidden">
