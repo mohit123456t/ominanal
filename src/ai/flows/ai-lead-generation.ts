@@ -59,7 +59,7 @@ const findLeadsFlow = ai.defineFlow(
         },
     });
 
-    const output = response.output();
+    const output = response.output;
     if (!output?.leads || output.leads.length === 0) {
       throw new Error('The AI failed to generate any valid leads from the search results.');
     }
