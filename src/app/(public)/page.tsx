@@ -1,11 +1,50 @@
 'use client';
+
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Bot, BarChart, Clock, Search, Mail, Layers, Trophy, Instagram, Facebook, Youtube, Twitter } from 'lucide-react';
 import Link from 'next/link';
 import React, { Suspense } from 'react';
-import { motion } from 'framer-motion';
+import { motion, Variants } from 'framer-motion';
 import Image from 'next/image';
 import { InfiniteScroll } from '@/components/layout/infinite-scroll';
+
+// Reusable Animation Variants for a cleaner and more consistent feel
+const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.2, // This will make children animate one by one
+        },
+    },
+};
+
+const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
+    show: { 
+        opacity: 1, 
+        y: 0,
+        transition: { duration: 0.6, ease: "easeOut" }
+    },
+};
+
+const slideInLeft: Variants = {
+    hidden: { opacity: 0, x: -50 },
+    show: { 
+        opacity: 1, 
+        x: 0,
+        transition: { duration: 0.6, ease: "easeOut" }
+    },
+};
+
+const slideInRight: Variants = {
+    hidden: { opacity: 0, x: 50 },
+    show: { 
+        opacity: 1, 
+        x: 0,
+        transition: { duration: 0.6, ease: "easeOut" }
+    },
+};
 
 
 const PublicHeader = () => (
@@ -58,25 +97,16 @@ const Logo = () => (
     </div>
 );
 
-
-const MotionCard = ({ children, delay = 0, className }: { children: React.ReactNode, delay?: number, className?: string }) => (
-    <motion.div
-        className={className}
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ delay, duration: 0.5, ease: "easeOut" }}
+// StatCard component now uses framer-motion directly with variants
+const StatCard = ({ icon, value, label }: { icon: React.ReactNode, value: string, label: string }) => (
+    <motion.div 
+        variants={itemVariants} 
+        className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-slate-300/70 flex flex-col items-center text-center"
     >
-        {children}
-    </motion.div>
-);
-
-const StatCard = ({ icon, value, label, delay = 0 }: { icon: React.ReactNode, value: string, label: string, delay?: number }) => (
-    <MotionCard delay={delay} className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-slate-300/70 flex flex-col items-center text-center">
         <div className="text-primary mb-3">{icon}</div>
         <div className="text-4xl font-bold text-foreground">{value}</div>
         <div className="text-muted-foreground text-sm mt-1">{label}</div>
-    </MotionCard>
+    </motion.div>
 );
 
 const socialIcons = [
@@ -88,14 +118,18 @@ const socialIcons = [
 
 export default function RootPage() {
   return (
-     <div className="flex flex-col min-h-screen text-foreground">
+     <div className="flex flex-col min-h-screen text-foreground bg-slate-50">
         <PublicHeader />
         <main className="flex-grow">
             <div className="w-full font-sans text-foreground overflow-x-hidden">
                 {/* Hero Section */}
                 <div className="container mx-auto px-6 py-20 md:py-28">
                    <div className="grid md:grid-cols-2 gap-12 items-center">
-                        <MotionCard>
+                        <motion.div
+                           initial={{ opacity: 0, x: -30 }}
+                           animate={{ opacity: 1, x: 0 }}
+                           transition={{ duration: 0.6, ease: "easeOut" }}
+                        >
                             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-tight text-foreground">
                                Automate The Manual, Achieve The Results.
                             </h1>
@@ -109,8 +143,12 @@ export default function RootPage() {
                                     </Link>
                                 </Button>
                             </div>
-                        </MotionCard>
-                         <MotionCard delay={0.2}>
+                        </motion.div>
+                         <motion.div
+                            initial={{ opacity: 0, x: 30 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                         >
                             <Image 
                                 src="https://picsum.photos/seed/hero/800/600" 
                                 alt="Dashboard preview" 
@@ -119,12 +157,19 @@ export default function RootPage() {
                                 className="rounded-2xl shadow-2xl border border-slate-300/70"
                                 data-ai-hint="dashboard preview"
                             />
-                        </MotionCard>
+                        </motion.div>
                    </div>
                 </div>
 
                 <section className="py-12">
-                    <h3 className="text-center text-muted-foreground font-semibold uppercase tracking-wider mb-8">Powering Content Across All Major Platforms</h3>
+                     <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, amount: 0.5 }}
+                        transition={{ duration: 0.5 }}
+                     >
+                        <h3 className="text-center text-muted-foreground font-semibold uppercase tracking-wider mb-8">Powering Content Across All Major Platforms</h3>
+                     </motion.div>
                     <div className="relative">
                         <div
                             className="absolute inset-0 z-10"
@@ -144,59 +189,88 @@ export default function RootPage() {
                     </div>
                 </section>
                 
-                {/* Stats Section */}
+                {/* Stats Section with Staggered Animation */}
                 <div className="py-10 md:py-16">
                     <div className="container mx-auto px-6">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                            <StatCard icon={<Bot size={32}/>} value="10x" label="Faster Content Creation" delay={0.1} />
-                            <StatCard icon={<Clock size={32}/>} value="20+" label="Hours Saved Weekly" delay={0.2} />
-                            <StatCard icon={<BarChart size={32}/>} value="300%" label="Engagement Boost" delay={0.3} />
-                            <StatCard icon={<Layers size={32}/>} value="All" label="Platforms in One" delay={0.4} />
-                        </div>
+                        <motion.div 
+                            className="grid grid-cols-2 lg:grid-cols-4 gap-6"
+                            variants={containerVariants}
+                            initial="hidden"
+                            whileInView="show"
+                            viewport={{ once: true, amount: 0.3 }}
+                        >
+                            <StatCard icon={<Bot size={32}/>} value="10x" label="Faster Content Creation" />
+                            <StatCard icon={<Clock size={32}/>} value="20+" label="Hours Saved Weekly" />
+                            <StatCard icon={<BarChart size={32}/>} value="300%" label="Engagement Boost" />
+                            <StatCard icon={<Layers size={32}/>} value="All" label="Platforms in One" />
+                        </motion.div>
                     </div>
                 </div>
 
                 {/* How it works Section */}
                 <div id="features" className="py-20 md:py-28">
                     <div className="container mx-auto px-4">
-                        <MotionCard className="text-center mb-16">
+                        <motion.div 
+                            className="text-center mb-16"
+                            variants={itemVariants}
+                            initial="hidden"
+                            whileInView="show"
+                            viewport={{ once: true, amount: 0.5 }}
+                        >
                             <h2 className="text-3xl md:text-4xl font-bold">How TrendXoda Works</h2>
                             <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">Transform your social media strategy in three simple, powerful steps.</p>
-                        </MotionCard>
+                        </motion.div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
+                        <motion.div 
+                            className="grid grid-cols-1 gap-12"
+                            variants={containerVariants}
+                            initial="hidden"
+                            whileInView="show"
+                            viewport={{ once: true, amount: 0.2 }}
+                        >
                             {/* Step 1 */}
-                             <MotionCard delay={0.1} className="flex flex-col md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
-                                <Image src="https://picsum.photos/seed/step1/600/400" alt="Create with AI" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="AI creation interface"/>
-                                <div className="md:w-1/2">
+                             <motion.div variants={itemVariants} className="flex flex-col md:flex-row items-center gap-8 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
+                                <motion.div variants={slideInLeft} className="md:w-1/2 w-full">
+                                    <Image src="https://picsum.photos/seed/step1/600/400" alt="Create with AI" width={600} height={400} className="rounded-2xl shadow-lg w-full" data-ai-hint="AI creation interface"/>
+                                </motion.div>
+                                <motion.div variants={slideInRight} className="md:w-1/2 text-center md:text-left">
                                     <h3 className="text-2xl font-bold mb-2">1. Create with AI</h3>
                                     <p className="text-muted-foreground">Generate viral-worthy captions, scripts, and campaign ideas in seconds. Our AI is your new creative partner, always ready with fresh ideas.</p>
-                                </div>
-                            </MotionCard>
+                                </motion.div>
+                            </motion.div>
                              {/* Step 2 */}
-                              <MotionCard delay={0.2} className="flex flex-col-reverse md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
-                                <div className="md:w-1/2">
+                              <motion.div variants={itemVariants} className="flex flex-col-reverse md:flex-row items-center gap-8 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
+                                <motion.div variants={slideInLeft} className="md:w-1/2 text-center md:text-left">
                                     <h3 className="text-2xl font-bold mb-2">2. Schedule with Ease</h3>
                                     <p className="text-muted-foreground">Plan your content calendar visually. Let our AI determine the optimal posting times to maximize reach and engagement, automatically.</p>
-                                </div>
-                                 <Image src="https://picsum.photos/seed/step2/600/400" alt="Schedule content" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="content calendar schedule"/>
-                            </MotionCard>
+                                </motion.div>
+                                 <motion.div variants={slideInRight} className="md:w-1/2 w-full">
+                                    <Image src="https://picsum.photos/seed/step2/600/400" alt="Schedule content" width={600} height={400} className="rounded-2xl shadow-lg w-full" data-ai-hint="content calendar schedule"/>
+                                 </motion.div>
+                            </motion.div>
                              {/* Step 3 */}
-                              <MotionCard delay={0.3} className="flex flex-col md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
-                                <Image src="https://picsum.photos/seed/step3/600/400" alt="Track Performance" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="analytics dashboard charts"/>
-                                <div className="md:w-1/2">
+                              <motion.div variants={itemVariants} className="flex flex-col md:flex-row items-center gap-8 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
+                                <motion.div variants={slideInLeft} className="md:w-1/2 w-full">
+                                    <Image src="https://picsum.photos/seed/step3/600/400" alt="Track Performance" width={600} height={400} className="rounded-2xl shadow-lg w-full" data-ai-hint="analytics dashboard charts"/>
+                                </motion.div>
+                                <motion.div variants={slideInRight} className="md:w-1/2 text-center md:text-left">
                                     <h3 className="text-2xl font-bold mb-2">3. Track Performance</h3>
                                     <p className="text-muted-foreground">Gain deep insights with our beautiful and intuitive analytics. Understand what's working and make data-driven decisions to fuel your growth.</p>
-                                </div>
-                            </MotionCard>
-                        </div>
+                                </motion.div>
+                            </motion.div>
+                        </motion.div>
                     </div>
                 </div>
 
                 {/* CTA Section */}
                 <div className="py-20 md:py-28">
                     <div className="container mx-auto px-4 text-center">
-                         <MotionCard>
+                         <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true, amount: 0.5 }}
+                            transition={{ duration: 0.5 }}
+                         >
                             <h2 className="text-3xl md:text-4xl font-bold">Ready to Elevate Your Digital Strategy?</h2>
                             <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Join thousands of creators and brands automating their success with TrendXoda. Get started for free, no credit card required.</p>
                             <div className="mt-8">
@@ -206,7 +280,7 @@ export default function RootPage() {
                                     </Link>
                                 </Button>
                             </div>
-                        </MotionCard>
+                        </motion.div>
                     </div>
                 </div>
             </div>
@@ -215,4 +289,5 @@ export default function RootPage() {
     </div>
   );
 }
+
     
