@@ -15,11 +15,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, UserPlus } from 'lucide-react';
 import { doc, setDoc } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 
 const Logo = () => (
     <div className="flex items-center justify-center gap-2 mb-8">
         <svg
-            className="size-8 text-primary"
+            className="size-10 text-primary"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -29,7 +30,7 @@ const Logo = () => (
             fill="currentColor"
             />
         </svg>
-        <h2 className="font-bold text-xl text-foreground">TrendXoda</h2>
+        <h2 className="font-bold text-2xl text-slate-800">TrendXoda</h2>
     </div>
 );
 
@@ -92,46 +93,69 @@ export default function SignupPage() {
   };
 
   return (
-     <div className="w-full max-w-sm mx-auto bg-white rounded-2xl shadow-xl border p-8">
-        <Logo />
-        <h1 className="text-xl font-bold text-foreground">Create your Brand Account</h1>
-        <p className="text-muted-foreground mt-2 text-sm">Join us to boost your social media presence.</p>
-
-        <div className="mt-8 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-                <Label htmlFor="signup-name">Your Name</Label>
-                <Input id="signup-name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} disabled={isLoading} required />
-            </div>
-                <div className="space-y-2">
-                <Label htmlFor="signup-brand-name">Brand Name</Label>
-                <Input id="signup-brand-name" type="text" placeholder="My Brand" value={brandName} onChange={(e) => setBrandName(e.target.value)} disabled={isLoading} required />
-            </div>
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <Input id="signup-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required />
-            </div>
-                <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
-                <Input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required />
-            </div>
-            <div className="space-y-2">
-                <Label htmlFor="signup-mobile">Mobile Number</Label>
-                <Input id="signup-mobile" type="tel" placeholder="Your mobile number" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} disabled={isLoading} required />
-            </div>
-            
-                <Button onClick={handleSignup} className="w-full" size="lg" disabled={isLoading}>
-                {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <UserPlus className="mr-2"/>}
-                Create Account
-            </Button>
+     <motion.div 
+      className="w-full max-w-4xl mx-auto bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-300/70 overflow-hidden"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
+      <div className="grid md:grid-cols-2">
+         <div className="hidden md:block">
+          <Image 
+            src="https://picsum.photos/seed/signup/800/1000"
+            alt="Signup page decorative image"
+            width={800}
+            height={1000}
+            className="w-full h-full object-cover"
+            data-ai-hint="modern abstract"
+          />
         </div>
-            <p className="text-center text-sm text-muted-foreground mt-8">
+        <div className="p-8 md:p-12 flex flex-col justify-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}>
+            <Logo />
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}>
+            <h1 className="text-2xl font-bold text-slate-800">Create your Brand Account</h1>
+            <p className="text-slate-500 mt-2 text-sm">Join us to boost your social media presence.</p>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.4 } }} className="mt-8 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="signup-name" className="text-slate-700">Your Name</Label>
+                    <Input id="signup-name" type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)} disabled={isLoading} required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="signup-brand-name" className="text-slate-700">Brand Name</Label>
+                    <Input id="signup-brand-name" type="text" placeholder="My Brand" value={brandName} onChange={(e) => setBrandName(e.target.value)} disabled={isLoading} required />
+                </div>
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="signup-email" className="text-slate-700">Email</Label>
+                  <Input id="signup-email" type="email" placeholder="m@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} required />
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input id="signup-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} required />
+              </div>
+              <div className="space-y-2">
+                  <Label htmlFor="signup-mobile">Mobile Number</Label>
+                  <Input id="signup-mobile" type="tel" placeholder="Your mobile number" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value)} disabled={isLoading} required />
+              </div>
+              
+              <Button onClick={handleSignup} className="w-full" size="lg" disabled={isLoading}>
+                  {isLoading ? <LoaderCircle className="animate-spin mr-2" /> : <UserPlus className="mr-2"/>}
+                  Create Account
+              </Button>
+          </motion.div>
+          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.5 } }} className="text-center text-sm text-slate-500 mt-8">
             Already have an account?{' '}
             <Link href="/login" className="underline underline-offset-4 font-semibold text-primary hover:text-primary/80">
                 Log In
             </Link>
-        </p>
-    </div>
+          </motion.p>
+        </div>
+      </div>
+    </motion.div>
   );
 }
