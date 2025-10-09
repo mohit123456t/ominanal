@@ -20,7 +20,7 @@ const MotionCard = ({ children, delay = 0, className }: { children: React.ReactN
 );
 
 const StatCard = ({ icon, value, label, delay = 0 }: { icon: React.ReactNode, value: string, label: string, delay?: number }) => (
-    <MotionCard delay={delay} className="bg-card p-6 rounded-2xl shadow-lg border border-border/10 flex flex-col items-center text-center">
+    <MotionCard delay={delay} className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-slate-300/70 flex flex-col items-center text-center">
         <div className="text-primary mb-3">{icon}</div>
         <div className="text-4xl font-bold text-foreground">{value}</div>
         <div className="text-muted-foreground text-sm mt-1">{label}</div>
@@ -36,7 +36,7 @@ const socialIcons = [
 
 export default function RootPage() {
   return (
-    <div className="w-full font-sans bg-background text-foreground overflow-x-hidden">
+    <div className="w-full font-sans text-foreground overflow-x-hidden">
         {/* Hero Section */}
         <div className="container mx-auto px-6 py-20 md:py-28">
            <div className="grid md:grid-cols-2 gap-12 items-center">
@@ -61,7 +61,7 @@ export default function RootPage() {
                         alt="Dashboard preview" 
                         width={800} 
                         height={600}
-                        className="rounded-2xl shadow-2xl"
+                        className="rounded-2xl shadow-2xl border border-slate-300/70"
                         data-ai-hint="dashboard preview"
                     />
                 </MotionCard>
@@ -102,7 +102,7 @@ export default function RootPage() {
         </div>
 
         {/* How it works Section */}
-        <div id="features" className="py-20 md:py-28 bg-secondary/30">
+        <div id="features" className="py-20 md:py-28">
             <div className="container mx-auto px-4">
                 <MotionCard className="text-center mb-16">
                     <h2 className="text-3xl md:text-4xl font-bold">How TrendXoda Works</h2>
@@ -111,7 +111,7 @@ export default function RootPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
                     {/* Step 1 */}
-                     <MotionCard delay={0.1} className="flex flex-col md:flex-row items-center gap-6 col-span-3">
+                     <MotionCard delay={0.1} className="flex flex-col md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
                         <Image src="https://picsum.photos/seed/step1/600/400" alt="Create with AI" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="AI creation interface"/>
                         <div className="md:w-1/2">
                             <h3 className="text-2xl font-bold mb-2">1. Create with AI</h3>
@@ -119,7 +119,7 @@ export default function RootPage() {
                         </div>
                     </MotionCard>
                      {/* Step 2 */}
-                      <MotionCard delay={0.2} className="flex flex-col-reverse md:flex-row items-center gap-6 col-span-3">
+                      <MotionCard delay={0.2} className="flex flex-col-reverse md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
                         <div className="md:w-1/2">
                             <h3 className="text-2xl font-bold mb-2">2. Schedule with Ease</h3>
                             <p className="text-muted-foreground">Plan your content calendar visually. Let our AI determine the optimal posting times to maximize reach and engagement, automatically.</p>
@@ -127,7 +127,7 @@ export default function RootPage() {
                          <Image src="https://picsum.photos/seed/step2/600/400" alt="Schedule content" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="content calendar schedule"/>
                     </MotionCard>
                      {/* Step 3 */}
-                      <MotionCard delay={0.3} className="flex flex-col md:flex-row items-center gap-6 col-span-3">
+                      <MotionCard delay={0.3} className="flex flex-col md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
                         <Image src="https://picsum.photos/seed/step3/600/400" alt="Track Performance" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="analytics dashboard charts"/>
                         <div className="md:w-1/2">
                             <h3 className="text-2xl font-bold mb-2">3. Track Performance</h3>

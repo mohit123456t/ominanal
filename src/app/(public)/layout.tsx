@@ -26,13 +26,13 @@ export default function PublicLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground">
-        <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-lg border-b border-border/50">
+    <div className="flex flex-col min-h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent text-foreground">
+        <header className="sticky top-0 z-50 w-full bg-white/40 backdrop-blur-xl border-b border-slate-300/70">
             <div className="container mx-auto h-20 flex items-center justify-between px-6">
                  <Link href="/">
                     <Logo />
                 </Link>
-                <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+                <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
                     <Link href="#about" className="hover:text-foreground transition-colors">About</Link>
                     <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
                     <Link href="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
@@ -51,7 +51,7 @@ export default function PublicLayout({
         <main className="flex-grow">
             {children}
         </main>
-         <footer className="bg-background border-t border-border/50">
+         <footer className="bg-slate-200/50 border-t border-slate-300/50">
             <div className="container mx-auto py-6 px-6 text-center text-sm text-muted-foreground">
                 © {new Date().getFullYear()} TrendXoda. All Rights Reserved.
             </div>
