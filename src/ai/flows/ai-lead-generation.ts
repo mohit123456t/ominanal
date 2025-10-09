@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { googleSearchTool, googleSearchRetriever } from '@genkit-ai/google-genai';
+import { googleAI } from '@genkit-ai/google-genai';
 
 
 // Define the schema for a single lead
@@ -43,24 +43,24 @@ const findLeadsFlow = ai.defineFlow(
   },
   async (input) => {
     
-    // The new Agentic flow that uses the Google Search tool.
-    const llm = ai.getGenerator('gemini-2.5-flash');
+    // The agentic model will automatically use Google Search when asked to find real-world information.
+    const llm = ai.getGenerator('gemini-1.5-flash-latest');
 
     const response = await llm.generate({
-        prompt: `Your task is to act as an expert market researcher. The user will provide a query. 
-        You MUST use the provided Google Search tool to find 10 real-world business leads based on that query.
-        For each lead, you must provide a real name, a plausible email, a plausible mobile number, a real physical address, and a one-sentence description.
-        Do not make up information. Use the search tool to find factual data.
+        prompt: `You are an expert market researcher. Your task is to find real-world business leads based on the user's query.
+        You MUST use Google Search to find 10 real-world business leads based on the provided query.
+        For each lead, you must provide a real name, a plausible email, a plausible mobile number, and a real physical address and a one-sentence description of what the brand does.
+        Do not make up information. Use your search tool to find factual data.
         
         User Query: ${input.query}`,
-        tools: [googleSearchTool],
+        tools: ['googleSearch'],
         output: {
             schema: FindLeadsOutputSchema,
         },
     });
 
     const output = response.output();
-    if (!output) {
+    if (!output?.leads || output.leads.length === 0) {
       throw new Error('The AI failed to generate any valid leads from the search results.');
     }
 
