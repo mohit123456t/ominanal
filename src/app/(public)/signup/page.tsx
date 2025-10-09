@@ -14,7 +14,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, UserPlus } from 'lucide-react';
 import { doc, setDoc } from 'firebase/firestore';
-import { motion, useMotionValue } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const Logo = () => (
     <div className="flex items-center justify-center gap-2 mb-6">
@@ -40,21 +40,10 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isHovered, setIsHovered] = useState(false); // ✨ शिमर को दिखाने/छिपाने के लिए
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const firestore = useFirestore();
-
-  // ✨ शिमर इफ़ेक्ट के लिए माउस की पोजीशन ट्रैक करेंगे
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    mouseX.set(event.clientX - rect.left);
-    mouseY.set(event.clientY - rect.top);
-  };
 
   const handleSignup = async () => {
     if (!auth || !firestore) return;
@@ -101,28 +90,11 @@ export default function SignupPage() {
      <div className="relative flex flex-col min-h-screen items-center justify-center bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent overflow-hidden p-4">
         <main className="z-10 w-full flex items-center justify-center">
             <motion.div 
-              // ✨ शिमर इफ़ेक्ट के लिए कंटेनर को relative और overflow-hidden बनाया गया है
               className="relative w-full max-w-md mx-auto bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-300/70 overflow-hidden"
-              onMouseMove={handleMouseMove}
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              {/* ✨ यह नया शिमर (चमक) वाला div है */}
-              <motion.div
-                className="pointer-events-none absolute -inset-px rounded-xl opacity-0 transition-opacity duration-300"
-                style={{
-                    x: mouseX,
-                    y: mouseY,
-                    background: 'radial-gradient(300px circle at center, rgba(255, 255, 255, 0.4), transparent 80%)',
-                }}
-                animate={{
-                    opacity: isHovered ? 1 : 0,
-                }}
-              />
-
               <div className="p-8 md:p-10 flex flex-col justify-center relative z-10">
                   <Logo />
                   <h1 className="text-2xl font-bold text-center text-slate-800">Create your Brand Account</h1>
