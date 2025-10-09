@@ -62,3 +62,82 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ===== ✨ एडवांस्ड स्क्रॉल एनिमेशन कोड यहाँ से शुरू ===== */
+
+/* 1. पेज के टॉप पर स्क्रॉल प्रोग्रेस बार */
+@keyframes scroll-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0.35rem; /* 4px */
+  background-color: hsl(var(--primary));
+  transform-origin: left;
+  z-index: 100;
+  
+  /* एनिमेशन को पूरे पेज के स्क्रॉल से लिंक करें */
+  animation: scroll-progress linear;
+  animation-timeline: scroll(); 
+}
+
+/* 2. स्क्रॉल करने पर एलिमेंट्स को दिखाने के लिए एनिमेशन */
+
+/* कीफ्रेम्स (एनिमेशन कैसा दिखेगा) */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* रियूजेबल एनिमेशन क्लास (इन्हें आप अपने TSX/HTML में इस्तेमाल करेंगे) */
+.animate-on-scroll {
+  /* एनिमेशन को एलिमेंट के दिखने पर चलाएं */
+  animation-timeline: view();
+  
+  /* एनिमेशन कब शुरू और खत्म हो */
+  animation-range-start: entry 5%;
+  animation-range-end: entry 40%;
+  
+  /* डिफ़ॉल्ट रूप से एनिमेशन को रोक कर रखें */
+  animation-fill-mode: both;
+}
+
+/* अलग-अलग एनिमेशन इफ़ेक्ट */
+.reveal-fade-up {
+  animation-name: fade-in-up;
+}
+
+.reveal-fade {
+  animation-name: fade-in;
+}
+
+.reveal-scale {
+  animation-name: scale-in;
+}
