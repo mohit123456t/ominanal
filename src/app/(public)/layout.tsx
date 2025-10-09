@@ -5,8 +5,6 @@ export default function PublicLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // This layout is intentionally simple.
-  // The landing page (`/`) will implement its own header/footer.
-  // The auth pages (`/login`, `/signup`, etc.) will be centered via their own page styles.
-  return <>{children}</>;
+  // This layout applies the frosted glass background theme to all public pages.
+  return <div className="min-h-screen bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent">{children}</div>;
 }
