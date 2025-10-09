@@ -229,7 +229,7 @@ export default function LoginPage() {
         </div>
         <div className="hidden md:block">
           <Image 
-            src="https://picsum.photos/seed/login/800/1000"
+            src="https://picsum.photos/seed/tech-abstract/800/1000"
             alt="Login page decorative image"
             width={800}
             height={1000}

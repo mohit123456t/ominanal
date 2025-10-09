@@ -102,7 +102,7 @@ export default function SignupPage() {
       <div className="grid md:grid-cols-2">
          <div className="hidden md:block">
           <Image 
-            src="https://picsum.photos/seed/signup/800/1000"
+            src="https://picsum.photos/seed/digital-art/800/1000"
             alt="Signup page decorative image"
             width={800}
             height={1000}

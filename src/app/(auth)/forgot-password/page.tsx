@@ -137,7 +137,7 @@ export default function ForgotPasswordPage() {
         </div>
          <div className="hidden md:block">
           <Image 
-            src="https://picsum.photos/seed/forgot/800/1000"
+            src="https://picsum.photos/seed/abstract-art/800/1000"
             alt="Forgot password decorative image"
             width={800}
             height={1000}
