@@ -1,6 +1,6 @@
 'use server';
 /**
- * @fileOverview An AI flow for finding and generating new business leads by simulating web searches.
+ * @fileOverview An AI flow for finding and generating new business leads by using a live Google Search tool.
  * 
  * - findLeads - The main function to find leads based on a query.
  * - Lead - The data structure for a single lead.
@@ -8,6 +8,8 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import { googleSearchTool, googleSearchRetriever } from '@genkit-ai/google-genai';
+
 
 // Define the schema for a single lead
 const LeadSchema = z.object({
@@ -19,8 +21,59 @@ const LeadSchema = z.object({
 });
 export type Lead = z.infer<typeof LeadSchema>;
 
+
+const FindLeadsInputSchema = z.object({
+  query: z.string().describe("The user's search query to find business leads."),
+});
+export type FindLeadsInput = z.infer<typeof FindLeadsInputSchema>;
+
+
 // Define the output schema for the main flow
 const FindLeadsOutputSchema = z.object({
-  leads: z.array(LeadSchema).describe('A list of potential business leads.'),
+  leads: z.array(LeadSchema).describe('A list of 10 potential business leads found from the web search.'),
 });
-export type FindLeadsOutput = z:
+export type FindLeadsOutput = z.infer<typeof FindLeadsOutputSchema>;
+
+
+const findLeadsFlow = ai.defineFlow(
+  {
+    name: 'findLeadsFlow',
+    inputSchema: FindLeadsInputSchema,
+    outputSchema: FindLeadsOutputSchema,
+  },
+  async (input) => {
+    
+    // The new Agentic flow that uses the Google Search tool.
+    const llm = ai.getGenerator('gemini-2.5-flash');
+
+    const response = await llm.generate({
+        prompt: `Your task is to act as an expert market researcher. The user will provide a query. 
+        You MUST use the provided Google Search tool to find 10 real-world business leads based on that query.
+        For each lead, you must provide a real name, a plausible email, a plausible mobile number, a real physical address, and a one-sentence description.
+        Do not make up information. Use the search tool to find factual data.
+        
+        User Query: ${input.query}`,
+        tools: [googleSearchTool],
+        output: {
+            schema: FindLeadsOutputSchema,
+        },
+    });
+
+    const output = response.output();
+    if (!output) {
+      throw new Error('The AI failed to generate any valid leads from the search results.');
+    }
+
+    return output;
+  }
+);
+
+
+/**
+ * Public-facing wrapper function to call the findLeadsFlow.
+ * @param input The user's query to find leads.
+ * @returns A promise that resolves to the list of found leads.
+ */
+export async function findLeads(input: FindLeadsInput): Promise<FindLeadsOutput> {
+  return findLeadsFlow(input);
+}
