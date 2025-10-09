@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { useAuth, initiateEmailSignIn } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { LoaderCircle, LogIn } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 const Logo = () => (
   <div className="flex items-center justify-center gap-2 mb-8">
@@ -59,19 +58,16 @@ export default function LoginPage() {
     // Initiate non-blocking sign-in
     initiateEmailSignIn(auth, email, password);
     
-    // Redirect immediately. The onAuthStateChanged listener in the provider
-    // will handle the user session and redirect if login fails.
-    router.push('/uploader_panel');
+    // Redirect immediately to the central hub. The onAuthStateChanged listener
+    // in the provider will handle the user session and redirect if login fails.
+    router.push('/');
   };
 
   return (
     <div className="relative flex flex-col min-h-screen items-center justify-center bg-slate-200 bg-gradient-to-br from-white/30 via-transparent to-transparent overflow-hidden p-4">
       <main className="z-10 w-full flex items-center justify-center">
-        <motion.div
+        <div
           className="relative w-full max-w-md mx-auto bg-white/40 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-300/70 overflow-hidden"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
         >
           <div className="p-8 md:p-10 flex flex-col justify-center relative z-10">
             <div>
@@ -106,7 +102,7 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-        </motion.div>
+        </div>
       </main>
     </div>
   );

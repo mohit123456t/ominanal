@@ -1,159 +1,86 @@
 'use client';
-import { Button } from '@/components/ui/button';
-import { ArrowRight, Bot, BarChart, Clock, Search, Mail, Layers, Trophy, Instagram, Facebook, Youtube, Twitter } from 'lucide-react';
-import Link from 'next/link';
-import React, { Suspense } from 'react';
-import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { InfiniteScroll } from '@/components/layout/infinite-scroll';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { LoaderCircle } from 'lucide-react';
 
-const MotionCard = ({ children, delay = 0, className }: { children: React.ReactNode, delay?: number, className?: string }) => (
-    <motion.div
-        className={className}
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.2 }}
-        transition={{ delay, duration: 0.5, ease: "easeOut" }}
-    >
-        {children}
-    </motion.div>
-);
+/**
+ * This is the root page of the application and acts as a redirection hub.
+ * After a user logs in, they are sent here. This component then fetches
+ * the user's role from Firestore and redirects them to the correct panel.
+ */
+export default function RedirectionHubPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const router = useRouter();
 
-const StatCard = ({ icon, value, label, delay = 0 }: { icon: React.ReactNode, value: string, label: string, delay?: number }) => (
-    <MotionCard delay={delay} className="bg-white/40 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-slate-300/70 flex flex-col items-center text-center">
-        <div className="text-primary mb-3">{icon}</div>
-        <div className="text-4xl font-bold text-foreground">{value}</div>
-        <div className="text-muted-foreground text-sm mt-1">{label}</div>
-    </MotionCard>
-);
+  // Memoize the document reference to prevent re-renders
+  const userDocRef = useMemoFirebase(() => {
+    if (user && firestore) {
+      return doc(firestore, 'users', user.uid);
+    }
+    return null;
+  }, [user, firestore]);
 
-const socialIcons = [
-    { icon: <Instagram />, name: 'Instagram' },
-    { icon: <Facebook />, name: 'Facebook' },
-    { icon: <Youtube />, name: 'YouTube' },
-    { icon: <Twitter />, name: 'Twitter / X' },
-];
+  // Fetch the user's profile from Firestore
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userDocRef);
 
-export default function RootPage() {
+  useEffect(() => {
+    // If auth is still loading, wait.
+    if (isUserLoading || isProfileLoading) {
+      return;
+    }
+    
+    // If there is no user, redirect to the landing page.
+    if (!user) {
+      router.replace('/landing');
+      return;
+    }
+
+    // If we have the user's profile, redirect based on role.
+    if (userProfile && userProfile.role) {
+      switch (userProfile.role) {
+        case 'superadmin':
+          router.replace('/superadmin_panal');
+          break;
+        case 'admin':
+          router.replace('/admin_panel');
+          break;
+        case 'brand':
+          router.replace('/brand_panel');
+          break;
+        case 'uploader':
+           router.replace('/uploader_panel');
+          break;
+        case 'video_editor':
+          router.replace('/video_editor_panel');
+          break;
+        case 'script_writer':
+          router.replace('/script_writer_panel');
+          break;
+        case 'thumbnail_maker':
+          router.replace('/thumbnail_maker_panel');
+          break;
+        default:
+          // Fallback for unknown roles or users without a specific panel
+          router.replace('/uploader_panel');
+          break;
+      }
+    } else if (!isProfileLoading && user && !userProfile) {
+        // If the user is logged in but has no profile, it might be a new user
+        // or an error state. For now, redirect to a default panel.
+         console.warn("User is logged in but no profile found. Redirecting to default panel.");
+         router.replace('/uploader_panel');
+    }
+
+  }, [user, isUserLoading, userProfile, isProfileLoading, router]);
+
+  // Display a loading indicator while we figure out where to go.
   return (
-    <div className="w-full font-sans text-foreground overflow-x-hidden">
-        {/* Hero Section */}
-        <div className="container mx-auto px-6 py-20 md:py-28">
-           <div className="grid md:grid-cols-2 gap-12 items-center">
-                <MotionCard>
-                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter leading-tight text-foreground">
-                       Automate The Manual, Achieve The Results.
-                    </h1>
-                    <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-                        TrendXoda is your all-in-one platform to create, schedule, and analyze your social media, freeing you to focus on growth.
-                    </p>
-                    <div className="mt-8">
-                        <Button size="lg" asChild className="shadow-lg hover:shadow-primary/20 transition-shadow">
-                            <Link href="/signup">
-                                Get Started For Free <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                        </Button>
-                    </div>
-                </MotionCard>
-                 <MotionCard delay={0.2}>
-                    <Image 
-                        src="https://picsum.photos/seed/hero/800/600" 
-                        alt="Dashboard preview" 
-                        width={800} 
-                        height={600}
-                        className="rounded-2xl shadow-2xl border border-slate-300/70"
-                        data-ai-hint="dashboard preview"
-                    />
-                </MotionCard>
-           </div>
-        </div>
-
-        <section className="py-12">
-            <h3 className="text-center text-muted-foreground font-semibold uppercase tracking-wider mb-8">Powering Content Across All Major Platforms</h3>
-            <div className="relative">
-                <div
-                    className="absolute inset-0 z-10"
-                    style={{
-                        background:
-                        'linear-gradient(to right, hsl(var(--background)), transparent 20%, transparent 80%, hsl(var(--background)))',
-                    }}
-                />
-                 <InfiniteScroll className="flex items-center gap-12 md:gap-20">
-                    {socialIcons.map((item) => (
-                        <div key={item.name} className="flex items-center gap-3 text-muted-foreground text-2xl">
-                            {item.icon}
-                            <span className="text-lg font-medium hidden sm:block">{item.name}</span>
-                        </div>
-                    ))}
-                </InfiniteScroll>
-            </div>
-        </section>
-        
-        {/* Stats Section */}
-        <div className="py-10 md:py-16">
-            <div className="container mx-auto px-6">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard icon={<Bot size={32}/>} value="10x" label="Faster Content Creation" delay={0.1} />
-                    <StatCard icon={<Clock size={32}/>} value="20+" label="Hours Saved Weekly" delay={0.2} />
-                    <StatCard icon={<BarChart size={32}/>} value="300%" label="Engagement Boost" delay={0.3} />
-                    <StatCard icon={<Layers size={32}/>} value="All" label="Platforms in One" delay={0.4} />
-                </div>
-            </div>
-        </div>
-
-        {/* How it works Section */}
-        <div id="features" className="py-20 md:py-28">
-            <div className="container mx-auto px-4">
-                <MotionCard className="text-center mb-16">
-                    <h2 className="text-3xl md:text-4xl font-bold">How TrendXoda Works</h2>
-                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">Transform your social media strategy in three simple, powerful steps.</p>
-                </MotionCard>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
-                    {/* Step 1 */}
-                     <MotionCard delay={0.1} className="flex flex-col md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
-                        <Image src="https://picsum.photos/seed/step1/600/400" alt="Create with AI" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="AI creation interface"/>
-                        <div className="md:w-1/2">
-                            <h3 className="text-2xl font-bold mb-2">1. Create with AI</h3>
-                            <p className="text-muted-foreground">Generate viral-worthy captions, scripts, and campaign ideas in seconds. Our AI is your new creative partner, always ready with fresh ideas.</p>
-                        </div>
-                    </MotionCard>
-                     {/* Step 2 */}
-                      <MotionCard delay={0.2} className="flex flex-col-reverse md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
-                        <div className="md:w-1/2">
-                            <h3 className="text-2xl font-bold mb-2">2. Schedule with Ease</h3>
-                            <p className="text-muted-foreground">Plan your content calendar visually. Let our AI determine the optimal posting times to maximize reach and engagement, automatically.</p>
-                        </div>
-                         <Image src="https://picsum.photos/seed/step2/600/400" alt="Schedule content" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="content calendar schedule"/>
-                    </MotionCard>
-                     {/* Step 3 */}
-                      <MotionCard delay={0.3} className="flex flex-col md:flex-row items-center gap-6 col-span-3 bg-white/40 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-slate-300/70">
-                        <Image src="https://picsum.photos/seed/step3/600/400" alt="Track Performance" width={500} height={350} className="rounded-2xl shadow-lg w-full md:w-1/2" data-ai-hint="analytics dashboard charts"/>
-                        <div className="md:w-1/2">
-                            <h3 className="text-2xl font-bold mb-2">3. Track Performance</h3>
-                            <p className="text-muted-foreground">Gain deep insights with our beautiful and intuitive analytics. Understand what's working and make data-driven decisions to fuel your growth.</p>
-                        </div>
-                    </MotionCard>
-                </div>
-            </div>
-        </div>
-
-        {/* CTA Section */}
-        <div className="py-20 md:py-28">
-            <div className="container mx-auto px-4 text-center">
-                 <MotionCard>
-                    <h2 className="text-3xl md:text-4xl font-bold">Ready to Elevate Your Digital Strategy?</h2>
-                    <p className="mt-3 text-muted-foreground max-w-xl mx-auto">Join thousands of creators and brands automating their success with TrendXoda. Get started for free, no credit card required.</p>
-                    <div className="mt-8">
-                        <Button size="lg" asChild className="shadow-lg shadow-primary/20 transition-all">
-                            <Link href="/signup">
-                                Start Your Free Trial <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
-                        </Button>
-                    </div>
-                </MotionCard>
-            </div>
-        </div>
+    <div className="flex h-screen w-full flex-col items-center justify-center space-y-4 bg-background p-4">
+        <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
+        <p className="font-medium text-muted-foreground">Authenticating and redirecting...</p>
     </div>
   );
 }
