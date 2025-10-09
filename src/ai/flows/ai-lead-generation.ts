@@ -49,7 +49,6 @@ const searchWebForLeads = ai.defineTool(
     const leadsGenerator = await ai.generate({
       prompt: `Imagine you are a web search engine. Based on the query "${input.query}", generate a list of 10 plausible, even if fictional, business leads that match the request. For each lead, provide a realistic-sounding name, email, mobile number, address, and a short description.`,
       output: {
-        format: 'json',
         schema: FindLeadsOutputSchema,
       },
     });
